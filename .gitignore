@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+
+# IDE folders
+.vs/
+.vscode/
+
+# Sensitive config files
+appsettings.Development.json
+
+# User-specific project settings
+*.user
+
+# dotnet user-secrets (stored in OS user profile, not in repo)
+secrets.json
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+

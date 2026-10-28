@@ -1,0 +1,2042 @@
+/* ==========================================================================
+   Areas/Warehouse/Views/Shared/warehouse.css
+   Thiết kế giao diện Kho hàng (Hệ thống MRP Dược phẩm)
+   ========================================================================== */
+
+:root {
+    --wh-header-height: 48px;
+    --wh-sidebar-width: 210px;
+    --wh-sidebar-collapsed-width: 60px;
+    --wh-bg-main: #eef1f6;
+    --wh-bg-sidebar: #151c2c;
+    --wh-bg-sidebar-hover: rgba(255, 255, 255, 0.07);
+    --wh-primary: #2563eb;
+    --wh-primary-hover: #1d4ed8;
+    --wh-text-dark: #111827;
+    --wh-text-body: #1f2937;
+    --wh-text-muted: #6b7280;
+    --wh-text-light: #9ca3af;
+    --wh-sidebar-text: #cbd5e1;
+    --wh-border-color: #e5e7eb;
+    --wh-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --wh-popover-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.1);
+    --wh-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: var(--wh-font-family);
+    font-size: 13px;
+    color: var(--wh-text-body);
+    background-color: var(--wh-bg-main);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   1. TOP HEADER COMPONENT
+   ========================================================================== */
+.wh-header {
+    height: var(--wh-header-height);
+    background: #ffffff;
+    border-bottom: 1px solid var(--wh-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    user-select: none;
+    z-index: 100;
+}
+
+.wh-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wh-app-launcher {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.wh-app-launcher:hover {
+    background-color: #f3f4f6;
+}
+
+.wh-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    margin-right: 12px;
+}
+
+.wh-brand-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+.wh-brand-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--wh-text-dark);
+    letter-spacing: -0.01em;
+}
+
+.wh-search-box {
+    position: relative;
+    width: 255px;
+    display: flex;
+    align-items: center;
+}
+
+.wh-search-icon {
+    position: absolute;
+    left: 10px;
+    color: #9ca3af;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+}
+
+.wh-search-input {
+    width: 100%;
+    height: 32px;
+    background-color: #f3f4f6;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0 12px 0 32px;
+    font-size: 12.5px;
+    color: var(--wh-text-body);
+    outline: none;
+    transition: all 0.15s ease;
+}
+
+.wh-search-input::placeholder {
+    color: #9ca3af;
+}
+
+.wh-search-input:focus {
+    background-color: #ffffff;
+    border-color: var(--wh-primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.wh-header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wh-header-divider {
+    width: 1px;
+    height: 18px;
+    background-color: #e5e7eb;
+    margin: 0 4px;
+}
+
+.wh-icon-btn {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.wh-icon-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.wh-badge-danger {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    background-color: #ef4444;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 999px;
+    line-height: 1.1;
+    border: 1.5px solid #ffffff;
+}
+
+.wh-badge-dot {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 7px;
+    height: 7px;
+    background-color: #10b981;
+    border-radius: 50%;
+    border: 1.5px solid #ffffff;
+}
+
+.wh-data-mode-btn {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 6px;
+    transition: all 0.15s ease;
+}
+
+.wh-data-mode-btn:hover {
+    background: #dbeafe;
+}
+
+.wh-avatar-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    margin-left: 4px;
+    cursor: pointer;
+    padding: 0;
+    background: #f3f4f6;
+}
+
+.wh-avatar-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ==========================================================================
+   2. BODY LAYOUT & SIDEBAR COMPONENT
+   ========================================================================== */
+.wh-body {
+    display: flex;
+    height: calc(100vh - var(--wh-header-height));
+    width: 100%;
+    overflow: hidden;
+}
+
+#wh-sidebar-mount {
+    height: 100%;
+    display: flex;
+    flex-shrink: 0;
+}
+
+.wh-sidebar {
+    width: var(--wh-sidebar-width);
+    height: 100%;
+    min-height: calc(100vh - var(--wh-header-height));
+    background-color: var(--wh-bg-sidebar);
+    color: var(--wh-sidebar-text);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    user-select: none;
+    overflow: hidden;
+}
+
+.wh-sidebar.collapsed {
+    width: var(--wh-sidebar-collapsed-width);
+}
+
+.wh-sidebar-nav {
+    padding: 10px 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+}
+
+.wh-sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.wh-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.wh-sidebar-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.08);
+    margin: 8px 4px;
+    transition: margin 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wh-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 9px 11px;
+    border-radius: 6px;
+    color: var(--wh-sidebar-text);
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.18s ease, color 0.18s ease, padding 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.wh-nav-item:hover {
+    background-color: var(--wh-bg-sidebar-hover);
+    color: #ffffff;
+}
+
+.wh-nav-item.active {
+    background-color: var(--wh-primary);
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.wh-nav-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.wh-nav-icon {
+    width: 22px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.92;
+}
+
+.wh-nav-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 1;
+    max-width: 140px;
+    transition: opacity 0.2s ease, max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease;
+}
+
+.wh-nav-badge {
+    background-color: #334155;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    opacity: 1;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.wh-nav-arrow {
+    display: flex;
+    align-items: center;
+    color: #94a3b8;
+    opacity: 1;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
+}
+
+.wh-nav-item.expanded .wh-nav-arrow-down {
+    transform: rotate(180deg);
+}
+
+/* Submenu "Hoạt động kho" với hiệu ứng trượt mượt mà */
+.wh-submenu {
+    margin-left: 19px;
+    padding-left: 10px;
+    border-left: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin-top: 0;
+    margin-bottom: 0;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.22s ease,
+                margin 0.25s ease;
+}
+
+.wh-submenu.open {
+    max-height: 180px;
+    opacity: 1;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.wh-submenu-item {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--wh-sidebar-text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.wh-submenu-item:hover {
+    background-color: var(--wh-bg-sidebar-hover);
+    color: #ffffff;
+}
+
+.wh-submenu-item.active {
+    background-color: var(--wh-primary);
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Trạng thái khi thu gọn Sidebar (.collapsed) */
+.wh-sidebar.collapsed .wh-nav-label {
+    opacity: 0;
+    max-width: 0;
+    transform: translateX(-6px);
+    pointer-events: none;
+}
+
+.wh-sidebar.collapsed .wh-nav-badge,
+.wh-sidebar.collapsed .wh-nav-arrow {
+    opacity: 0;
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.wh-sidebar.collapsed .wh-submenu {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Sidebar Footer ("Thu gọn") luôn cố định ở đáy màn hình */
+.wh-sidebar-footer {
+    padding: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.wh-collapse-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 11px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background-color 0.15s, color 0.15s, padding 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wh-collapse-btn:hover {
+    background-color: var(--wh-bg-sidebar-hover);
+    color: #ffffff;
+}
+
+.wh-collapse-icon {
+    width: 22px;
+    height: 18px;
+    flex-shrink: 0;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wh-collapse-btn span {
+    opacity: 1;
+    max-width: 120px;
+    transition: opacity 0.2s ease, max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wh-sidebar.collapsed .wh-collapse-btn span {
+    opacity: 0;
+    max-width: 0;
+    pointer-events: none;
+}
+
+.wh-sidebar.collapsed .wh-collapse-icon {
+    transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   3. MAIN CONTENT & DASHBOARD GRID
+   ========================================================================== */
+.wh-main {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+    background-color: var(--wh-bg-main);
+}
+
+.wh-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.wh-page-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--wh-text-dark);
+}
+
+.wh-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 1024px) {
+    .wh-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   4. REUSABLE WIDGET CARD COMPONENT
+   ========================================================================== */
+.wh-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: var(--wh-card-shadow);
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 312px;
+    position: relative;
+    border: 1px solid rgba(229, 231, 235, 0.6);
+}
+
+.wh-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.wh-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--wh-text-dark);
+}
+
+.wh-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wh-card-action-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.wh-card-action-btn:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+.wh-card-action-btn.spinning svg {
+    animation: wh-spin 0.55s linear;
+}
+
+@keyframes wh-spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Table inside WidgetCard */
+.wh-table-wrapper {
+    flex: 1;
+    overflow-x: auto;
+}
+
+.wh-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.wh-table thead tr {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.wh-table th {
+    padding: 8px 10px;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.wh-table td {
+    padding: 8.5px 10px;
+    color: #1f2937;
+    border-bottom: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.wh-table tbody tr:hover td {
+    background-color: #f9fafb;
+}
+
+.wh-text-left {
+    text-align: left;
+}
+
+.wh-text-right {
+    text-align: right;
+}
+
+.wh-product-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wh-product-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.wh-product-name {
+    font-weight: 400;
+    color: #1f2937;
+}
+
+.wh-empty-row {
+    text-align: center;
+    padding: 28px 10px !important;
+    color: #9ca3af !important;
+    font-style: italic;
+}
+
+/* Card Footer */
+.wh-card-footer {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #9ca3af;
+}
+
+.wh-reload-link {
+    color: var(--wh-primary);
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.wh-reload-link:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   5. REUSABLE PARAMETER POPOVER COMPONENT ("Chọn tham số")
+   ========================================================================== */
+.wh-param-popover {
+    position: absolute;
+    top: 38px;
+    right: -28px;
+    width: 248px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: var(--wh-popover-shadow);
+    border: 1px solid #e5e7eb;
+    padding: 14px 16px;
+    z-index: 50;
+    display: none;
+}
+
+@media (max-width: 1200px) {
+    .wh-param-popover {
+        right: 12px;
+    }
+}
+
+.wh-param-popover.open {
+    display: block;
+    animation: wh-fade-in 0.15s ease-out;
+}
+
+@keyframes wh-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.wh-param-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.wh-param-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--wh-text-dark);
+}
+
+.wh-param-close {
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.wh-param-close:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+.wh-param-body {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 12.5px;
+    color: #374151;
+}
+
+.wh-param-select {
+    height: 30px;
+    min-width: 62px;
+    padding: 0 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: #111827;
+    background-color: #ffffff;
+    outline: none;
+    cursor: pointer;
+}
+
+.wh-param-select:focus {
+    border-color: var(--wh-primary);
+}
+
+.wh-param-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.wh-btn {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.wh-btn-cancel {
+    background-color: #ffffff;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.wh-btn-cancel:hover {
+    background-color: #f9fafb;
+}
+
+.wh-btn-apply {
+    background-color: var(--wh-primary);
+    color: #ffffff;
+}
+
+.wh-btn-apply:hover {
+    background-color: var(--wh-primary-hover);
+}
+
+/* ==========================================================================
+   6. EMPTY PLACEHOLDER FOR OTHER SIDEBAR ITEMS
+   ("Phần maincontent cho các mục trong sidebar hãy để trống (sẽ thiết kế sau)")
+   ========================================================================== */
+.wh-empty-maincontent {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+/* ==========================================================================
+   7. WORKSPACE VIEW COMPONENT ("Bàn làm việc")
+   ========================================================================== */
+.wh-ws-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 315px;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 1100px) {
+    .wh-ws-hero-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.wh-ws-banner {
+    position: relative;
+    border-radius: 10px;
+    min-height: 184px;
+    padding: 20px 24px;
+    background: linear-gradient(115deg, #2563eb 0%, #3b82f6 52%, #4f46e5 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.wh-ws-banner-art {
+    position: absolute;
+    right: -10px;
+    top: -20px;
+    bottom: -20px;
+    width: 62%;
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.wh-ws-date {
+    position: relative;
+    z-index: 2;
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.wh-ws-greeting-box {
+    position: relative;
+    z-index: 2;
+}
+
+.wh-ws-greeting-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+
+.wh-ws-greeting-sub {
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.wh-ws-promo {
+    position: relative;
+    border-radius: 10px;
+    min-height: 184px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #ffffff 50%, #eef2ff 82%, #f5d0fe 100%);
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    box-shadow: var(--wh-card-shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.wh-ws-promo-art {
+    position: absolute;
+    right: -18px;
+    bottom: -18px;
+    width: 145px;
+    height: 145px;
+    pointer-events: none;
+}
+
+.wh-ws-promo-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--wh-primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.wh-ws-promo-text {
+    position: relative;
+    z-index: 2;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #4b5563;
+    max-width: 240px;
+    margin-bottom: 12px;
+}
+
+.wh-ws-promo-btn {
+    position: relative;
+    z-index: 2;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: none;
+    background-color: var(--wh-primary);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.wh-ws-promo-btn:hover {
+    background-color: var(--wh-primary-hover);
+}
+
+/* Workspace Bottom Cards ("Đơn đặt hàng" & "Lệnh xuất kho") */
+.wh-ws-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wh-ws-donut-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 4px;
+}
+
+.wh-ws-donut-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wh-ws-total-box {
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+.wh-ws-total-label {
+    font-size: 12.5px;
+    color: #374151;
+    margin-bottom: 2px;
+}
+
+.wh-ws-total-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--wh-primary);
+    line-height: 1.1;
+}
+
+.wh-ws-stat-list {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wh-ws-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+}
+
+.wh-ws-stat-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1f2937;
+}
+
+.wh-ws-stat-percent {
+    color: #6b7280;
+}
+
+.wh-ws-stat-count {
+    font-weight: 700;
+    color: var(--wh-primary);
+}
+
+.wh-ws-bar-container {
+    margin-top: 6px;
+}
+
+.wh-ws-bar-track {
+    width: 100%;
+    height: 74px;
+    border-radius: 5px;
+    background-color: #84cc16;
+    margin-bottom: 12px;
+}
+
+.wh-ws-bar-legend {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 10px;
+    column-gap: 18px;
+}
+
+.wh-ws-card-footer-right {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.wh-ws-more-link {
+    font-size: 12px;
+    color: var(--wh-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.wh-ws-more-link:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   8. REUSABLE TABBED DATAGRID COMPONENT ("Nhập kho" & "Xuất kho")
+   ========================================================================== */
+.wh-datagrid-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--wh-header-height) - 24px);
+    margin: -6px -8px -6px -8px;
+}
+
+.wh-tabs-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    padding-left: 0;
+    flex-shrink: 0;
+}
+
+.wh-tab-btn {
+    height: 36px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    top: 1px;
+}
+
+.wh-tab-btn:hover {
+    color: var(--wh-primary);
+}
+
+.wh-tab-btn.active {
+    background-color: #ffffff;
+    color: var(--wh-primary);
+    font-weight: 600;
+    border-color: #e5e7eb;
+    z-index: 2;
+}
+
+.wh-datagrid-card {
+    flex: 1;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 6px 6px 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--wh-card-shadow);
+}
+
+/* Toolbar: Search + Filters + Actions */
+.wh-dg-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 10px;
+    flex-shrink: 0;
+    background-color: #ffffff;
+}
+
+.wh-dg-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wh-dg-search-box {
+    position: relative;
+    width: 190px;
+    display: flex;
+    align-items: center;
+}
+
+.wh-dg-search-icon {
+    position: absolute;
+    left: 9px;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
+.wh-dg-search-input {
+    width: 100%;
+    height: 30px;
+    padding: 0 10px 0 28px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: #1f2937;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.wh-dg-search-input:focus {
+    border-color: var(--wh-primary);
+}
+
+.wh-dg-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background-color: #ffffff;
+    font-size: 12.5px;
+    color: #374151;
+    gap: 4px;
+}
+
+.wh-dg-filter-prefix {
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+.wh-dg-filter-select {
+    border: none;
+    background: transparent;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #111827;
+    outline: none;
+    cursor: pointer;
+    padding-right: 4px;
+}
+
+.wh-dg-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wh-dg-icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.wh-dg-icon-btn:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+.wh-dg-add-btn {
+    height: 30px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 5px;
+    background-color: var(--wh-primary);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.wh-dg-add-btn:hover {
+    background-color: var(--wh-primary-hover);
+}
+
+/* DataGrid Table */
+.wh-dg-table-scroll {
+    flex: 1;
+    overflow: auto;
+    background-color: #ffffff;
+}
+
+.wh-dg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.wh-dg-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: #f3f4f6;
+    color: #111827;
+    font-weight: 600;
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.wh-dg-table thead th:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background-color: #d1d5db;
+}
+
+.wh-dg-table tbody td {
+    padding: 8.5px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1f2937;
+    white-space: nowrap;
+}
+
+.wh-dg-table tbody tr:hover td {
+    background-color: #f8fafc;
+}
+
+.wh-dg-checkbox-col {
+    width: 38px;
+    text-align: center !important;
+    padding: 8px 6px !important;
+}
+
+.wh-dg-checkbox {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--wh-primary);
+    cursor: pointer;
+}
+
+.wh-dg-link {
+    color: var(--wh-primary);
+    text-decoration: none;
+    font-weight: 400;
+}
+
+.wh-dg-link:hover {
+    text-decoration: underline;
+}
+
+.wh-dg-status-info {
+    color: var(--wh-primary);
+}
+
+.wh-dg-status-warning {
+    color: #ea580c;
+}
+
+.wh-dg-status-success {
+    color: #16a34a;
+}
+
+/* Sticky Pagination Footer */
+.wh-dg-footer {
+    height: 42px;
+    padding: 0 14px;
+    border-top: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: #374151;
+    flex-shrink: 0;
+}
+
+.wh-dg-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wh-dg-page-size {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #111827;
+    background-color: #ffffff;
+    outline: none;
+}
+
+.wh-dg-range {
+    font-weight: 600;
+    color: #111827;
+}
+
+.wh-dg-pager {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wh-dg-page-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.wh-dg-page-btn:disabled {
+    color: #d1d5db;
+    cursor: default;
+}
+
+.wh-dg-page-btn:not(:disabled):hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+/* ==========================================================================
+   9. REUSABLE STOCK VOUCHER MODAL COMPONENT ("Phiếu nhập kho" & "Phiếu xuất kho")
+   ========================================================================== */
+.wh-voucher-overlay {
+    position: fixed;
+    top: var(--wh-header-height);
+    left: var(--wh-sidebar-width);
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.25);
+    z-index: 85;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 8px 10px;
+    animation: wh-fade-in 0.16s ease-out;
+}
+
+.wh-sidebar.collapsed ~ .wh-main .wh-voucher-overlay {
+    left: var(--wh-sidebar-collapsed-width);
+}
+
+.wh-voucher-window {
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2);
+    border: 1px solid #d1d5db;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Top Header of Voucher Window */
+.wh-voucher-topbar {
+    height: 50px;
+    padding: 0 18px;
+    background-color: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.wh-voucher-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.wh-voucher-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+}
+
+/* Custom Voucher Type Dropdown (e.g., "Nhập kho mua hàng" / "Xuất kho bán hàng") */
+.wh-vtype-dropdown {
+    position: relative;
+}
+
+.wh-vtype-trigger {
+    height: 30px;
+    min-width: 158px;
+    padding: 0 10px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+    color: #1f2937;
+    cursor: pointer;
+}
+
+.wh-vtype-trigger.open {
+    border-color: var(--wh-primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.wh-vtype-trigger-text.highlighted {
+    background-color: #2563eb;
+    color: #ffffff;
+    padding: 1px 4px;
+    border-radius: 2px;
+}
+
+.wh-vtype-menu {
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 0;
+    width: 195px;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 5px;
+    box-shadow: var(--wh-popover-shadow);
+    padding: 4px 0;
+    z-index: 60;
+    display: none;
+}
+
+.wh-vtype-menu.open {
+    display: block;
+}
+
+.wh-vtype-option {
+    width: 100%;
+    padding: 7px 12px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: #1f2937;
+    cursor: pointer;
+    text-align: left;
+}
+
+.wh-vtype-option:hover {
+    background-color: #f3f4f6;
+}
+
+.wh-vtype-option.selected {
+    background-color: #eff6ff;
+    color: var(--wh-primary);
+    font-weight: 500;
+}
+
+.wh-voucher-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wh-voucher-win-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.wh-voucher-win-btn:hover {
+    background-color: #e5e7eb;
+    color: #111827;
+}
+
+/* Scrollable Content Area of Voucher */
+.wh-voucher-body {
+    flex: 1;
+    overflow-y: auto;
+    background-color: #ffffff;
+}
+
+/* Master Section (Gray Top Form Panel) */
+.wh-voucher-master {
+    background-color: #f3f4f6;
+    padding: 12px 18px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    display: grid;
+    grid-template-columns: 1fr 235px;
+    gap: 20px;
+}
+
+@media (max-width: 1024px) {
+    .wh-voucher-master {
+        grid-template-columns: 1fr;
+    }
+}
+
+.wh-voucher-master-left {
+    display: grid;
+    grid-template-columns: 230px 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 10px;
+}
+
+.wh-voucher-master-right {
+    border-left: 1px solid #d1d5db;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wh-col-span-2 {
+    grid-column: span 2;
+}
+
+.wh-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wh-form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.wh-req {
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.wh-input-control,
+.wh-select-control {
+    height: 30px;
+    width: 100%;
+    padding: 0 10px;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: #111827;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.wh-input-control:focus,
+.wh-select-control:focus {
+    border-color: var(--wh-primary);
+}
+
+.wh-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.wh-input-group .wh-input-control,
+.wh-input-group .wh-select-control {
+    padding-right: 32px;
+}
+
+.wh-input-addon-btn {
+    position: absolute;
+    right: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 28px;
+    border: none;
+    border-left: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 0 3px 3px 0;
+}
+
+.wh-input-addon-btn:hover {
+    background-color: #f9fafb;
+    color: var(--wh-primary);
+}
+
+/* Detail Items Section ("Hàng hóa") */
+.wh-voucher-detail {
+    padding: 14px 18px 24px;
+}
+
+.wh-voucher-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.wh-vtable-wrap {
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.wh-vtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.wh-vtable thead th {
+    background-color: #f3f4f6;
+    color: #111827;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.wh-vtable thead th:last-child {
+    border-right: none;
+}
+
+.wh-vtable tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1f2937;
+    white-space: nowrap;
+}
+
+.wh-vtable tbody tr:hover td {
+    background-color: #f8fafc;
+}
+
+.wh-vtable tfoot td {
+    background-color: #f8fafc;
+    padding: 8px 10px;
+    font-weight: 700;
+    color: #111827;
+    border-top: 1px solid #e5e7eb;
+}
+
+.wh-vtable-del-btn {
+    border: none;
+    background: transparent;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wh-vtable-del-btn:hover {
+    background-color: #fee2e2;
+}
+
+.wh-vtable-pager-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #4b5563;
+    gap: 10px;
+    background-color: #ffffff;
+    border-top: 1px solid #f1f5f9;
+}
+
+.wh-voucher-subfooter {
+    margin-top: 8px;
+}
+
+.wh-voucher-total-count {
+    font-size: 12.5px;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.wh-voucher-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.wh-vbtn-outline {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 4px;
+    background-color: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.wh-vbtn-blue {
+    border: 1px solid #3b82f6;
+    color: #2563eb;
+}
+
+.wh-vbtn-blue:hover {
+    background-color: #eff6ff;
+}
+
+.wh-vbtn-red {
+    border: 1px solid #f87171;
+    color: #dc2626;
+}
+
+.wh-vbtn-red:hover {
+    background-color: #fef2f2;
+}
+
+.wh-vbtn-gray {
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+.wh-vbtn-gray:hover {
+    background-color: #f9fafb;
+}
+
+/* Attachment Dropzone ("Đính kèm") */
+.wh-voucher-attach-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.wh-voucher-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 390px;
+    max-width: 100%;
+    min-height: 76px;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 18px 20px;
+    text-align: center;
+    background-color: #fafafa;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.wh-voucher-dropzone:hover {
+    border-color: var(--wh-primary);
+    background-color: #eff6ff;
+}
+
+.wh-dropzone-main {
+    font-size: 12.5px;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+.wh-dropzone-link {
+    color: var(--wh-primary);
+    font-weight: 500;
+}
+
+.wh-dropzone-sub {
+    font-size: 11.5px;
+    color: #6b7280;
+}
+
+/* Bottom Sticky Action Bar of Voucher */
+.wh-voucher-bottombar {
+    height: 48px;
+    padding: 0 18px;
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   10. EXTENSIONS FOR ORDER & COMMAND MODALS
+   ("Đơn mua hàng / Đơn đặt hàng" & "Lệnh nhập kho / Lệnh xuất kho")
+   ========================================================================== */
+.wh-col-span-3 {
+    grid-column: span 3;
+}
+
+.wh-voucher-master.has-far-right {
+    grid-template-columns: 1fr 235px 190px;
+}
+
+@media (max-width: 1150px) {
+    .wh-voucher-master.has-far-right {
+        grid-template-columns: 1fr;
+    }
+}
+
+.wh-voucher-master-far-right {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-top: 18px;
+}
+
+.wh-doc-scan-btn {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 4px;
+    border: 1px solid #93c5fd;
+    background-color: #ffffff;
+    color: var(--wh-primary);
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.wh-doc-scan-btn:hover {
+    background-color: #eff6ff;
+    border-color: var(--wh-primary);
+}
+
+/* Topbar Order Picker in Command Modal ("[ Nhập số đơn mua hàng v | 🔍 ]") */
+.wh-top-order-picker {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.wh-top-order-select {
+    height: 100%;
+    border: none;
+    background: transparent;
+    padding: 0 10px;
+    font-size: 12px;
+    color: #6b7280;
+    outline: none;
+    min-width: 165px;
+    cursor: pointer;
+}
+
+.wh-top-order-search-btn {
+    width: 28px;
+    height: 100%;
+    border: none;
+    border-left: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.wh-top-order-search-btn:hover {
+    color: var(--wh-primary);
+    background-color: #eff6ff;
+}
+
+/* Reference Tag Input Box ("Tham chiếu: [ DMH00028 × ] [ PNK00039 × ] | 🔍") */
+.wh-tag-input-box {
+    position: relative;
+    min-height: 30px;
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 3px 34px 3px 6px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.wh-ref-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 3px;
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: var(--wh-primary);
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.wh-ref-chip-remove {
+    border: none;
+    background: transparent;
+    color: #374151;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 1px;
+}
+
+.wh-ref-chip-remove:hover {
+    color: #dc2626;
+}
+
+.wh-input-readonly {
+    background-color: #f3f4f6 !important;
+    color: #4b5563 !important;
+}
+
+/* Split Footer Row below Order & Command Tables (Left: Tổng số, Right: Pager) */
+.wh-vtable-split-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 2px;
+    font-size: 12.5px;
+    color: #374151;
+}
+
+.wh-btn-icon-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+
+

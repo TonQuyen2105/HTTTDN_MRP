@@ -187,3 +187,5 @@ C:\Users\diemc\OneDrive\Documents\Code\httt\obj\Debug\net10.0\refint\httt.dll
 C:\Users\diemc\OneDrive\Documents\Code\httt\obj\Debug\net10.0\httt.pdb
 C:\Users\diemc\OneDrive\Documents\Code\httt\obj\Debug\net10.0\httt.genruntimeconfig.cache
 C:\Users\diemc\OneDrive\Documents\Code\httt\obj\Debug\net10.0\ref\httt.dll
+c:\Users\diemc\OneDrive\Documents\Code\httt\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.InMemory.dll
+C:\Users\diemc\OneDrive\Documents\Code\httt\obj\Debug\net10.0\compressed\smz04jvhcp-{0}-26kucwpz68-26kucwpz68.gz

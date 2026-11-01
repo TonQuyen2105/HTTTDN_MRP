@@ -1,0 +1,274 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container-fluid px-0">
+
+    <!-- ── Page Header ── -->
+    <div class="adm-page-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h1 class="adm-page-title" id="dashboardHeading">
+                <i class="fa-solid fa-gauge-high me-2 text-primary" style="font-size: 1.125rem;" aria-hidden="true"></i>
+                Dashboard
+            </h1>
+            <p class="adm-page-subtitle">Tổng quan hệ thống tài khoản &amp; phân quyền</p>
+        </div>
+        <span class="badge rounded-pill px-3 py-2" style="background: rgba(99,102,241,0.12); color: #4f46e5; font-size: 0.8rem; font-weight: 600;">
+            <i class="fa-regular fa-clock me-1" aria-hidden="true"></i>
+            <span id="liveTime">--:--</span>
+        </span>
+    </div>
+
+    <!-- ── KPI Cards ── -->
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="adm-kpi-card adm-kpi-card--primary h-100">
+                <div class="adm-kpi-card-body">
+                    <div class="adm-kpi-label">Tổng tài khoản</div>
+                    <div class="adm-kpi-value">@(ViewBag.TotalAccounts ?? 0)</div>
+                    <div class="adm-kpi-delta">
+                        <i class="fa-solid fa-users fa-xs me-1" aria-hidden="true"></i>Toàn bộ hệ thống
+                    </div>
+                </div>
+                <div class="adm-kpi-icon-wrap text-primary">
+                    <i class="fa-solid fa-users fa-2x" aria-hidden="true"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="adm-kpi-card adm-kpi-card--success h-100">
+                <div class="adm-kpi-card-body">
+                    <div class="adm-kpi-label">Quản trị viên</div>
+                    <div class="adm-kpi-value">@(ViewBag.AdminCount ?? 0)</div>
+                    <div class="adm-kpi-delta">
+                        <i class="fa-solid fa-user-shield fa-xs me-1" aria-hidden="true"></i>Role Admin
+                    </div>
+                </div>
+                <div class="adm-kpi-icon-wrap text-success">
+                    <i class="fa-solid fa-user-shield fa-2x" aria-hidden="true"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="adm-kpi-card adm-kpi-card--warning h-100">
+                <div class="adm-kpi-card-body">
+                    <div class="adm-kpi-label">Quản lý</div>
+                    <div class="adm-kpi-value">@(ViewBag.ManagerCount ?? 0)</div>
+                    <div class="adm-kpi-delta">
+                        <i class="fa-solid fa-user-tie fa-xs me-1" aria-hidden="true"></i>Role Manager
+                    </div>
+                </div>
+                <div class="adm-kpi-icon-wrap text-warning">
+                    <i class="fa-solid fa-user-tie fa-2x" aria-hidden="true"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="adm-kpi-card adm-kpi-card--info h-100">
+                <div class="adm-kpi-card-body">
+                    <div class="adm-kpi-label">Đang hoạt động</div>
+                    <div class="adm-kpi-value">@(ViewBag.ActiveCount ?? 0)</div>
+                    <div class="adm-kpi-delta">
+                        <i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>Status Active
+                    </div>
+                </div>
+                <div class="adm-kpi-icon-wrap text-info">
+                    <i class="fa-solid fa-user-check fa-2x" aria-hidden="true"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Charts + Activity ── -->
+    <div class="row g-4 mb-4">
+        <!-- Doughnut chart -->
+        <div class="col-lg-5">
+            <div class="adm-card h-100">
+                <div class="adm-card-header">
+                    <h2 class="adm-card-title">
+                        <i class="fa-solid fa-chart-pie me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
+                        Tỷ lệ theo vai trò
+                    </h2>
+                    <span class="badge rounded-pill px-2 py-1" style="background: rgba(99,102,241,0.10); color: #4f46e5; font-size: 0.7rem;">Live</span>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-chart-container" style="max-width: 300px;">
+                        <canvas id="roleChart" aria-label="Biểu đồ tỷ lệ tài khoản theo vai trò" role="img"></canvas>
+                    </div>
+                    <!-- Legend summary -->
+                    <div class="d-flex justify-content-center gap-4 mt-3 flex-wrap">
+                        <div class="text-center">
+                            <div class="fw-700 fs-5" style="color: #6366f1;">@(ViewBag.AdminCount ?? 0)</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Admin</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="fw-700 fs-5" style="color: #06b6d4;">@(ViewBag.ManagerCount ?? 0)</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Manager</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="fw-700 fs-5" style="color: #64748b;">@((ViewBag.TotalAccounts ?? 0) - (ViewBag.AdminCount ?? 0) - (ViewBag.ManagerCount ?? 0))</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Employee</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity log -->
+        <div class="col-lg-7">
+            <div class="adm-card h-100">
+                <div class="adm-card-header">
+                    <h2 class="adm-card-title">
+                        <i class="fa-solid fa-timeline me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
+                        Nhật ký hoạt động
+                    </h2>
+                    <span class="adm-badge adm-badge--active">Hôm nay</span>
+                </div>
+                <div class="adm-card-body">
+                    <div class="text-muted text-center py-4" style="font-size: 0.95rem;">
+                        <i class="fa-regular fa-clock me-2" aria-hidden="true"></i>Chưa có hoạt động nào gần đây
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Recent Accounts Table ── -->
+    <div class="adm-card">
+        <div class="adm-card-header">
+            <h2 class="adm-card-title">
+                <i class="fa-solid fa-table-list me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
+                Tài khoản gần đây
+            </h2>
+            <a asp-area="Admin" asp-controller="UserAccount" asp-action="Index"
+               class="adm-btn adm-btn--outline adm-btn--sm">
+                <i class="fa-solid fa-arrow-right fa-xs" aria-hidden="true"></i>
+                Xem tất cả
+            </a>
+        </div>
+        <div class="adm-card-body--flush">
+            <div class="table-responsive" role="region" aria-label="Danh sách tài khoản gần đây" tabindex="0">
+                <table class="adm-table">
+                    <caption class="visually-hidden">Tài khoản mới cập nhật cùng vai trò và trạng thái</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Tên đăng nhập</th>
+                            <th scope="col">Họ và tên</th>
+                            <th scope="col">Vai trò</th>
+                            <th scope="col">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (ViewBag.TotalAccounts != null)
+                        {
+                            var userList = ViewBag.UserList as IEnumerable<httt.Models.UserAccount> ?? Enumerable.Empty<httt.Models.UserAccount>();
+                            foreach (var item in userList.Take(5))
+                            {
+                                bool isActive = string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                                             || item.Status == "true" || item.Status == "1";
+                                <tr>
+                                    <td class="fw-semibold" style="color: #0f172a;">@item.Username</td>
+                                    <td>@item.FullName</td>
+                                    <td>
+                                        <span class="adm-badge @(item.Role == "Admin" ? "adm-badge--admin" : item.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                                            @item.Role
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
+                                            <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
+                                            @(isActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="fa-regular fa-circle-dot fa-2x mb-2 d-block opacity-25" aria-hidden="true"></i>
+                                    Không có dữ liệu
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            /* ── Live clock ── */
+            function updateClock() {
+                const el = document.getElementById('liveTime');
+                if (!el) return;
+                const now = new Date();
+                el.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            /* ── Doughnut Chart ── */
+            const ctx = document.getElementById('roleChart');
+            if (ctx) {
+                const roleLabels = @Html.Raw(ViewBag.RoleLabels ?? "['Admin','Manager','Employee']");
+                const roleValues = @Html.Raw(ViewBag.RoleValues ?? "[0,0,0]");
+
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: roleLabels,
+                        datasets: [{
+                            data: roleValues,
+                            backgroundColor: ['#6366f1', '#06b6d4', '#94a3b8'],
+                            borderColor: ['#fff', '#fff', '#fff'],
+                            borderWidth: 3,
+                            hoverOffset: 10,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    padding: 20,
+                                    font: { size: 12, weight: '600' },
+                                    color: '#64748b'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: { size: 12, weight: '700' },
+                                bodyFont: { size: 13 },
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                        return `  ${context.label}: ${context.parsed} (${pct}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+}

@@ -16,22 +16,17 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Cấu hình bảng UserAccounts
         modelBuilder.Entity<UserAccount>(entity =>
         {
-            // Đảm bảo Username là duy nhất (unique index)
             entity.HasIndex(u => u.Username)
                   .IsUnique()
-                  .HasDatabaseName("ix_user_accounts_username");
+                  .HasDatabaseName("ix_useraccount_username");
 
-            // Giá trị mặc định cho Role
             entity.Property(u => u.Role)
                   .HasDefaultValue("User");
 
-            // Giá trị mặc định cho Status
             entity.Property(u => u.Status)
-                  .HasDefaultValue(true);
+                  .HasDefaultValue("Active");
         });
     }
 }
-

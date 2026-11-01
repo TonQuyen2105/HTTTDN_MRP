@@ -1,0 +1,730 @@
+@model IEnumerable<httt.Models.UserAccount>
+
+@{
+    ViewData["Title"] = "Quản lý Tài khoản & Phân quyền";
+    var roleFilter   = Context.Request.Query["roleFilter"].ToString();
+    var statusFilter = Context.Request.Query["statusFilter"].ToString();
+    var searchString = Context.Request.Query["searchString"].ToString();
+}
+
+<div class="container-fluid px-0">
+
+    <!-- ── Page Header ── -->
+    <div class="adm-page-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h1 class="adm-page-title">
+                <i class="fa-solid fa-users-gear me-2 text-primary" style="font-size: 1.125rem;" aria-hidden="true"></i>
+                Quản lý Tài khoản
+            </h1>
+            <p class="adm-page-subtitle">Tạo, phân quyền và quản lý tất cả tài khoản hệ thống</p>
+        </div>
+        <button type="button" class="adm-btn adm-btn--primary"
+                data-bs-toggle="modal" data-bs-target="#accountModal" data-account-mode="create">
+            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+            Tạo tài khoản mới
+        </button>
+    </div>
+
+    <!-- ── Filter + Search Toolbar ── -->
+    <form method="get" asp-area="Admin" asp-controller="UserAccount" asp-action="Index">
+        <div class="adm-card mb-4">
+            <div class="adm-card-body">
+                <div class="adm-toolbar flex-wrap">
+
+                    <!-- Search -->
+                    <div class="adm-search-box">
+                        <i class="fa-solid fa-magnifying-glass adm-search-icon" aria-hidden="true"></i>
+                        <input type="search" class="adm-search-input" name="searchString"
+                               value="@searchString"
+                               placeholder="Tìm username, họ tên..."
+                               aria-label="Tìm tài khoản theo tên đăng nhập hoặc họ tên" />
+                    </div>
+
+                    <!-- Role filter -->
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="filterRole" class="text-nowrap fw-600" style="font-size: 0.8125rem; color: #64748b; font-weight: 600;">
+                            <i class="fa-solid fa-user-tag me-1" aria-hidden="true"></i>Vai trò
+                        </label>
+                        <select id="filterRole" name="roleFilter" class="adm-filter-select" aria-label="Lọc theo vai trò">
+                            <option value="all" selected="@(string.IsNullOrWhiteSpace(roleFilter) || roleFilter.Equals("all", StringComparison.OrdinalIgnoreCase))">Tất cả</option>
+                            <option value="Admin" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Admin", StringComparison.OrdinalIgnoreCase))">Admin</option>
+                            <option value="Manager" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Manager", StringComparison.OrdinalIgnoreCase))">Manager</option>
+                            <option value="Employee" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Employee", StringComparison.OrdinalIgnoreCase))">Employee</option>
+                        </select>
+                    </div>
+
+                    <!-- Status filter -->
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="filterStatus" class="text-nowrap fw-600" style="font-size: 0.8125rem; color: #64748b; font-weight: 600;">
+                            <i class="fa-solid fa-circle-half-stroke me-1" aria-hidden="true"></i>Trạng thái
+                        </label>
+                        <select id="filterStatus" name="statusFilter" class="adm-filter-select" aria-label="Lọc theo trạng thái">
+                            <option value="all" selected="@(string.IsNullOrWhiteSpace(statusFilter) || statusFilter.Equals("all", StringComparison.OrdinalIgnoreCase))">Tất cả</option>
+                            <option value="Active" selected="@(!string.IsNullOrWhiteSpace(statusFilter) && statusFilter.Equals("Active", StringComparison.OrdinalIgnoreCase))">Active</option>
+                            <option value="Inactive" selected="@(!string.IsNullOrWhiteSpace(statusFilter) && statusFilter.Equals("Inactive", StringComparison.OrdinalIgnoreCase))">Inactive</option>
+                        </select>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="adm-btn adm-btn--outline">
+                        <i class="fa-solid fa-filter" aria-hidden="true"></i>
+                        Lọc
+                    </button>
+
+                    @if (!string.IsNullOrWhiteSpace(searchString) || (!string.IsNullOrWhiteSpace(roleFilter) && !roleFilter.Equals("all", StringComparison.OrdinalIgnoreCase)) || (!string.IsNullOrWhiteSpace(statusFilter) && !statusFilter.Equals("all", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        <a asp-area="Admin" asp-controller="UserAccount" asp-action="Index" class="adm-btn adm-btn--ghost" title="Xóa bộ lọc">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                            Xóa bộ lọc
+                        </a>
+                    }
+
+                    <!-- Bulk actions (right side) -->
+                    <div class="ms-auto d-flex gap-2">
+                        <button type="button" id="bulkLockBtn" class="adm-btn adm-btn--outline" disabled>
+                            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                            <span class="d-none d-sm-inline">Khóa đã chọn</span>
+                        </button>
+                        <button type="button" id="bulkDeleteBtn" class="adm-btn adm-btn--danger-soft" disabled>
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                            <span class="d-none d-sm-inline">Xóa đã chọn</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- ── Data Table ── -->
+    <div class="adm-card">
+        <div class="adm-card-body--flush">
+            <div class="table-responsive" role="region" aria-label="Danh sách tài khoản" tabindex="0">
+                <table class="adm-table" id="accountsTable">
+                    <caption class="visually-hidden">Danh sách tài khoản, vai trò, trạng thái và thao tác quản trị</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 3rem; padding-left: 1.25rem;">
+                                <input class="form-check-input" type="checkbox" id="selectAllRows" aria-label="Chọn tất cả tài khoản" />
+                            </th>
+                            <th scope="col" style="width: 3.5rem;">ID</th>
+                            <th scope="col">Tên đăng nhập</th>
+                            <th scope="col">Họ và tên</th>
+                            <th scope="col">Số điện thoại</th>
+                            <th scope="col">Vai trò</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col" class="text-end" style="padding-right: 1.25rem;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var item in Model)
+                            {
+                                bool isActive = string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                                             || item.Status == "true" || item.Status == "1";
+                                <tr>
+                                    <td style="padding-left: 1.25rem;">
+                                        <input class="form-check-input row-checkbox" type="checkbox"
+                                               data-user-id="@item.UserId"
+                                               aria-label="Chọn tài khoản @item.Username" />
+                                    </td>
+                                    <td style="color: #94a3b8; font-size: 0.75rem; font-weight: 700;">#@item.UserId</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle fw-700 text-white flex-shrink-0"
+                                                  style="width: 1.75rem; height: 1.75rem; font-size: 0.7rem; font-weight: 700;
+                                                         background: @(item.Role == "Admin" ? "linear-gradient(135deg,#6366f1,#818cf8)" : item.Role == "Manager" ? "linear-gradient(135deg,#06b6d4,#67e8f9)" : "linear-gradient(135deg,#94a3b8,#cbd5e1)");"
+                                                  aria-hidden="true">
+                                                @(item.Username?.Length > 0 ? item.Username[0].ToString().ToUpper() : "?")
+                                            </span>
+                                            <span class="fw-semibold" style="color: #0f172a; font-size: 0.875rem;">@item.Username</span>
+                                        </div>
+                                    </td>
+                                    <td style="color: #475569;">@item.FullName</td>
+                                    <td class="text-nowrap" style="color: #94a3b8; font-size: 0.8125rem;">
+                                        @(string.IsNullOrWhiteSpace(item.Phone) ? "—" : item.Phone)
+                                    </td>
+                                    <td>
+                                        <span class="adm-badge @(item.Role == "Admin" ? "adm-badge--admin" : item.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                                            @item.Role
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
+                                            <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
+                                            @(isActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                    <td style="padding-right: 1.25rem;">
+                                        <div class="adm-action-group">
+                                            <!-- Detail & Role -->
+                                            <button type="button"
+                                                    class="adm-btn adm-btn--outline adm-btn--sm btn-detail-role"
+                                                    title="Chi tiết & Quyền"
+                                                    aria-label="Xem chi tiết và phân quyền tài khoản @item.Username"
+                                                    data-bs-toggle="modal" data-bs-target="#detailRoleModal"
+                                                    data-user-id="@item.UserId"
+                                                    data-user-name="@item.Username"
+                                                    data-user-fullname="@item.FullName"
+                                                    data-user-phone="@item.Phone"
+                                                    data-user-role="@item.Role"
+                                                    data-user-status="@(isActive ? "Active" : "Inactive")">
+                                                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                                                <span class="d-none d-lg-inline">Chi tiết & Quyền</span>
+                                            </button>
+                                            <!-- Toggle status -->
+                                            <button type="button"
+                                                    class="adm-btn @(isActive ? "adm-btn--outline" : "adm-btn--ghost") adm-btn--sm btn-toggle-status"
+                                                    title="@(isActive ? "Khóa tài khoản" : "Kích hoạt")"
+                                                    aria-label="@(isActive ? "Khóa" : "Kích hoạt") tài khoản @item.Username"
+                                                    data-user-id="@item.UserId">
+                                                <i class="fa-solid @(isActive ? "fa-lock" : "fa-unlock")" aria-hidden="true"></i>
+                                            </button>
+                                            <!-- Delete -->
+                                            <button type="button"
+                                                    class="adm-btn adm-btn--danger-soft adm-btn--sm btn-delete-account"
+                                                    title="Xóa tài khoản"
+                                                    aria-label="Xóa tài khoản @item.Username"
+                                                    data-user-id="@item.UserId">
+                                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8">
+                                    <div class="adm-empty-state">
+                                        <i class="fa-regular fa-folder-open adm-empty-state-icon" aria-hidden="true"></i>
+                                        <div class="adm-empty-state-text">Không tìm thấy tài khoản phù hợp</div>
+                                        <p class="mt-1" style="font-size: 0.8125rem; color: #94a3b8;">Thử thay đổi bộ lọc hoặc từ khoá tìm kiếm</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="adm-pagination" aria-label="Phân trang danh sách tài khoản">
+            <button class="adm-page-btn" disabled aria-label="Trang trước">
+                <i class="fa-solid fa-chevron-left fa-xs" aria-hidden="true"></i>
+            </button>
+            <button class="adm-page-btn active" aria-current="page" aria-label="Trang 1">1</button>
+            <button class="adm-page-btn" aria-label="Trang 2">2</button>
+            <button class="adm-page-btn" aria-label="Trang 3">3</button>
+            <button class="adm-page-btn" aria-label="Trang tiếp theo">
+                <i class="fa-solid fa-chevron-right fa-xs" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- ════ MODAL: Cập nhật tài khoản ════ -->
+<div class="modal fade adm-modal" id="detailRoleModal" tabindex="-1" aria-labelledby="detailRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <form id="detailRoleForm" method="post"
+                  asp-area="Admin" asp-controller="UserAccount" asp-action="EditAccount"
+                  class="needs-validation" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="detailUserId" name="id" />
+                <input type="hidden" id="detailUsernameValue" name="username" />
+
+                <div class="modal-header">
+                    <h2 class="modal-title" id="detailRoleModalLabel">Cập nhật tài khoản</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-4 align-items-stretch">
+                        <div class="col-md-5">
+                            <div class="adm-profile-panel h-100">
+                                <div class="text-center mb-4">
+                                    <div class="adm-profile-avatar d-inline-flex align-items-center justify-content-center rounded-circle text-white fw-bold shadow-sm">
+                                        <span id="detailAvatar">A</span>
+                                    </div>
+                                </div>
+
+                                <div class="adm-profile-field">
+                                    <label class="adm-profile-label">Tên đăng nhập</label>
+                                    <input type="text" class="form-control" id="detailUsername" readonly />
+                                </div>
+
+                                <div class="adm-profile-field">
+                                    <label class="adm-profile-label" for="detailFullnameInput">Họ và tên</label>
+                                    <input type="text" class="form-control adm-profile-input" id="detailFullnameInput" name="fullname" required />
+                                </div>
+
+                                <div class="adm-profile-field mb-0">
+                                    <label class="adm-profile-label" for="detailPhoneInput">Số điện thoại</label>
+                                    <input type="tel" class="form-control adm-profile-input" id="detailPhoneInput" name="phone" pattern="(84|0[35789])[0-9]{8}" />
+                                </div>
+
+                                <div class="adm-profile-field mb-0 mt-3">
+                                    <label class="adm-profile-label" for="detailNewPassword">Mật khẩu mới</label>
+                                    <input type="password" class="form-control adm-profile-input" id="detailNewPassword" name="newpassword" autocomplete="new-password" placeholder="Để trống nếu không đổi" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <div class="adm-profile-panel adm-profile-panel--secondary h-100">
+                                <div class="adm-profile-section-header">
+                                    <i class="fa-solid fa-user-shield me-2" aria-hidden="true"></i>
+                                    Phân quyền
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="adm-profile-label">Vai trò hiện tại</label>
+                                    <div class="adm-profile-role-box">
+                                        <span id="detailCurrentRole" class="adm-badge adm-badge--employee">Employee</span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="detailRole" class="adm-profile-label">Chọn vai trò mới</label>
+                                    <div class="position-relative">
+                                        <select class="adm-role-select form-select" id="detailRole" name="role" required>
+                                            <option value="Admin">Admin</option>
+                                            <option value="Manager">Manager</option>
+                                            <option value="Employee">Employee</option>
+                                        </select>
+                                    </div>
+                                    <div class="invalid-feedback">Vui lòng chọn vai trò.</div>
+                                </div>
+
+                                <div>
+                                    <label class="adm-profile-label">Trạng thái</label>
+                                    <div class="adm-profile-role-box">
+                                        <span id="detailStatus" class="adm-badge adm-badge--active">Active</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="adm-btn adm-btn--outline" data-bs-dismiss="modal">Há»§y</button>
+                    <button type="submit" class="adm-btn adm-btn--primary" id="detailRoleSubmit">
+                        <i class="fa-solid fa-user-shield me-1" aria-hidden="true"></i>
+                        Cập nhật Tài khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ════ MODAL: Tạo / Sửa / Xem tài khoản ════ -->
+<div class="modal fade adm-modal" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="accountForm" method="post"
+                  asp-area="Admin" asp-controller="UserAccount" asp-action="Create"
+                  class="needs-validation" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h2 class="modal-title" id="accountModalLabel">Tạo tài khoản mới</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Username -->
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="accountUsername" name="Username"
+                               placeholder="username" autocomplete="username"
+                               pattern="^\S+$" aria-describedby="accountUsernameFeedback" required />
+                        <label for="accountUsername">
+                            <i class="fa-regular fa-user me-1" aria-hidden="true"></i>Tên đăng nhập
+                        </label>
+                        <div class="invalid-feedback" id="accountUsernameFeedback">
+                            Username không được chứa khoảng trắng.
+                        </div>
+                    </div>
+
+                    <!-- Password (hidden default) -->
+                    <input type="hidden" name="Password" value="Default@123" />
+
+                    <!-- Full name -->
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="accountFullname" name="FullName"
+                               placeholder="Họ và tên" autocomplete="name"
+                               minlength="3" aria-describedby="accountFullnameFeedback" required />
+                        <label for="accountFullname">
+                            <i class="fa-regular fa-id-card me-1" aria-hidden="true"></i>Họ và tên
+                        </label>
+                        <div class="invalid-feedback" id="accountFullnameFeedback">
+                            Họ và tên phải có ít nhất 3 ký tự.
+                        </div>
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="form-floating mb-3">
+                        <input type="tel" class="form-control" id="accountPhone" name="Phone"
+                               placeholder="Số điện thoại" autocomplete="tel"
+                               pattern="(84|0[35789])[0-9]{8}" aria-describedby="accountPhoneFeedback" />
+                        <label for="accountPhone">
+                            <i class="fa-regular fa-phone me-1" aria-hidden="true"></i>Số điện thoại
+                        </label>
+                        <div class="invalid-feedback" id="accountPhoneFeedback">
+                            Nhập số điện thoại Việt Nam hợp lệ (VD: 0912345678).
+                        </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="accountRole" name="Role"
+                                aria-describedby="accountRoleFeedback" required>
+                            <option value="" selected disabled>Chọn vai trò</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Employee">Employee</option>
+                        </select>
+                        <label for="accountRole">
+                            <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>Vai trò / Quyền
+                        </label>
+                        <div class="invalid-feedback" id="accountRoleFeedback">Vui lòng chọn vai trò.</div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-floating">
+                        <select class="form-select" id="accountStatus" name="Status"
+                                aria-describedby="accountStatusFeedback" required>
+                            <option value="" selected disabled>Chọn trạng thái</option>
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                        <label for="accountStatus">
+                            <i class="fa-solid fa-toggle-on me-1" aria-hidden="true"></i>Trạng thái
+                        </label>
+                        <div class="invalid-feedback" id="accountStatusFeedback">Vui lòng chọn trạng thái.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="adm-btn adm-btn--outline" data-bs-dismiss="modal">Há»§y</button>
+                    <button type="submit" class="adm-btn adm-btn--primary" id="accountFormSubmit">
+                        <i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>
+                        Lưu tài khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const modalElement = document.getElementById("accountModal");
+            const accountForm = document.getElementById("accountForm");
+            const detailRoleModalEl = document.getElementById("detailRoleModal");
+            const detailRoleForm = document.getElementById("detailRoleForm");
+            const detailRoleModal = bootstrap.Modal.getOrCreateInstance(detailRoleModalEl);
+
+            function admToast(icon, title) {
+                Swal.fire({
+                    icon,
+                    title,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    customClass: { popup: 'adm-swal-toast' },
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
+            }
+
+            function setButtonLoading(btn, loading, restoreHTML = null) {
+                if (!btn) return;
+                if (loading) {
+                    btn._restoreHTML = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.classList.add('adm-btn--loading');
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1" aria-hidden="true"></i>Đang xử lý...';
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('adm-btn--loading');
+                    btn.innerHTML = restoreHTML ?? btn._restoreHTML ?? btn.innerHTML;
+                }
+            }
+
+            function admFetch(url, opts, btn, successMsg, errorMsg) {
+                setButtonLoading(btn, true);
+                return fetch(url, opts)
+                    .then(async (response) => {
+                        if (!response.ok) {
+                            let msg = errorMsg;
+                            try {
+                                const text = await response.text();
+                                if (text) msg = text;
+                            } catch {}
+                            throw new Error(msg);
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        if (!data.success) throw new Error(data.message || errorMsg);
+                        return data;
+                    })
+                    .catch((err) => {
+                        admToast('error', err.message || errorMsg);
+                        return null;
+                    })
+                    .finally(() => setButtonLoading(btn, false));
+            }
+
+            function resetValidation() {
+                if (accountForm) accountForm.classList.remove('was-validated');
+            }
+
+            function getRoleBadgeClass(role) {
+                if (role === 'Admin') return 'adm-badge--admin';
+                if (role === 'Manager') return 'adm-badge--manager';
+                return 'adm-badge--employee';
+            }
+
+            function getStatusBadgeClass(isActive) {
+                return isActive ? 'adm-badge--active' : 'adm-badge--inactive';
+            }
+
+            function resetAccountForm() {
+                if (!accountForm) return;
+                accountForm.reset();
+                accountForm.setAttribute('action', '@Url.Action("Create", "UserAccount", new { Area = "Admin" })');
+                accountForm.elements.Password.value = 'Default@123';
+                resetValidation();
+                const modalTitle = document.getElementById('accountModalLabel');
+                if (modalTitle) modalTitle.textContent = 'Tạo tài khoản mới';
+                const submitBtn = document.getElementById('accountFormSubmit');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Lưu tài khoản';
+                    submitBtn.style.display = '';
+                }
+                ['accountUsername', 'accountFullname', 'accountPhone', 'accountRole', 'accountStatus'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = false;
+                });
+            }
+
+            function populateAccountForm(trigger) {
+                if (!accountForm || !trigger) return;
+                const userId = trigger.dataset.userId;
+                accountForm.setAttribute('action', '@Url.Action("Edit", "UserAccount", new { Area = "Admin" })/' + userId);
+                accountForm.elements.Username.value = trigger.dataset.userName || '';
+                accountForm.elements.FullName.value = trigger.dataset.userFullname || '';
+                accountForm.elements.Phone.value = trigger.dataset.userPhone || '';
+                accountForm.elements.Role.value = trigger.dataset.userRole || '';
+                accountForm.elements.Status.value = trigger.dataset.userStatus === 'Active' ? 'true' : 'false';
+                accountForm.elements.Password.value = 'Default@123';
+            }
+
+            function handleModalShow(event) {
+                resetAccountForm();
+                const trigger = event.relatedTarget;
+                const accountMode = trigger?.dataset.accountMode;
+
+                if (accountMode === 'view') {
+                    const modalTitle = document.getElementById('accountModalLabel');
+                    if (modalTitle) modalTitle.textContent = 'Chi tiết tài khoản';
+                    populateAccountForm(trigger);
+                    ['accountUsername', 'accountFullname', 'accountPhone', 'accountRole', 'accountStatus'].forEach((id) => {
+                        const el = document.getElementById(id);
+                        if (el) el.disabled = true;
+                    });
+                    const submitBtn = document.getElementById('accountFormSubmit');
+                    if (submitBtn) submitBtn.style.display = 'none';
+                    return;
+                }
+
+                if (accountMode === 'edit') {
+                    const modalTitle = document.getElementById('accountModalLabel');
+                    if (modalTitle) modalTitle.textContent = 'Phân quyền / Sửa tài khoản';
+                    const submitBtn = document.getElementById('accountFormSubmit');
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Cập nhật tài khoản';
+                    populateAccountForm(trigger);
+                }
+            }
+
+            function handleAccountSubmit(event) {
+                event.preventDefault();
+                if (!accountForm.checkValidity()) {
+                    event.stopPropagation();
+                    accountForm.classList.add('was-validated');
+                    return;
+                }
+                const btn = document.getElementById('accountFormSubmit');
+                setButtonLoading(btn, true);
+                accountForm.submit();
+            }
+
+            function fillDetailRoleModal(trigger) {
+                const role = trigger.dataset.userRole || 'Employee';
+                const status = trigger.dataset.userStatus === 'Active' ? 'Active' : 'Inactive';
+                const detailStatusEl = document.getElementById('detailStatus');
+
+                document.getElementById('detailUserId').value = trigger.dataset.userId || '';
+                document.getElementById('detailUsernameValue').value = trigger.dataset.userName || '';
+                document.getElementById('detailUsername').value = trigger.dataset.userName || '-';
+                document.getElementById('detailFullnameInput').value = trigger.dataset.userFullname || '';
+                document.getElementById('detailPhoneInput').value = trigger.dataset.userPhone || '';
+                document.getElementById('detailNewPassword').value = '';
+                document.getElementById('detailAvatar').textContent = trigger.dataset.userName ? trigger.dataset.userName.charAt(0).toUpperCase() : 'A';
+                document.getElementById('detailRole').value = role;
+                document.getElementById('detailCurrentRole').className = `adm-badge ${getRoleBadgeClass(role)}`;
+                document.getElementById('detailCurrentRole').textContent = role;
+                detailStatusEl.className = `adm-badge ${getStatusBadgeClass(status === 'Active')}`;
+                detailStatusEl.innerHTML = status === 'Active'
+                    ? '<i class="fa-solid fa-circle-check fa-xs" aria-hidden="true"></i> Active'
+                    : '<i class="fa-solid fa-circle-xmark fa-xs" aria-hidden="true"></i> Inactive';
+            }
+
+            function handleDetailRoleSubmit(event) {
+                event.preventDefault();
+                const form = event.currentTarget;
+                if (!form.checkValidity()) {
+                    event.stopPropagation();
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                const btn = document.getElementById('detailRoleSubmit');
+                const token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+                const body = new URLSearchParams({
+                    username: document.getElementById('detailUsernameValue').value,
+                    fullname: document.getElementById('detailFullnameInput').value.trim(),
+                    phone: document.getElementById('detailPhoneInput').value.trim(),
+                    role: document.getElementById('detailRole').value,
+                    newpassword: document.getElementById('detailNewPassword').value
+                }).toString();
+
+                admFetch('/Admin/UserAccount/EditAccount', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token,
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body
+                }, btn, 'Cập nhật tài khoản thành công!', 'Không thể cập nhật tài khoản.').then((data) => {
+                    if (data) {
+                        detailRoleModal.hide();
+                        admToast('success', 'Cập nhật tài khoản thành công!');
+                        setTimeout(() => window.location.reload(), 900);
+                    }
+                });
+            }
+
+            function confirmStatusToggle(button) {
+                const userId = button.dataset.userId;
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Xác nhận thay đổi trạng thái',
+                    text: 'Bạn có chắc muốn thay đổi trạng thái tài khoản này?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#6366f1',
+                    cancelButtonColor: '#94a3b8'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+                    admFetch(`/Admin/UserAccount/ToggleStatus/${userId}`, {
+                        method: 'POST',
+                        headers: { 'RequestVerificationToken': token || '' }
+                    }, button, 'Cập nhật trạng thái thành công!', 'Không thể cập nhật trạng thái.').then((data) => {
+                        if (data) {
+                            admToast('success', 'Đã thay đổi trạng thái tài khoản.');
+                            setTimeout(() => window.location.reload(), 900);
+                        }
+                    });
+                });
+            }
+
+            function confirmAccountDelete(button) {
+                const userId = button.dataset.userId;
+                const usernameCell = button.closest('tr')?.querySelector('td:nth-child(3) .fw-semibold');
+                const username = usernameCell?.textContent?.trim() || `#${userId}`;
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Xác nhận xóa tài khoản',
+                    html: `Bạn có chắc muốn xóa <strong>${username}</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Xóa tài khoản',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#94a3b8'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+                    admFetch(`/Admin/UserAccount/Delete/${userId}`, {
+                        method: 'POST',
+                        headers: { 'RequestVerificationToken': token || '' }
+                    }, button, 'Đã xóa tài khoản.', 'Không thể xóa tài khoản.').then((data) => {
+                        if (data) {
+                            admToast('success', `Đã xóa tài khoản ${username}.`);
+                            button.closest('tr')?.classList.add('opacity-0');
+                            setTimeout(() => window.location.reload(), 900);
+                        }
+                    });
+                });
+            }
+
+            function updateBulkActionButtons() {
+                const selected = document.querySelectorAll('.row-checkbox:checked');
+                const bulkLock = document.getElementById('bulkLockBtn');
+                const bulkDelete = document.getElementById('bulkDeleteBtn');
+                const anySelected = selected.length > 0;
+                if (bulkLock) bulkLock.disabled = !anySelected;
+                if (bulkDelete) bulkDelete.disabled = !anySelected;
+            }
+
+            function initializeAccountPage() {
+                if (!modalElement || !accountForm || !detailRoleModalEl || !detailRoleForm) return;
+                modalElement.addEventListener('show.bs.modal', handleModalShow);
+                modalElement.addEventListener('hidden.bs.modal', resetAccountForm);
+                accountForm.addEventListener('submit', handleAccountSubmit);
+                detailRoleModalEl.addEventListener('show.bs.modal', (event) => {
+                    if (event.relatedTarget) fillDetailRoleModal(event.relatedTarget);
+                });
+                detailRoleForm.addEventListener('submit', handleDetailRoleSubmit);
+
+                const selectAll = document.getElementById('selectAllRows');
+                const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+                if (selectAll) {
+                    selectAll.addEventListener('change', () => {
+                        rowCheckboxes.forEach((cb) => { cb.checked = selectAll.checked; });
+                        updateBulkActionButtons();
+                    });
+                }
+
+                rowCheckboxes.forEach((cb) => {
+                    cb.addEventListener('change', () => {
+                        const allChecked = Array.from(rowCheckboxes).every((c) => c.checked);
+                        if (selectAll) selectAll.checked = allChecked;
+                        updateBulkActionButtons();
+                    });
+                });
+
+                document.querySelectorAll('.btn-detail-role').forEach((btn) => btn.addEventListener('click', () => fillDetailRoleModal(btn)));
+                document.querySelectorAll('.btn-toggle-status').forEach((btn) => btn.addEventListener('click', () => confirmStatusToggle(btn)));
+                document.querySelectorAll('.btn-delete-account').forEach((btn) => btn.addEventListener('click', () => confirmAccountDelete(btn)));
+                updateBulkActionButtons();
+            }
+
+            initializeAccountPage();
+        })();
+    </script>
+}

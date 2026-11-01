@@ -1,0 +1,135 @@
+@model httt.Models.UserAccount
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    var isActive = string.Equals(Model.Status, "Active", StringComparison.OrdinalIgnoreCase)
+        || Model.Status == "true" || Model.Status == "1";
+    var initials = string.IsNullOrWhiteSpace(Model.Username) ? "A" : Model.Username.Trim()[0].ToString().ToUpperInvariant();
+}
+
+<div class="container-fluid px-0">
+    <div class="adm-page-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h1 class="adm-page-title">
+                <i class="fa-solid fa-user me-2 text-primary" aria-hidden="true"></i>
+                Hồ sơ cá nhân
+            </h1>
+            <p class="adm-page-subtitle">Quản lý thông tin tài khoản đang đăng nhập</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="adm-card h-100">
+                <div class="adm-card-body text-center">
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle text-white fw-bold shadow-sm"
+                             style="width: 6rem; height: 6rem; font-size: 2rem; background: linear-gradient(135deg, #6366f1, #818cf8);">
+                            @initials
+                        </div>
+                    </div>
+
+                    <h2 class="mb-2" style="font-size: 1.5rem; font-weight: 700; color: #0f172a; margin: 0;">@Model.FullName</h2>
+                    <p class="mb-3 text-muted" style="margin-bottom: 1rem;">@Model.Username</p>
+
+                    <div class="d-flex justify-content-center flex-wrap gap-2 mb-3">
+                        <span class="adm-badge @(Model.Role == "Admin" ? "adm-badge--admin" : Model.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                            @Model.Role
+                        </span>
+                        <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
+                            <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
+                            @(isActive ? "Active" : "Inactive")
+                        </span>
+                    </div>
+
+                    <div class="border rounded-4 p-3 bg-light-subtle">
+                        <div class="small text-uppercase fw-bold text-secondary" style="letter-spacing: 0.08em;">Tình trạng</div>
+                        <div class="mt-2 fw-semibold" style="color: @(isActive ? "#10b981" : "#ef4444");">
+                            @(isActive ? "Đang hoạt động bình thường" : "Tài khoản đang bị khóa")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="adm-card h-100">
+                <div class="adm-card-header">
+                    <h2 class="adm-card-title">
+                        <i class="fa-solid fa-id-card me-2 text-primary" aria-hidden="true"></i>
+                        Thông tin cá nhân
+                    </h2>
+                </div>
+                <div class="adm-card-body">
+                    <form id="profileForm" asp-area="Admin" asp-controller="Account" asp-action="UpdateProfile" method="post" class="needs-validation" novalidate>
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="profileUsername" value="@Model.Username" readonly placeholder="Tên đăng nhập" />
+                                    <label for="profileUsername">
+                                        <i class="fa-regular fa-user me-1" aria-hidden="true"></i>Tên đăng nhập
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="profileFullname" name="fullname" value="@Model.FullName" placeholder="Họ và tên" minlength="3" required />
+                                    <label for="profileFullname">
+                                        <i class="fa-regular fa-id-card me-1" aria-hidden="true"></i>Họ và tên
+                                    </label>
+                                    <div class="invalid-feedback">Họ và tên phải có ít nhất 3 ký tự.</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="tel" class="form-control" id="profilePhone" name="phone" value="@(string.IsNullOrWhiteSpace(Model.Phone) ? "" : Model.Phone)" placeholder="Số điện thoại" pattern="(84|0[35789])[0-9]{8}" />
+                                    <label for="profilePhone">
+                                        <i class="fa-solid fa-phone me-1" aria-hidden="true"></i>Số điện thoại
+                                    </label>
+                                    <div class="invalid-feedback">Nhập số điện thoại Việt Nam hợp lệ (VD: 0912345678).</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-semibold mb-2">Vai trò</label>
+                                <div class="rounded-3 px-3 py-2 border bg-light-subtle" style="min-height: 3rem; display: flex; align-items: center;">
+                                    <span class="adm-badge @(Model.Role == "Admin" ? "adm-badge--admin" : Model.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                                        @Model.Role
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-semibold mb-2">Trạng thái</label>
+                                <div class="rounded-3 px-3 py-2 border bg-light-subtle" style="min-height: 3rem; display: flex; align-items: center;">
+                                    <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
+                                        <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
+                                        @(isActive ? "Active" : "Inactive")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-semibold mb-2">Quyền truy cập</label>
+                                <div class="form-control-plaintext rounded-3 px-3 py-2 border bg-light-subtle" style="min-height: 3rem; color: #0f172a; font-weight: 600;">
+                                    @(Model.Role == "Admin" ? "Toàn quyền quản trị" : Model.Role == "Manager" ? "Quản lý phân quyền" : "Người dùng nội bộ")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="adm-btn adm-btn--primary" id="profileSubmit">
+                                <i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>
+                                Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

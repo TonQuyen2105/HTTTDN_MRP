@@ -1,0 +1,326 @@
+ 
+@{
+    ViewData["Title"] = "Xem đơn hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+}
+
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <div class="order-brand-icon">✚</div>
+                <div>
+                    <h2>PharmaMRP</h2>
+                    <span>HỆ THỐNG BÁN HÀNG</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item active" href="/Sales/Orders">
+                    <span class="order-nav-icon">▤</span>
+                    <span>Xem đơn hàng</span>
+                    <span class="order-nav-arrow">›</span>
+                </a>
+
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span class="order-nav-icon">◷</span>
+                    <span>Lịch sử đơn hàng nhập xuất</span>
+                </a>
+
+                <a class="order-nav-item" href="/Sales/ExportSlips">
+                    <span class="order-nav-icon">⇧</span>
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
+                    <span class="order-nav-icon">▦</span>
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+
+                <a class="order-nav-item" href="/Sales/SalesAccount">
+                    <span class="order-nav-icon">♙</span>
+                    <span>Tài khoản của tôi</span>
+                </a>
+
+                <a class="order-nav-item" href="/Sales/RevenueReport">
+                    <span class="order-nav-icon">▥</span>
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-avatar">NV</div>
+                <div class="order-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="order-main">
+
+            <div class="order-heading">
+                <div>
+                    <div class="order-breadcrumb">
+                        <span>Trang chủ</span>
+                        <span>/</span>
+                        <span>Bán hàng</span>
+                        <span>/</span>
+                        <strong>Đơn hàng</strong>
+                    </div>
+                    <h1>Danh sách đơn hàng bán</h1>
+                    <p>Theo dõi và quản lý các đơn hàng của nhà thuốc.</p>
+                </div>
+                <div class="order-heading-icon">▤</div>
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="order-summary-grid">
+                <div class="order-summary-card">
+                    <div class="order-summary-icon summary-green">▤</div>
+                    <div>
+                        <span>Tổng đơn hàng</span>
+                        <strong>04</strong>
+                        <small>Đơn hàng minh họa</small>
+                    </div>
+                </div>
+
+                <div class="order-summary-card">
+                    <div class="order-summary-icon summary-orange">◷</div>
+                    <div>
+                        <span>Chờ chốt lô</span>
+                        <strong>03</strong>
+                        <small>Đang chờ xử lý</small>
+                    </div>
+                </div>
+
+                <div class="order-summary-card">
+                    <div class="order-summary-icon summary-blue">✓</div>
+                    <div>
+                        <span>Đã soạn xong</span>
+                        <strong>01</strong>
+                        <small>Đã hoàn tất soạn hàng</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTER -->
+            <section class="order-filter-card">
+                <div class="order-section-heading">
+                    <div>
+                        <h2>Tìm kiếm đơn hàng</h2>
+                        <p>Lọc đơn hàng theo mã, trạng thái hoặc ngày đặt.</p>
+                    </div>
+                </div>
+
+                <form method="get" action="/Sales/Orders" class="order-filter-form">
+                    <div class="order-filter-field order-keyword-field">
+                        <label for="keyword">Mã đơn hàng / Nhà thuốc</label>
+                        <input id="keyword"
+                               type="text"
+                               name="keyword"
+                               class="form-control"
+                               placeholder="Nhập từ khóa tìm kiếm..." />
+                    </div>
+
+                    <div class="order-filter-field">
+                        <label for="status">Trạng thái</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="chotlo">Chờ chốt lô</option>
+                            <option value="soanzong">Đã soạn xong</option>
+                        </select>
+                    </div>
+
+                    <div class="order-filter-field">
+                        <label for="date">Ngày đặt hàng</label>
+                        <input id="date"
+                               type="date"
+                               name="date"
+                               class="form-control" />
+                    </div>
+
+                    <div class="order-filter-actions">
+                        <button type="submit" class="order-btn-primary">
+                            <span>⌕</span> Lọc dữ liệu
+                        </button>
+                        <a href="/Sales/Orders" class="order-btn-reset">Xóa lọc</a>
+                    </div>
+                </form>
+            </section>
+
+            <!-- ORDER LIST -->
+            <section class="order-list-section">
+                <div class="order-list-heading">
+                    <div>
+                        <h2>Đơn hàng gần đây</h2>
+                        <p>Danh sách đơn hàng đang được theo dõi.</p>
+                    </div>
+                    <span class="order-count">04 đơn hàng</span>
+                </div>
+
+                <!-- ORDER 1 -->
+                <article class="order-card">
+                    <div class="order-card-top">
+                        <div class="order-id-group">
+                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
+                            <a href="#" class="order-id">408281026</a>
+                        </div>
+                        <span class="order-status status-pending">
+                            <span class="status-dot"></span> Chờ chốt lô
+                        </span>
+                    </div>
+                    <div class="order-card-body">
+                        <div class="order-pharmacy">
+                            <div class="pharmacy-icon">✚</div>
+                            <div>
+                                <span class="pharmacy-code">NT 71-XTS</span>
+                                <h3>NT SO 71-XUÂN THỚI SƠN</h3>
+                                <p>3/138 Đường Tân Thới Nhì 9, Ấp 17, Xã Xuân Thới Sơn, HCM</p>
+                            </div>
+                        </div>
+                        <div class="order-card-meta">
+                            <div>
+                                <span class="meta-label">Ngày đặt hàng</span>
+                                <strong>28/10/2026</strong>
+                            </div>
+                            <div>
+                                <span class="meta-label">Đơn vị giao</span>
+                                <strong>WMINH3</strong>
+                            </div>
+                            <div class="order-total">
+                                <span class="meta-label">Tổng tiền</span>
+                                <strong>1.229.000 đ</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ORDER 2 -->
+                <article class="order-card">
+                    <div class="order-card-top">
+                        <div class="order-id-group">
+                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
+                            <a href="#" class="order-id">407281026</a>
+                        </div>
+                        <span class="order-status status-pending">
+                            <span class="status-dot"></span> Chờ chốt lô
+                        </span>
+                    </div>
+                    <div class="order-card-body">
+                        <div class="order-pharmacy">
+                            <div class="pharmacy-icon">✚</div>
+                            <div>
+                                <span class="pharmacy-code">D LANH-T NINH</span>
+                                <h3>QT DƯỢC LÀNH-TÂY NINH</h3>
+                                <p>Ấp Tân Qui Hạ, xã Hiệp Hoà, tỉnh Tây Ninh</p>
+                            </div>
+                        </div>
+                        <div class="order-card-meta">
+                            <div>
+                                <span class="meta-label">Ngày đặt hàng</span>
+                                <strong>28/10/2026</strong>
+                            </div>
+                            <div>
+                                <span class="meta-label">Đơn vị giao</span>
+                                <strong>WGHTK</strong>
+                            </div>
+                            <div class="order-total">
+                                <span class="meta-label">Tổng tiền</span>
+                                <strong>2.454.000 đ</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ORDER 3 -->
+                <article class="order-card">
+                    <div class="order-card-top">
+                        <div class="order-id-group">
+                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
+                            <a href="#" class="order-id">406281026</a>
+                        </div>
+                        <span class="order-status status-completed">
+                            <span class="status-dot"></span> Đã soạn xong
+                        </span>
+                    </div>
+                    <div class="order-card-body">
+                        <div class="order-pharmacy">
+                            <div class="pharmacy-icon">✚</div>
+                            <div>
+                                <span class="pharmacy-code">TH CHAU-B THANH</span>
+                                <h3>NT THI CHÂU-BÌNH THẠNH</h3>
+                                <p>685/45 Xô Viết Nghệ Tĩnh, Phường Bình Thạnh, HCM</p>
+                            </div>
+                        </div>
+                        <div class="order-card-meta">
+                            <div>
+                                <span class="meta-label">Ngày đặt hàng</span>
+                                <strong>28/10/2026</strong>
+                            </div>
+                            <div>
+                                <span class="meta-label">Đơn vị giao</span>
+                                <strong>WDOANH1</strong>
+                            </div>
+                            <div class="order-total">
+                                <span class="meta-label">Tổng tiền</span>
+                                <strong>1.915.500 đ</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ORDER 4 -->
+                <article class="order-card">
+                    <div class="order-card-top">
+                        <div class="order-id-group">
+                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
+                            <a href="#" class="order-id">405281026</a>
+                        </div>
+                        <span class="order-status status-pending">
+                            <span class="status-dot"></span> Chờ chốt lô
+                        </span>
+                    </div>
+                    <div class="order-card-body">
+                        <div class="order-pharmacy">
+                            <div class="pharmacy-icon">✚</div>
+                            <div>
+                                <span class="pharmacy-code">M KHANG-TH AN</span>
+                                <h3>HKDNT MINH KHANG-THỚI AN</h3>
+                                <p>326 Trần Thị Cờ, Khu Phố 20, Phường Thới An, TP.HCM</p>
+                            </div>
+                        </div>
+                        <div class="order-card-meta">
+                            <div>
+                                <span class="meta-label">Ngày đặt hàng</span>
+                                <strong>28/10/2026</strong>
+                            </div>
+                            <div>
+                                <span class="meta-label">Đơn vị giao</span>
+                                <strong>WLUAN</strong>
+                            </div>
+                            <div class="order-total">
+                                <span class="meta-label">Tổng tiền</span>
+                                <strong>4.035.900 đ</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <footer class="order-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho và bán hàng dược phẩm</span>
+            </footer>
+        </main>
+    </div>
+</div>

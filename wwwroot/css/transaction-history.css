@@ -1,0 +1,1133 @@
+
+/* =========================================
+   PHARMAMRP - TRANSACTION HISTORY
+   File: wwwroot/css/transaction-history.css
+   Sidebar dong bo voi Sales Account
+========================================= */
+
+
+/* =========================================
+   1. COLOR & BASE
+========================================= */
+
+.history-page {
+    --history-primary: #176B50;
+    --history-primary-dark: #124B38;
+    --history-primary-light: #E8F2EB;
+    --history-text: #244333;
+    --history-muted: #718277;
+    --history-border: #DFE9E2;
+    --history-bg: #F5F8F5;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: calc(100vh - 72px);
+
+    margin: 0;
+    padding: 30px;
+
+    color: var(--history-text);
+    background: var(--history-bg);
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.history-page *,
+.history-page *::before,
+.history-page *::after {
+    box-sizing: border-box;
+}
+
+.history-page img,
+.history-page input,
+.history-page select {
+    max-width: 100%;
+}
+
+
+/* =========================================
+   2. BỐ CỤC CHUNG
+========================================= */
+
+.history-page .history-workspace {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: calc(100vh - 102px);
+}
+
+.history-page .history-workspace > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.history-page .history-main {
+    grid-column: 2;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    padding-left: 30px;
+    overflow-x: hidden;
+}
+
+
+/* =========================================
+   3. SIDEBAR
+   ĐỒNG BỘ VỚI SALES ACCOUNT
+========================================= */
+
+/* SIDEBAR */
+
+.history-page .sales-sidebar {
+    position: fixed;
+    top: 72px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+
+    display: flex;
+    flex-direction: column;
+
+    width: 250px;
+    min-width: 250px;
+    min-height: 0;
+    height: auto;
+
+    margin: 0;
+    padding: 25px 15px 18px;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    background: #FFFFFF;
+    border: none;
+    border-right: 1px solid #DFE9E2;
+    border-radius: 0;
+    box-shadow: 2px 0 12px rgba(25, 65, 45, 0.04);
+}
+
+/* BRAND */
+
+.history-page .sales-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    min-width: 0;
+    padding: 2px 7px 23px;
+
+    border-bottom: 1px solid #EDF2EE;
+}
+
+.history-page .sales-brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 43px;
+    width: 43px;
+    height: 43px;
+
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #176B50, #2C9670);
+    border-radius: 13px;
+
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.history-page .sales-sidebar-brand h2 {
+    margin: 0 0 5px;
+
+    color: #176B50;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.history-page .sales-sidebar-brand span {
+    color: #718277;
+    font-size: 8px;
+    font-weight: 750;
+    letter-spacing: 0.7px;
+}
+
+/* MENU TITLE */
+
+.history-page .sales-sidebar-label {
+    margin: 24px 8px 12px;
+
+    color: #849188;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+/* MENU */
+
+.history-page .sales-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    min-width: 0;
+    padding: 12px 10px;
+
+    color: #52695B;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.55;
+    text-decoration: none;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-item:hover {
+    color: #176B50;
+    background: #F1F7F3;
+    border-color: #E5F0E8;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-item.active {
+    color: #176B50;
+    background: #E8F2EB;
+    border-color: #DCECE1;
+    font-weight: 800;
+}
+
+/* MENU ICON */
+
+.history-page .sales-sidebar-nav .sales-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 27px;
+    width: 27px;
+    height: 27px;
+
+    color: #718277;
+    background: #F3F6F3;
+    border-radius: 8px;
+
+    font-size: 17px;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-item.active .sales-nav-icon {
+    color: #176B50;
+    background: #D6EBDD;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-item > span:nth-child(2) {
+    min-width: 0;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-arrow {
+    margin-left: auto;
+
+    color: #176B50;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.history-page .sales-sidebar-nav .sales-nav-item:focus-visible {
+    outline: 2px solid #176B50;
+    outline-offset: 2px;
+}
+
+/* SIDEBAR USER */
+
+.history-page .sales-sidebar-bottom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    min-width: 0;
+    margin-top: auto;
+    padding: 18px 5px 3px;
+
+    border-top: 1px solid #EDF2EE;
+}
+
+.history-page .sales-sidebar-user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 37px;
+    height: 37px;
+    flex-shrink: 0;
+
+    color: #176B50;
+    background: #E6F3E9;
+    border-radius: 11px;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.history-page .sales-sidebar-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    min-width: 0;
+}
+
+.history-page .sales-sidebar-user-info strong {
+    overflow-wrap: anywhere;
+
+    color: #344C3D;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.history-page .sales-sidebar-user-info span {
+    color: #718277;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+/* =========================================
+   4. TIÊU ĐỀ TRANG
+========================================= */
+
+.history-page .history-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+
+    width: 100%;
+    min-width: 0;
+    margin: 4px 0 30px;
+}
+
+.history-page .breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+
+    margin: 0 0 13px;
+
+    color: var(--history-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.history-page .breadcrumb strong {
+    color: var(--history-primary);
+    font-weight: 750;
+}
+
+.history-page .history-heading h1 {
+    margin: 0 0 8px;
+
+    color: var(--history-primary-dark);
+    font-size: 29px;
+    line-height: 1.3;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.history-page .history-heading p {
+    margin: 0;
+
+    color: var(--history-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   5. NÚT XUẤT DỮ LIỆU
+========================================= */
+
+.history-page .btn-export {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 11px 16px;
+
+    color: #FFFFFF;
+    background: var(--history-primary);
+    border: 1px solid var(--history-primary);
+    border-radius: 9px;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+    text-decoration: none;
+
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.history-page .btn-export:hover {
+    color: #FFFFFF;
+    background: var(--history-primary-dark);
+    border-color: var(--history-primary-dark);
+}
+
+
+/* =========================================
+   6. THẺ THỐNG KÊ
+========================================= */
+
+.history-page .history-statistics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 30px;
+}
+
+.history-page .stat-card {
+    min-width: 0;
+    padding: 20px;
+
+    background: #FFFFFF;
+    border: 1px solid var(--history-border);
+    border-radius: 15px;
+    box-shadow: 0 3px 12px rgba(25, 65, 45, 0.025);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.history-page .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(25, 65, 45, 0.06);
+}
+
+.history-page .stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+
+    color: #607166;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.history-page .stat-icon {
+    display: grid;
+    place-items: center;
+
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+
+    color: #53675A;
+    background: #EDF2EF;
+    border-radius: 11px;
+
+    font-size: 20px;
+}
+
+.history-page .stat-icon.green {
+    color: #21815A;
+    background: #E8F7EE;
+}
+
+.history-page .stat-icon.blue {
+    color: #3976D5;
+    background: #EDF4FF;
+}
+
+.history-page .stat-icon.orange {
+    color: #B7791F;
+    background: #FFF4DF;
+}
+
+.history-page .stat-card h2 {
+    margin: 13px 0 7px;
+
+    color: var(--history-primary-dark);
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.history-page .stat-card small {
+    color: var(--history-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   7. KHUNG DANH SÁCH GIAO DỊCH
+========================================= */
+
+.history-page .history-panel {
+    width: 100%;
+    min-width: 0;
+
+    margin-bottom: 22px;
+    overflow: hidden;
+
+    background: #FFFFFF;
+    border: 1px solid var(--history-border);
+    border-radius: 15px;
+    box-shadow: 0 4px 16px rgba(25, 65, 45, 0.025);
+}
+
+.history-page .panel-heading {
+    padding: 23px 25px;
+    border-bottom: 1px solid #EDF2EE;
+}
+
+.history-page .panel-heading h3 {
+    margin: 0 0 7px;
+
+    color: var(--history-primary-dark);
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.history-page .panel-heading p {
+    margin: 0;
+
+    color: var(--history-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   8. BỘ LỌC
+========================================= */
+
+.history-page .history-filters {
+    display: grid;
+    grid-template-columns:
+        minmax(150px, 1.5fr)
+        repeat(4, minmax(110px, 1fr))
+        auto;
+
+    align-items: end;
+    gap: 14px;
+
+    padding: 22px 25px;
+
+    background: #FBFCFB;
+    border-bottom: 1px solid var(--history-border);
+}
+
+.history-page .filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    min-width: 0;
+}
+
+.history-page .filter-item label {
+    color: #52645A;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.4;
+}
+
+.history-page .filter-item input,
+.history-page .filter-item select {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 45px;
+
+    padding: 10px 12px;
+
+    color: var(--history-text);
+    background: #FFFFFF;
+    border: 1px solid var(--history-border);
+    border-radius: 9px;
+    outline: none;
+
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.history-page .filter-item input:focus,
+.history-page .filter-item select:focus {
+    border-color: #81BBA0;
+    box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.08);
+}
+
+.history-page .btn-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 45px;
+    padding: 10px 15px;
+
+    color: #52685A;
+    background: #FFFFFF;
+    border: 1px solid var(--history-border);
+    border-radius: 9px;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.history-page .btn-reset:hover {
+    color: var(--history-primary);
+    background: #F1F7F3;
+}
+
+
+/* =========================================
+   9. BẢNG DỮ LIỆU
+========================================= */
+
+.history-page .table-wrapper {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.history-page .history-table {
+    width: 100%;
+    min-width: 850px;
+
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.history-page .history-table thead {
+    background: #F5F8F5;
+}
+
+.history-page .history-table th {
+    padding: 15px 16px;
+
+    color: #52685A;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.5;
+
+    border-bottom: 1px solid var(--history-border);
+}
+
+.history-page .history-table td {
+    padding: 17px 16px;
+
+    color: #52645A;
+    font-size: 12px;
+    line-height: 1.5;
+
+    border-bottom: 1px solid #EDF1EE;
+}
+
+.history-page .history-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.history-page .history-table tbody tr:hover {
+    background: #FBFDFB;
+}
+
+.history-page .history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.history-page .history-table td strong {
+    color: var(--history-text);
+    font-weight: 800;
+}
+
+
+/* =========================================
+   10. NHÃN LOẠI VÀ TRẠNG THÁI
+========================================= */
+
+.history-page .type-badge,
+.history-page .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 7px 10px;
+
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.3;
+}
+
+.history-page .type-import,
+.history-page .status-complete {
+    color: #21815A;
+    background: #E6F6ED;
+}
+
+.history-page .type-export {
+    color: #3478D4;
+    background: #EAF1FF;
+}
+
+.history-page .status-pending {
+    color: #A66A0C;
+    background: #FFF3DC;
+}
+
+.history-page .status-cancelled {
+    color: #C34444;
+    background: #FFEDED;
+}
+
+
+/* =========================================
+   11. NÚT CHI TIẾT
+========================================= */
+
+.history-page .btn-detail {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 36px;
+    padding: 8px 12px;
+
+    color: var(--history-primary-dark);
+    background: var(--history-primary-light);
+    border: none;
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.history-page .btn-detail:hover {
+    background: #D5EFDF;
+}
+
+.history-page .empty-state {
+    padding: 35px !important;
+
+    color: var(--history-muted) !important;
+    text-align: center;
+    white-space: normal;
+}
+
+.history-page .table-footer {
+    padding: 15px 20px;
+
+    color: var(--history-muted);
+    font-size: 12px;
+    line-height: 1.6;
+
+    border-top: 1px solid #EDF1EE;
+}
+
+
+/* =========================================
+   12. THÔNG BÁO DỮ LIỆU MẪU
+========================================= */
+
+.history-page .demo-notice {
+    margin-top: 16px;
+    padding: 13px 15px;
+
+    color: #8A641E;
+    background: #FFF9EB;
+    border: 1px solid #F4E6C6;
+    border-radius: 9px;
+
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+
+/* =========================================
+   13. MODAL CHI TIẾT
+========================================= */
+
+.history-page .modal-overlay[hidden] {
+    display: none !important;
+}
+
+.history-page .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+    background: rgba(18, 32, 24, 0.45);
+}
+
+.history-page .detail-modal {
+    width: min(650px, 100%);
+    max-height: 85vh;
+
+    overflow-y: auto;
+    padding: 24px;
+
+    background: #FFFFFF;
+    border: 1px solid var(--history-border);
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+.history-page .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+
+    margin-bottom: 20px;
+}
+
+.history-page .modal-header h3 {
+    margin: 0 0 7px;
+
+    color: var(--history-primary-dark);
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.history-page .modal-header p {
+    margin: 0;
+
+    color: var(--history-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.history-page .modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+
+    color: #52645A;
+    background: #F1F5F1;
+    border: none;
+    border-radius: 8px;
+
+    font-size: 23px;
+    cursor: pointer;
+}
+
+.history-page .modal-close:hover {
+    background: #E5EEE8;
+}
+
+.history-page .detail-info {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 18px;
+
+    margin-bottom: 20px;
+}
+
+.history-page .detail-info p {
+    color: #52645A;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.history-page .detail-info strong {
+    color: var(--history-text);
+    font-weight: 750;
+}
+
+.history-page .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    margin-top: 18px;
+}
+
+
+/* =========================================
+   14. RESPONSIVE - LAPTOP
+   Đồng bộ breakpoint với Sales Account
+========================================= */
+
+@media (max-width: 1100px) and (min-width: 761px) {
+
+    .history-page {
+        padding: 22px;
+    }
+
+    .history-page .history-workspace {
+        grid-template-columns: 230px minmax(0, 1fr);
+    }
+
+    .history-page .sales-sidebar {
+        width: 230px;
+        min-width: 230px;
+    }
+
+    .history-page .history-main {
+        padding-left: 22px;
+    }
+
+    .history-page .history-statistics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-page .history-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-page .search-filter {
+        grid-column: 1 / -1;
+    }
+}
+
+
+/* =========================================
+   15. RESPONSIVE - TABLET
+   Đồng bộ với Sales Account
+========================================= */
+
+@media (max-width: 760px) {
+
+    .history-page {
+        min-height: auto;
+        padding: 16px 12px;
+    }
+
+    .history-page .history-workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        min-height: auto;
+    }
+
+    .history-page .sales-sidebar {
+        position: static;
+
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+
+        height: auto;
+        min-height: 0;
+        max-height: none;
+
+        margin: 0;
+        padding: 15px;
+
+        border: 1px solid #DFE9E2;
+        border-radius: 12px;
+        box-shadow: none;
+    }
+
+    .history-page .sales-sidebar-brand {
+        padding-bottom: 15px;
+    }
+
+    .history-page .sales-sidebar-label {
+        margin-top: 17px;
+    }
+
+    .history-page .sales-sidebar-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-page .sales-sidebar-nav .sales-nav-item {
+        align-items: flex-start;
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+
+    .history-page .sales-sidebar-nav .sales-nav-icon {
+        flex: 0 0 24px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .history-page .sales-sidebar-bottom {
+        margin-top: 17px;
+    }
+
+    .history-page .history-main {
+        grid-column: auto;
+
+        width: 100%;
+        max-width: 100%;
+
+        padding-left: 0;
+    }
+
+    .history-page .history-filters {
+        padding: 18px;
+    }
+}
+
+
+/* =========================================
+   16. RESPONSIVE - MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+
+    .history-page {
+        padding: 12px;
+    }
+
+    .history-page .history-heading {
+        flex-direction: column;
+        gap: 14px;
+
+        margin-bottom: 20px;
+    }
+
+    .history-page .history-heading h1 {
+        font-size: 24px;
+    }
+
+    .history-page .btn-export {
+        width: 100%;
+    }
+
+    .history-page .history-statistics {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .history-page .stat-card {
+        padding: 16px;
+    }
+
+    .history-page .history-panel {
+        border-radius: 12px;
+    }
+
+    .history-page .panel-heading {
+        padding: 17px;
+    }
+
+    .history-page .history-filters {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+
+        padding: 16px;
+    }
+
+    .history-page .search-filter {
+        grid-column: auto;
+    }
+
+    .history-page .detail-info {
+        grid-template-columns: 1fr;
+    }
+
+    .history-page .detail-modal {
+        padding: 18px;
+    }
+}
+
+
+/* =========================================
+   17. RESPONSIVE - MOBILE NHỎ
+   Đồng bộ với Sales Account
+========================================= */
+
+@media (max-width: 420px) {
+
+    .history-page .sales-sidebar-nav {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* =========================================
+   18. RESPONSIVE - MÀN HÌNH RẤT NHỎ
+========================================= */
+
+@media (max-width: 360px) {
+
+    .history-page .history-heading h1 {
+        font-size: 21px;
+    }
+}
+/* MŨI TÊN BÊN PHẢI MENU SIDEBAR */
+.history-page .sales-sidebar-nav .sales-nav-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 16px;
+    width: 16px;
+    height: 20px;
+
+    margin-left: auto;
+
+    color: #176B50;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* Mũi tên hiện rõ khi menu được chọn */
+.history-page .sales-sidebar-nav .sales-nav-item.active .sales-nav-arrow {
+    color: #176B50;
+}

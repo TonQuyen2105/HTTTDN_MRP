@@ -1,0 +1,1178 @@
+
+/* =========================================
+   PHARMAMRP - SALES ORDERS
+   File: wwwroot/css/order.css
+   Dong bo voi sales-account.css
+========================================= */
+
+
+/* =========================================
+   1. GENERAL
+========================================= */
+
+.order-page {
+    --order-primary: #176B50;
+    --order-primary-dark: #124B38;
+    --order-primary-light: #E8F2EB;
+    --order-text: #244333;
+    --order-muted: #718277;
+    --order-border: #DFE9E2;
+    --order-bg: #F5F8F5;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: calc(100vh - 72px);
+
+    margin: 0;
+    padding: 30px;
+
+    color: var(--order-text);
+    background: transparent;
+
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.order-page *,
+.order-page *::before,
+.order-page *::after {
+    box-sizing: border-box;
+}
+
+.order-page img,
+.order-page input,
+.order-page select,
+.order-page button {
+    max-width: 100%;
+}
+
+
+/* =========================================
+   2. WORKSPACE
+========================================= */
+
+.order-page .order-workspace {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+
+/* =========================================
+   3. SIDEBAR
+========================================= */
+
+.order-page .order-sidebar {
+    position: fixed;
+    top: 72px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+
+    display: flex;
+    flex-direction: column;
+
+    width: 250px;
+    min-width: 250px;
+    height: auto;
+    min-height: 0;
+
+    margin: 0;
+    padding: 25px 15px 18px;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    background: #FFFFFF;
+    border: none;
+    border-right: 1px solid #DFE9E2;
+    border-radius: 0;
+
+    box-shadow: 2px 0 12px rgba(25, 65, 45, 0.04);
+}
+
+
+/* SIDEBAR BRAND */
+
+.order-page .order-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    min-width: 0;
+    padding: 2px 7px 23px;
+
+    border-bottom: 1px solid #EDF2EE;
+}
+
+.order-page .order-brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 43px;
+    width: 43px;
+    height: 43px;
+
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #176B50, #2C9670);
+    border-radius: 13px;
+
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.order-page .order-sidebar-brand h2 {
+    margin: 0 0 5px;
+
+    color: #176B50;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.order-page .order-sidebar-brand span {
+    color: #718277;
+    font-size: 8px;
+    font-weight: 750;
+    letter-spacing: 0.7px;
+}
+
+
+/* SIDEBAR LABEL */
+
+.order-page .order-sidebar-label {
+    margin: 24px 8px 12px;
+
+    color: #849188;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+
+/* SIDEBAR MENU */
+
+.order-page .order-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.order-page .order-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    min-width: 0;
+    padding: 12px 10px;
+
+    color: #52695B;
+    background: transparent;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.55;
+    text-decoration: none;
+
+    transition: all 0.2s ease;
+}
+
+.order-page .order-nav-item:hover {
+    color: #176B50;
+    background: #F1F7F3;
+    border-color: #E5F0E8;
+}
+
+.order-page .order-nav-item.active {
+    color: #176B50;
+    background: #E8F2EB;
+    border-color: #DCECE1;
+    font-weight: 800;
+}
+
+
+/* SIDEBAR ICON */
+
+.order-page .order-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 27px;
+    width: 27px;
+    height: 27px;
+
+    color: #718277;
+    background: #F3F6F3;
+    border-radius: 8px;
+
+    font-size: 17px;
+}
+
+.order-page .order-nav-item.active .order-nav-icon {
+    color: #176B50;
+    background: #D6EBDD;
+}
+
+.order-page .order-nav-arrow {
+    margin-left: auto;
+
+    color: #176B50;
+    font-size: 22px;
+    line-height: 1;
+}
+
+
+/* SIDEBAR USER */
+
+.order-page .order-sidebar-bottom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    min-width: 0;
+    margin-top: auto;
+    padding: 18px 5px 3px;
+
+    border-top: 1px solid #EDF2EE;
+}
+
+.order-page .order-user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 37px;
+    height: 37px;
+    flex-shrink: 0;
+
+    color: #176B50;
+    background: #E6F3E9;
+    border-radius: 11px;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.order-page .order-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    min-width: 0;
+}
+
+.order-page .order-user-info strong {
+    overflow-wrap: anywhere;
+
+    color: #344C3D;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.order-page .order-user-info span {
+    color: #718277;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+/* =========================================
+   4. MAIN CONTENT
+   Can le giong Sales Account
+========================================= */
+
+.order-page .order-main {
+    position: relative;
+    display: block;
+
+    width: calc(100% - 250px);
+    max-width: calc(100% - 250px);
+    min-width: 0;
+
+    min-height: calc(100vh - 102px);
+    height: auto;
+
+    margin-left: 250px;
+    padding: 0 0 0 30px;
+
+    background: transparent;
+    overflow: visible;
+}
+
+.order-page .order-main > * {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+
+/* =========================================
+   5. PAGE HEADING
+========================================= */
+
+.order-page .order-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    min-width: 0;
+    margin: 4px 0 22px;
+}
+
+.order-page .order-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    margin-bottom: 13px;
+
+    color: #89968E;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.order-page .order-breadcrumb strong {
+    color: #176B50;
+    font-weight: 750;
+}
+
+.order-page .order-heading h1 {
+    margin: 0 0 8px;
+
+    color: #183C2E;
+    font-size: 25px;
+    line-height: 1.3;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.order-page .order-heading p {
+    margin: 0;
+
+    color: #718277;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.order-page .order-heading-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+
+    color: #176B50;
+    background: #E8F2EB;
+    border: 1px solid #D8EADE;
+    border-radius: 13px;
+
+    font-size: 22px;
+}
+
+
+/* =========================================
+   6. SUMMARY CARDS
+========================================= */
+
+.order-page .order-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 23px;
+}
+
+.order-page .order-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    min-width: 0;
+    padding: 16px 17px;
+
+    background: #FFFFFF;
+    border: 1px solid #DFE9E2;
+    border-radius: 12px;
+
+    box-shadow: 0 3px 12px rgba(25, 65, 45, 0.025);
+
+    transition: all 0.2s ease;
+}
+
+.order-page .order-summary-card:hover {
+    transform: translateY(-2px);
+    border-color: #C9E1D3;
+    box-shadow: 0 8px 20px rgba(25, 65, 45, 0.06);
+}
+
+.order-page .order-summary-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+
+    border-radius: 10px;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.order-page .summary-green {
+    color: #21815A;
+    background: #E8F7EE;
+}
+
+.order-page .summary-orange {
+    color: #A66B13;
+    background: #FFF4DF;
+}
+
+.order-page .summary-blue {
+    color: #3976D5;
+    background: #EDF4FF;
+}
+
+.order-page .order-summary-card > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    min-width: 0;
+}
+
+.order-page .order-summary-card span {
+    color: #718277;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.order-page .order-summary-card strong {
+    overflow-wrap: anywhere;
+
+    color: #234333;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.order-page .order-summary-card small {
+    color: #849188;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   7. FILTER CARD
+========================================= */
+
+.order-page .order-filter-card {
+    width: 100%;
+    min-width: 0;
+
+    margin-bottom: 23px;
+    padding: 20px;
+
+    background: #FFFFFF;
+    border: 1px solid #DFE9E2;
+    border-radius: 13px;
+
+    box-shadow: 0 4px 16px rgba(25, 65, 45, 0.025);
+}
+
+.order-page .order-section-heading {
+    margin-bottom: 16px;
+}
+
+.order-page .order-section-heading h2,
+.order-page .order-list-heading h2 {
+    margin: 0 0 6px;
+
+    color: #234333;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.order-page .order-section-heading p,
+.order-page .order-list-heading p {
+    margin: 0;
+
+    color: #718277;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   8. FILTER FORM
+========================================= */
+
+.order-page .order-filter-form {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.5fr)
+        minmax(120px, 1fr)
+        minmax(130px, 1fr);
+
+    gap: 14px;
+    align-items: end;
+
+    min-width: 0;
+}
+
+.order-page .order-filter-field {
+    min-width: 0;
+}
+
+.order-page .order-filter-field label {
+    display: block;
+    margin-bottom: 7px;
+
+    color: #405B49;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.order-page .order-filter-field .form-control,
+.order-page .order-filter-field .form-select {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 41px;
+
+    padding: 8px 11px;
+
+    color: #304B3B;
+    background-color: #FBFCFB;
+
+    border: 1px solid #E3EBE5;
+    border-radius: 9px;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+
+    box-shadow: none;
+}
+
+.order-page .order-filter-field .form-control:focus,
+.order-page .order-filter-field .form-select:focus {
+    border-color: #81BBA0;
+    box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.08);
+}
+
+
+/* =========================================
+   9. FILTER BUTTONS
+========================================= */
+
+.order-page .order-filter-actions {
+    display: flex;
+    grid-column: 1 / -1;
+
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    padding-top: 2px;
+}
+
+.order-page .order-btn-primary,
+.order-page .order-btn-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    min-height: 38px;
+    padding: 8px 14px;
+
+    border-radius: 9px;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    text-decoration: none;
+
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.order-page .order-btn-primary {
+    color: #FFFFFF;
+    background: #176B50;
+    border: 1px solid #176B50;
+}
+
+.order-page .order-btn-primary:hover {
+    color: #FFFFFF;
+    background: #124B38;
+    border-color: #124B38;
+}
+
+.order-page .order-btn-reset {
+    color: #52695B;
+    background: #FFFFFF;
+    border: 1px solid #DFE9E2;
+}
+
+.order-page .order-btn-reset:hover {
+    color: #176B50;
+    background: #F1F7F3;
+    border-color: #C9E1D3;
+}
+
+
+/* =========================================
+   10. ORDER LIST
+========================================= */
+
+.order-page .order-list-section {
+    width: 100%;
+    min-width: 0;
+}
+
+.order-page .order-list-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    margin-bottom: 14px;
+}
+
+.order-page .order-count {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 6px 10px;
+
+    color: #176B50;
+    background: #E8F2EB;
+    border: 1px solid #DCECE1;
+    border-radius: 8px;
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+/* =========================================
+   11. ORDER CARD
+========================================= */
+
+.order-page .order-card {
+    width: 100%;
+    min-width: 0;
+
+    margin-bottom: 13px;
+    padding: 17px 18px;
+
+    background: #FFFFFF;
+    border: 1px solid #DFE9E2;
+    border-radius: 12px;
+
+    box-shadow: 0 3px 12px rgba(25, 65, 45, 0.025);
+
+    transition: all 0.2s ease;
+}
+
+.order-page .order-card:hover {
+    transform: translateY(-2px);
+    border-color: #C9E1D3;
+    box-shadow: 0 8px 20px rgba(25, 65, 45, 0.06);
+}
+
+.order-page .order-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    padding-bottom: 13px;
+    border-bottom: 1px solid #EDF2EE;
+}
+
+.order-page .order-id-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    min-width: 0;
+}
+
+.order-page .order-id-label {
+    color: #849188;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.order-page .order-id {
+    color: #176B50;
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.order-page .order-id:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================
+   12. ORDER STATUS
+========================================= */
+
+.order-page .order-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 7px 10px;
+
+    border-radius: 8px;
+
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.order-page .status-pending {
+    color: #95620E;
+    background: #FFF4DF;
+    border: 1px solid #F7E7BD;
+}
+
+.order-page .status-completed {
+    color: #21815A;
+    background: #E8F7EE;
+    border: 1px solid #D2EDDD;
+}
+
+.order-page .status-dot {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+
+    background: currentColor;
+    border-radius: 50%;
+}
+
+
+/* =========================================
+   13. ORDER BODY
+========================================= */
+
+.order-page .order-card-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+
+    align-items: center;
+    gap: 18px;
+
+    min-width: 0;
+    padding-top: 15px;
+}
+
+.order-page .order-pharmacy {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+
+    min-width: 0;
+}
+
+.order-page .pharmacy-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 39px;
+    height: 39px;
+    flex-shrink: 0;
+
+    color: #176B50;
+    background: #EAF5EE;
+    border: 1px solid #DCECE1;
+    border-radius: 10px;
+
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.order-page .order-pharmacy > div:last-child {
+    min-width: 0;
+}
+
+.order-page .pharmacy-code {
+    display: inline-block;
+    margin-bottom: 5px;
+
+    color: #39765A;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.order-page .order-pharmacy h3 {
+    margin: 0 0 7px;
+
+    color: #294536;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 800;
+}
+
+.order-page .order-pharmacy p {
+    margin: 0;
+
+    color: #718277;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.7;
+}
+
+
+/* =========================================
+   14. ORDER META
+========================================= */
+
+.order-page .order-card-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+
+    min-width: 0;
+}
+
+.order-page .order-card-meta > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    min-width: 0;
+}
+
+.order-page .meta-label {
+    color: #849188;
+    font-size: 9px;
+    font-weight: 650;
+}
+
+.order-page .order-card-meta strong {
+    overflow-wrap: anywhere;
+
+    color: #40574A;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.order-page .order-card-meta .order-total {
+    grid-column: 1 / -1;
+
+    padding-top: 12px;
+    border-top: 1px dashed #DFE9E2;
+}
+
+.order-page .order-card-meta .order-total strong {
+    color: #C74C4C;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+
+/* =========================================
+   15. PAGE FOOTER
+========================================= */
+
+.order-page .order-page-footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 15px;
+
+    margin-top: 18px;
+    padding: 14px 2px 5px;
+
+    color: #718277;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.order-page .order-page-footer strong {
+    color: #39765A;
+    font-weight: 800;
+}
+
+
+/* =========================================
+   16. RESPONSIVE - LAPTOP
+========================================= */
+
+@media (max-width: 1100px) and (min-width: 761px) {
+
+    .order-page {
+        padding: 22px;
+    }
+
+    .order-page .order-sidebar {
+        width: 230px;
+        min-width: 230px;
+    }
+
+    .order-page .order-main {
+        width: calc(100% - 230px);
+        max-width: calc(100% - 230px);
+
+        margin-left: 230px;
+        padding-left: 22px;
+    }
+
+    .order-page .order-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .order-page .order-filter-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .order-page .order-card-body {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .order-page .order-card-meta {
+        padding-top: 15px;
+        border-top: 1px solid #EDF2EE;
+    }
+}
+
+
+/* =========================================
+   17. RESPONSIVE - TABLET
+========================================= */
+
+@media (max-width: 760px) {
+
+    .order-page {
+        width: 100%;
+        min-height: auto;
+        padding: 16px 12px;
+    }
+
+    .order-page .order-workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .order-page .order-sidebar {
+        position: static;
+
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+
+        height: auto;
+        min-height: auto;
+        max-height: none;
+
+        margin: 0;
+        padding: 15px;
+
+        border: 1px solid #DFE9E2;
+        border-radius: 12px;
+        box-shadow: none;
+    }
+
+    .order-page .order-sidebar-brand {
+        padding-bottom: 15px;
+    }
+
+    .order-page .order-sidebar-label {
+        margin-top: 17px;
+    }
+
+    .order-page .order-sidebar-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .order-page .order-nav-item {
+        align-items: flex-start;
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+
+    .order-page .order-nav-icon {
+        flex: 0 0 24px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .order-page .order-sidebar-bottom {
+        margin-top: 17px;
+    }
+
+    .order-page .order-main {
+        position: static;
+        display: block;
+
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+
+        height: auto;
+        min-height: auto;
+
+        margin: 0;
+        padding: 0;
+
+        overflow: visible;
+    }
+
+    .order-page .order-heading {
+        width: 100%;
+        margin: 0 0 20px;
+    }
+
+    .order-page .order-heading h1 {
+        font-size: 24px;
+    }
+
+    .order-page .order-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .order-page .order-filter-card {
+        width: 100%;
+        padding: 18px 16px;
+    }
+
+    .order-page .order-filter-form {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .order-page .order-filter-actions {
+        grid-column: auto;
+        justify-content: stretch;
+    }
+
+    .order-page .order-btn-primary,
+    .order-page .order-btn-reset {
+        flex: 1;
+    }
+
+    .order-page .order-card {
+        padding: 16px 15px;
+    }
+
+    .order-page .order-card-body {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .order-page .order-card-meta {
+        padding-top: 15px;
+        border-top: 1px solid #EDF2EE;
+    }
+
+    .order-page .order-page-footer {
+        flex-direction: column;
+    }
+}
+
+
+/* =========================================
+   18. RESPONSIVE - SMALL MOBILE
+========================================= */
+
+@media (max-width: 420px) {
+
+    .order-page .order-sidebar-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .order-page .order-heading {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .order-page .order-heading h1 {
+        font-size: 22px;
+    }
+
+    .order-page .order-heading-icon {
+        width: 43px;
+        height: 43px;
+        border-radius: 12px;
+        font-size: 19px;
+    }
+
+    .order-page .order-card-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .order-page .order-card-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .order-page .order-card-meta .order-total {
+        grid-column: auto;
+    }
+
+    .order-page .order-list-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+
+/* =========================================
+   19. FIXED HEADER
+========================================= */
+
+@media (min-width: 761px) {
+
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+
+        width: 100%;
+        margin: 0;
+
+        z-index: 1100;
+    }
+}

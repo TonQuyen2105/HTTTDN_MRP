@@ -1,0 +1,530 @@
+
+@{
+    ViewData["Title"] = "Lịch sử đơn hàng nhập - xuất";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/transaction-history.css"
+          asp-append-version="true" />
+}
+
+<div class="history-page">
+    <div class="history-workspace">
+
+              <!-- SIDEBAR -->
+        <aside class="sales-sidebar">
+            <div class="sales-sidebar-brand">
+                <div class="sales-brand-icon">✚</div>
+                <div>
+                    <h2>PharmaMRP</h2>
+                    <span>HỆ THỐNG BÁN HÀNG</span>
+                </div>
+            </div>
+
+            <div class="sales-sidebar-label">MENU BÁN HÀNG</div>
+
+           <nav class="sales-sidebar-nav">
+    <a class="sales-nav-item"
+       href="/Sales/Orders">
+        <span class="sales-nav-icon">▤</span>
+        <span>Xem đơn hàng</span>
+    </a>
+
+    <a class="sales-nav-item active"
+       href="/Sales/TransactionHistory">
+        <span class="sales-nav-icon">◷</span>
+        <span>Lịch sử đơn hàng nhập xuất</span>
+        <span class="sales-nav-arrow">›</span>
+    </a>
+
+    <a class="sales-nav-item"
+       href="/Sales/ExportSlips">
+        <span class="sales-nav-icon">⇧</span>
+        <span>Theo dõi phiếu xuất kho</span>
+    </a>
+
+    <a class="sales-nav-item"
+       href="/Sales/MedicineInventory">
+        <span class="sales-nav-icon">▦</span>
+        <span>Tra cứu thuốc và tồn kho</span>
+    </a>
+
+    <a class="sales-nav-item"
+       href="/Sales/SalesAccount">
+        <span class="sales-nav-icon">♙</span>
+        <span>Tài khoản của tôi</span>
+    </a>
+
+    <a class="sales-nav-item"
+       href="/Sales/RevenueReport">
+        <span class="sales-nav-icon">▥</span>
+        <span>Thống kê, báo cáo doanh thu</span>
+    </a>
+</nav>
+
+            <div class="sales-sidebar-bottom">
+                <div class="sales-sidebar-user-avatar">NV</div>
+                <div class="sales-sidebar-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="history-main">
+
+            <div class="history-heading">
+                <div>
+                    <div class="breadcrumb">
+                        Bán hàng / Lịch sử nhập - xuất
+                    </div>
+                    <h1>Lịch sử đơn hàng nhập - xuất</h1>
+                    <p>
+                        Theo dõi các giao dịch nhập thuốc và xuất thuốc
+                        trong hệ thống.
+                    </p>
+                </div>
+
+                <button type="button"
+                        class="btn-export"
+                        onclick="exportHistory()">
+                    ↓ Xuất CSV
+                </button>
+            </div>
+
+            <!-- THỐNG KÊ -->
+            <div class="history-statistics">
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <span>Tổng giao dịch</span>
+                        <span class="stat-icon">▤</span>
+                    </div>
+                    <h2 id="totalCount">0</h2>
+                    <small>Tất cả phiếu nhập và xuất</small>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <span>Phiếu nhập kho</span>
+                        <span class="stat-icon green">↓</span>
+                    </div>
+                    <h2 id="importCount">0</h2>
+                    <small>Giao dịch nhập thuốc</small>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <span>Phiếu xuất kho</span>
+                        <span class="stat-icon blue">↑</span>
+                    </div>
+                    <h2 id="exportCount">0</h2>
+                    <small>Giao dịch xuất thuốc</small>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <span>Đang xử lý</span>
+                        <span class="stat-icon orange">◷</span>
+                    </div>
+                    <h2 id="pendingCount">0</h2>
+                    <small>Giao dịch chưa hoàn tất</small>
+                </div>
+            </div>
+
+            <!-- BỘ LỌC -->
+            <section class="history-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h3>Danh sách giao dịch</h3>
+                        <p>Tra cứu lịch sử nhập kho và xuất kho</p>
+                    </div>
+                </div>
+
+                <div class="history-filters">
+                    <div class="filter-item search-filter">
+                        <label for="searchInput">Tìm kiếm</label>
+                        <input id="searchInput"
+                               type="text"
+                               placeholder="Mã phiếu, thuốc, đối tác..." />
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="typeFilter">Loại giao dịch</label>
+                        <select id="typeFilter">
+                            <option value="">Tất cả giao dịch</option>
+                            <option value="Nhập kho">Nhập kho</option>
+                            <option value="Xuất kho">Xuất kho</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="statusFilter">Trạng thái</label>
+                        <select id="statusFilter">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Hoàn tất">Hoàn tất</option>
+                            <option value="Đang xử lý">Đang xử lý</option>
+                            <option value="Đã hủy">Đã hủy</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="fromDate">Từ ngày</label>
+                        <input type="date" id="fromDate" />
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="toDate">Đến ngày</label>
+                        <input type="date" id="toDate" />
+                    </div>
+
+                    <button type="button"
+                            class="btn-reset"
+                            onclick="resetFilters()">
+                        Đặt lại
+                    </button>
+                </div>
+
+                <!-- BẢNG LỊCH SỬ -->
+                <div class="table-wrapper">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Loại giao dịch</th>
+                                <th>Ngày giao dịch</th>
+                                <th>Nhà cung cấp / Khách hàng</th>
+                                <th>Số mặt hàng</th>
+                                <th>Tổng số lượng</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <span id="resultCount">Hiển thị 0 giao dịch</span>
+                </div>
+            </section>
+
+            <div class="demo-notice">
+                <strong>Lưu ý:</strong>
+                Đây là dữ liệu minh họa để kiểm tra giao diện và chức năng lọc.
+                Dữ liệu chưa được lấy từ cơ sở dữ liệu.
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- POPUP CHI TIẾT -->
+<div id="detailModal" class="modal-overlay" hidden>
+    <div class="detail-modal">
+        <div class="modal-header">
+            <div>
+                <h3>Chi tiết giao dịch</h3>
+                <p id="detailSubtitle"></p>
+            </div>
+            <button type="button"
+                    class="modal-close"
+                    onclick="closeDetail()">×</button>
+        </div>
+
+        <div id="detailContent"></div>
+
+        <div class="modal-actions">
+            <button type="button"
+                    class="btn-reset"
+                    onclick="closeDetail()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // DỮ LIỆU MẪU: thay bằng dữ liệu từ CSDL ở bước tiếp theo.
+    const transactions = [
+        {
+            id: "PN001",
+            type: "Nhập kho",
+            date: "2026-10-20",
+            partner: "Công ty Dược ABC",
+            items: 3,
+            quantity: 500,
+            status: "Hoàn tất",
+            details: [
+                { name: "Paracetamol 500mg", quantity: 200 },
+                { name: "Vitamin C 500mg", quantity: 150 },
+                { name: "Amoxicillin 500mg", quantity: 150 }
+            ]
+        },
+        {
+            id: "PX001",
+            type: "Xuất kho",
+            date: "2026-10-21",
+            partner: "Nhà thuốc Minh Tâm",
+            items: 2,
+            quantity: 120,
+            status: "Hoàn tất",
+            details: [
+                { name: "Paracetamol 500mg", quantity: 80 },
+                { name: "Vitamin C 500mg", quantity: 40 }
+            ]
+        },
+        {
+            id: "PN002",
+            type: "Nhập kho",
+            date: "2026-10-22",
+            partner: "Công ty Dược XYZ",
+            items: 2,
+            quantity: 300,
+            status: "Đang xử lý",
+            details: [
+                { name: "Amoxicillin 500mg", quantity: 200 },
+                { name: "Vitamin C 500mg", quantity: 100 }
+            ]
+        },
+        {
+            id: "PX002",
+            type: "Xuất kho",
+            date: "2026-10-23",
+            partner: "Nhà thuốc An Khang",
+            items: 2,
+            quantity: 90,
+            status: "Đã hủy",
+            details: [
+                { name: "Paracetamol 500mg", quantity: 50 },
+                { name: "Amoxicillin 500mg", quantity: 40 }
+            ]
+        }
+    ];
+
+    const tbody = document.getElementById("historyTableBody");
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function formatDate(date) {
+        if (!date) return "";
+        const parts = date.split("-");
+        return parts.length === 3
+            ? `${parts[2]}/${parts[1]}/${parts[0]}`
+            : date;
+    }
+
+    function statusClass(status) {
+        if (status === "Hoàn tất") return "status-complete";
+        if (status === "Đang xử lý") return "status-pending";
+        return "status-cancelled";
+    }
+
+    function getFilteredTransactions() {
+        const keyword = document.getElementById("searchInput")
+            .value.trim().toLowerCase();
+
+        const type = document.getElementById("typeFilter").value;
+        const status = document.getElementById("statusFilter").value;
+        const fromDate = document.getElementById("fromDate").value;
+        const toDate = document.getElementById("toDate").value;
+
+        return transactions.filter(item => {
+            const searchable = [
+                item.id,
+                item.type,
+                item.partner,
+                ...item.details.map(detail => detail.name)
+            ].join(" ").toLowerCase();
+
+            return (!keyword || searchable.includes(keyword))
+                && (!type || item.type === type)
+                && (!status || item.status === status)
+                && (!fromDate || item.date >= fromDate)
+                && (!toDate || item.date <= toDate);
+        });
+    }
+
+    function renderHistory() {
+        const filtered = getFilteredTransactions();
+
+        document.getElementById("totalCount").textContent =
+            transactions.length;
+
+        document.getElementById("importCount").textContent =
+            transactions.filter(x => x.type === "Nhập kho").length;
+
+        document.getElementById("exportCount").textContent =
+            transactions.filter(x => x.type === "Xuất kho").length;
+
+        document.getElementById("pendingCount").textContent =
+            transactions.filter(x => x.status === "Đang xử lý").length;
+
+        document.getElementById("resultCount").textContent =
+            `Hiển thị ${filtered.length} / ${transactions.length} giao dịch`;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        Không tìm thấy giao dịch phù hợp.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(item => `
+            <tr>
+                <td><strong>${escapeHtml(item.id)}</strong></td>
+                <td>
+                    <span class="type-badge ${
+                        item.type === "Nhập kho" ? "type-import" : "type-export"
+                    }">${escapeHtml(item.type)}</span>
+                </td>
+                <td>${formatDate(item.date)}</td>
+                <td>${escapeHtml(item.partner)}</td>
+                <td>${item.items}</td>
+                <td>${item.quantity.toLocaleString("vi-VN")}</td>
+                <td>
+                    <span class="status-badge ${statusClass(item.status)}">
+                        ${escapeHtml(item.status)}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn-detail"
+                            type="button"
+                            data-id="${escapeHtml(item.id)}">
+                        Chi tiết
+                    </button>
+                </td>
+            </tr>
+        `).join("");
+    }
+
+    function showDetail(id) {
+        const item = transactions.find(x => x.id === id);
+        if (!item) return;
+
+        document.getElementById("detailSubtitle").textContent =
+            `${item.id} · ${item.type}`;
+
+        const detailRows = item.details.map((detail, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(detail.name)}</td>
+                <td>${detail.quantity.toLocaleString("vi-VN")}</td>
+            </tr>
+        `).join("");
+
+        document.getElementById("detailContent").innerHTML = `
+            <div class="detail-info">
+                <p><strong>Mã phiếu:</strong> ${escapeHtml(item.id)}</p>
+                <p><strong>Loại:</strong> ${escapeHtml(item.type)}</p>
+                <p><strong>Ngày:</strong> ${formatDate(item.date)}</p>
+                <p><strong>Đối tác:</strong> ${escapeHtml(item.partner)}</p>
+                <p><strong>Trạng thái:</strong> ${escapeHtml(item.status)}</p>
+            </div>
+            <div class="table-wrapper">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên thuốc</th>
+                            <th>Số lượng</th>
+                        </tr>
+                    </thead>
+                    <tbody>${detailRows}</tbody>
+                </table>
+            </div>
+        `;
+
+        document.getElementById("detailModal").hidden = false;
+    }
+
+    function closeDetail() {
+        document.getElementById("detailModal").hidden = true;
+    }
+
+    function resetFilters() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("typeFilter").value = "";
+        document.getElementById("statusFilter").value = "";
+        document.getElementById("fromDate").value = "";
+        document.getElementById("toDate").value = "";
+        renderHistory();
+    }
+
+    function exportHistory() {
+        const filtered = getFilteredTransactions();
+        const rows = [
+            ["Mã phiếu", "Loại giao dịch", "Ngày", "Đối tác",
+             "Số mặt hàng", "Tổng số lượng", "Trạng thái"],
+            ...filtered.map(item => [
+                item.id,
+                item.type,
+                formatDate(item.date),
+                item.partner,
+                item.items,
+                item.quantity,
+                item.status
+            ])
+        ];
+
+        // BOM giúp Excel đọc tiếng Việt trong CSV.
+        const csv = "\uFEFF" + rows.map(row =>
+            row.map(value =>
+                '"' + String(value).replace(/"/g, '""') + '"'
+            ).join(",")
+        ).join("\r\n");
+
+        const blob = new Blob([csv], {
+            type: "text/csv;charset=utf-8;"
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "lich-su-nhap-xuat.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("searchInput")
+        .addEventListener("input", renderHistory);
+
+    document.getElementById("typeFilter")
+        .addEventListener("change", renderHistory);
+
+    document.getElementById("statusFilter")
+        .addEventListener("change", renderHistory);
+
+    document.getElementById("fromDate")
+        .addEventListener("change", renderHistory);
+
+    document.getElementById("toDate")
+        .addEventListener("change", renderHistory);
+
+    tbody.addEventListener("click", function (event) {
+        const button = event.target.closest(".btn-detail");
+        if (button) showDetail(button.dataset.id);
+    });
+
+    document.getElementById("detailModal")
+        .addEventListener("click", function (event) {
+            if (event.target === this) closeDetail();
+        });
+
+    renderHistory();
+</script>
+}

@@ -1,0 +1,177 @@
+@{
+    ViewData["Title"] = "Tra cứu thuốc và tồn kho";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/medicine-inventory.css" asp-append-version="true" />
+}
+
+<div class="inventory-page">
+    <aside class="inventory-sidebar">
+        <div class="inventory-brand">
+            <div class="inventory-logo">✚</div>
+            <div>
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
+            </div>
+        </div>
+
+        <p class="inventory-menu-title">MENU BÁN HÀNG</p>
+
+        <nav class="inventory-nav">
+            <a href="/Sales/Orders">
+                <span class="nav-icon">▤</span>
+                <span>Xem đơn hàng</span>
+            </a>
+            <a href="/Sales/TransactionHistory">
+                <span class="nav-icon">◷</span>
+                <span>Lịch sử đơn hàng nhập xuất</span>
+            </a>
+            <a href="/Sales/ExportSlips">
+                <span class="nav-icon">⇧</span>
+                <span>Theo dõi phiếu xuất kho</span>
+            </a>
+            <a class="active" href="/Sales/MedicineInventory">
+                <span class="nav-icon">▦</span>
+                <span>Tra cứu thuốc và tồn kho</span>
+                <span class="nav-arrow">›</span>
+            </a>
+            <a href="/Sales/SalesAccount">
+                <span class="nav-icon">♟</span>
+                <span>Tài khoản của tôi</span>
+            </a>
+            <a href="/Sales/RevenueReport">
+                <span class="nav-icon">▥</span>
+                <span>Thống kê, báo cáo doanh thu</span>
+            </a>
+        </nav>
+
+        <div class="inventory-user">
+            <div class="user-avatar">NV</div>
+            <div>
+                <strong>Nhân viên bán hàng</strong>
+                <span>sales_user</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="inventory-main">
+        <header class="inventory-heading">
+            <div>
+                <div class="inventory-breadcrumb">
+                    <span>Trang chủ</span>
+                    <span>/</span>
+                    <span>Bán hàng</span>
+                    <span>/</span>
+                    <strong>Tra cứu thuốc và tồn kho</strong>
+                </div>
+
+                <h1>Tra cứu thuốc và tồn kho</h1>
+                <p>Tra cứu thông tin thuốc, giá bán và số lượng thuốc hiện có trong kho.</p>
+            </div>
+
+            <button type="button" class="inventory-heading-icon" title="Tra cứu thuốc">
+                ▦
+            </button>
+        </header>
+
+        <section class="inventory-statistics">
+            <div class="inventory-stat-card">
+                <div>
+                    <span>Tổng số loại thuốc</span>
+                    <strong id="totalMedicines">0</strong>
+                    <small>Danh mục thuốc minh họa</small>
+                </div>
+                <div class="stat-icon green">▦</div>
+            </div>
+
+            <div class="inventory-stat-card">
+                <div>
+                    <span>Tổng số lượng tồn</span>
+                    <strong id="totalQuantity">0</strong>
+                    <small>Tổng số hộp thuốc trong kho</small>
+                </div>
+                <div class="stat-icon blue">▤</div>
+            </div>
+
+            <div class="inventory-stat-card">
+                <div>
+                    <span>Sắp hết hàng</span>
+                    <strong id="lowStockCount">0</strong>
+                    <small>Thuốc có tồn kho từ 10 hộp trở xuống</small>
+                </div>
+                <div class="stat-icon orange">◷</div>
+            </div>
+        </section>
+
+        <section class="inventory-panel">
+            <div class="inventory-panel-heading">
+                <h2>Tìm kiếm thuốc</h2>
+                <p>Nhập mã thuốc hoặc tên thuốc để tra cứu thông tin.</p>
+            </div>
+
+            <div class="inventory-filter">
+                <div class="filter-field search-field">
+                    <label for="medicineSearch">Mã thuốc / Tên thuốc</label>
+                    <input
+                        type="text"
+                        id="medicineSearch"
+                        placeholder="Nhập mã hoặc tên thuốc..." />
+                </div>
+
+                <div class="filter-field">
+                    <label for="stockFilter">Tình trạng tồn kho</label>
+                    <select id="stockFilter">
+                        <option value="">Tất cả tình trạng</option>
+                        <option value="available">Còn hàng</option>
+                        <option value="low">Sắp hết hàng</option>
+                        <option value="out">Hết hàng</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="button" id="searchButton" class="btn-search">
+                        ⌕ Tìm kiếm
+                    </button>
+                    <button type="button" id="resetButton" class="btn-reset">
+                        Xóa lọc
+                    </button>
+                </div>
+            </div>
+
+            <div class="inventory-table-wrapper">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Mã thuốc</th>
+                            <th>Tên thuốc</th>
+                            <th>Đơn vị</th>
+                            <th>Số lượng tồn</th>
+                            <th>Giá bán</th>
+                            <th>Thành tiền tồn kho</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="medicineTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="inventory-table-footer">
+                <span id="resultCount">Đang hiển thị 0 loại thuốc</span>
+                <span>Đơn vị tiền: VNĐ</span>
+            </div>
+        </section>
+
+        <div class="inventory-note">
+            <strong>Lưu ý:</strong> Dữ liệu hiện tại là dữ liệu minh họa để hoàn thiện giao diện.
+            Trang chưa kết nối với cơ sở dữ liệu thuốc và tồn kho của hệ thống.
+        </div>
+    </main>
+</div>
+
+@section Scripts {
+    <script src="~/js/medicine-inventory.js" asp-append-version="true"></script>
+}

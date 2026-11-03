@@ -8,7 +8,8 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        return View();
+        // Tự động điều hướng trang chủ (http://localhost:5147) vào thẳng giao diện Kho hàng
+        return Redirect("/Areas/Warehouse/Views/Index.html");
     }
 
     public IActionResult Privacy()

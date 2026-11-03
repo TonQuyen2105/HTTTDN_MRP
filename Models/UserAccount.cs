@@ -3,17 +3,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace httt.Models;
 
-[Table("user_accounts")]
+[Table("useraccount")]
 public class UserAccount
 {
-
     [Key]
-    [Column("user_id")]
+    [Column("userid")]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int UserID { get; set; }
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(50)]
     [Column("username")]
     public string Username { get; set; } = string.Empty;
 
@@ -23,20 +22,19 @@ public class UserAccount
     public string Password { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(200)]
-    [Column("full_name")]
+    [MaxLength(100)]
+    [Column("fullname")]
     public string FullName { get; set; } = string.Empty;
 
     [MaxLength(20)]
     [Column("phone")]
     public string? Phone { get; set; }
 
-    [Required]
-    [MaxLength(50)]
+    [MaxLength(20)]
     [Column("role")]
-    public string Role { get; set; } = "User";
+    public string? Role { get; set; } = "User";
 
+    [MaxLength(20)]
     [Column("status")]
-    public bool Status { get; set; } = true;
+    public string? Status { get; set; } = "Active";
 }
-

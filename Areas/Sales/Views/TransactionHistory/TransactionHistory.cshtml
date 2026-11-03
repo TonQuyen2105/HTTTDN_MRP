@@ -1,4 +1,4 @@
-
+```cshtml
 @{
     ViewData["Title"] = "Lịch sử đơn hàng nhập - xuất";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -13,7 +13,7 @@
 <div class="history-page">
     <div class="history-workspace">
 
-              <!-- SIDEBAR -->
+        <!-- SIDEBAR -->
         <aside class="sales-sidebar">
             <div class="sales-sidebar-brand">
                 <div class="sales-brand-icon">✚</div>
@@ -25,44 +25,43 @@
 
             <div class="sales-sidebar-label">MENU BÁN HÀNG</div>
 
-           <nav class="sales-sidebar-nav">
-    <a class="sales-nav-item"
-       href="/Sales/Orders">
-        <span class="sales-nav-icon">▤</span>
-        <span>Xem đơn hàng</span>
-    </a>
+            <nav class="sales-sidebar-nav">
+                <a class="sales-nav-item" href="/Sales/Orders">
+                    <span class="sales-nav-icon">▤</span>
+                    <span>Xem đơn hàng</span>
+                </a>
 
-    <a class="sales-nav-item active"
-       href="/Sales/TransactionHistory">
-        <span class="sales-nav-icon">◷</span>
-        <span>Lịch sử đơn hàng nhập xuất</span>
-        <span class="sales-nav-arrow">›</span>
-    </a>
+                <a class="sales-nav-item" href="/Sales/CreateOrder">
+                    <span class="sales-nav-icon">＋</span>
+                    <span>Tạo đơn hàng thành phẩm</span>
+                </a>
 
-    <a class="sales-nav-item"
-       href="/Sales/ExportSlips">
-        <span class="sales-nav-icon">⇧</span>
-        <span>Theo dõi phiếu xuất kho</span>
-    </a>
+                <a class="sales-nav-item active" href="/Sales/TransactionHistory">
+                    <span class="sales-nav-icon">◷</span>
+                    <span>Lịch sử đơn hàng nhập xuất</span>
+                    <span class="sales-nav-arrow">›</span>
+                </a>
 
-    <a class="sales-nav-item"
-       href="/Sales/MedicineInventory">
-        <span class="sales-nav-icon">▦</span>
-        <span>Tra cứu thuốc và tồn kho</span>
-    </a>
+                <a class="sales-nav-item" href="/Sales/ExportSlips">
+                    <span class="sales-nav-icon">⇧</span>
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
 
-    <a class="sales-nav-item"
-       href="/Sales/SalesAccount">
-        <span class="sales-nav-icon">♙</span>
-        <span>Tài khoản của tôi</span>
-    </a>
+                <a class="sales-nav-item" href="/Sales/MedicineInventory">
+                    <span class="sales-nav-icon">▦</span>
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
 
-    <a class="sales-nav-item"
-       href="/Sales/RevenueReport">
-        <span class="sales-nav-icon">▥</span>
-        <span>Thống kê, báo cáo doanh thu</span>
-    </a>
-</nav>
+                <a class="sales-nav-item" href="/Sales/SalesAccount">
+                    <span class="sales-nav-icon">♙</span>
+                    <span>Tài khoản của tôi</span>
+                </a>
+
+                <a class="sales-nav-item" href="/Sales/RevenueReport">
+                    <span class="sales-nav-icon">▥</span>
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
 
             <div class="sales-sidebar-bottom">
                 <div class="sales-sidebar-user-avatar">NV</div>
@@ -528,3 +527,4 @@
     renderHistory();
 </script>
 }
+```

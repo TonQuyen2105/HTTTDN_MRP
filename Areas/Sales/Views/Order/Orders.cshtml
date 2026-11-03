@@ -1,4 +1,4 @@
- 
+```cshtml
 @{
     ViewData["Title"] = "Xem đơn hàng";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -28,6 +28,11 @@
                     <span class="order-nav-icon">▤</span>
                     <span>Xem đơn hàng</span>
                     <span class="order-nav-arrow">›</span>
+                </a>
+
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span class="order-nav-icon">＋</span>
+                    <span>Tạo đơn hàng thành phẩm</span>
                 </a>
 
                 <a class="order-nav-item" href="/Sales/TransactionHistory">
@@ -324,3 +329,4 @@
         </main>
     </div>
 </div>
+```

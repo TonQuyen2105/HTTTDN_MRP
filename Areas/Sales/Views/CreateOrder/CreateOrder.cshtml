@@ -1,0 +1,660 @@
+
+@{
+    ViewData["Title"] = "Tạo đơn hàng thành phẩm";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/create-order.css"
+          asp-append-version="true" />
+}
+
+<div class="create-order-page">
+    <div class="create-order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="co-sidebar">
+            <div class="co-sidebar-brand">
+                <div class="co-brand-icon">✚</div>
+                <div>
+                    <h2>PharmaMRP</h2>
+                    <span>HỆ THỐNG BÁN HÀNG</span>
+                </div>
+            </div>
+
+            <div class="co-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="co-sidebar-nav">
+                <a class="co-nav-item" href="/Sales/Orders">
+                    <span class="co-nav-icon">▤</span>
+                    <span>Xem đơn hàng</span>
+                </a>
+
+                <a class="co-nav-item active" href="/Sales/CreateOrder">
+                    <span class="co-nav-icon">＋</span>
+                    <span>Tạo đơn hàng thành phẩm</span>
+                    <span class="co-nav-arrow">›</span>
+                </a>
+
+                <a class="co-nav-item" href="/Sales/TransactionHistory">
+                    <span class="co-nav-icon">◷</span>
+                    <span>Lịch sử đơn hàng nhập xuất</span>
+                </a>
+
+                <a class="co-nav-item" href="/Sales/ExportSlips">
+                    <span class="co-nav-icon">⇧</span>
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+
+                <a class="co-nav-item" href="/Sales/MedicineInventory">
+                    <span class="co-nav-icon">▦</span>
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+
+                <a class="co-nav-item" href="/Sales/SalesAccount">
+                    <span class="co-nav-icon">♙</span>
+                    <span>Tài khoản của tôi</span>
+                </a>
+
+                <a class="co-nav-item" href="/Sales/RevenueReport">
+                    <span class="co-nav-icon">▥</span>
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="co-sidebar-bottom">
+                <div class="co-user-avatar">NV</div>
+                <div class="co-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="co-main">
+
+            <!-- HEADING -->
+            <div class="co-heading">
+                <div>
+                    <div class="co-breadcrumb">
+                        <span>Trang chủ</span>
+                        <span>/</span>
+                        <span>Bán hàng</span>
+                        <span>/</span>
+                        <strong>Tạo đơn hàng</strong>
+                    </div>
+
+                    <h1>Tạo đơn hàng thành phẩm</h1>
+                    <p>Tạo đơn hàng mới và quản lý danh sách thuốc khách hàng đặt mua.</p>
+                </div>
+
+                <div class="co-heading-icon">🛒</div>
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="co-summary-grid">
+                <div class="co-summary-card">
+                    <div class="co-summary-icon green">▤</div>
+                    <div>
+                        <span>Sản phẩm đã chọn</span>
+                        <strong id="summaryProducts">0</strong>
+                        <small>Số loại thành phẩm</small>
+                    </div>
+                </div>
+
+                <div class="co-summary-card">
+                    <div class="co-summary-icon blue">▦</div>
+                    <div>
+                        <span>Tổng số lượng</span>
+                        <strong id="summaryQuantity">0</strong>
+                        <small>Tổng sản phẩm trong đơn</small>
+                    </div>
+                </div>
+
+                <div class="co-summary-card">
+                    <div class="co-summary-icon orange">₫</div>
+                    <div>
+                        <span>Tổng thanh toán</span>
+                        <strong id="summaryTotal">0 ₫</strong>
+                        <small>Giá trị đơn hàng tạm tính</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CUSTOMER INFORMATION -->
+            <section class="co-card">
+                <div class="co-section-heading">
+                    <div class="co-section-icon">♙</div>
+                    <div>
+                        <h2>Thông tin khách hàng</h2>
+                        <p>Nhập thông tin người đặt hàng và địa chỉ nhận hàng.</p>
+                    </div>
+                </div>
+
+                <div class="co-form-grid">
+                    <div class="co-field">
+                        <label for="customerName">
+                            Họ và tên khách hàng <span>*</span>
+                        </label>
+                        <input type="text"
+                               id="customerName"
+                               placeholder="Nhập tên khách hàng" />
+                    </div>
+
+                    <div class="co-field">
+                        <label for="customerPhone">
+                            Số điện thoại <span>*</span>
+                        </label>
+                        <input type="tel"
+                               id="customerPhone"
+                               placeholder="Nhập số điện thoại" />
+                    </div>
+
+                    <div class="co-field co-full">
+                        <label for="shippingAddress">
+                            Địa chỉ giao hàng <span>*</span>
+                        </label>
+                        <input type="text"
+                               id="shippingAddress"
+                               placeholder="Nhập địa chỉ giao hàng" />
+                    </div>
+
+                    <div class="co-field co-full">
+                        <label for="orderNote">Ghi chú đơn hàng</label>
+                        <textarea id="orderNote"
+                                  rows="3"
+                                  placeholder="Nhập ghi chú nếu có..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PRODUCT SELECTION -->
+            <section class="co-card">
+                <div class="co-section-heading">
+                    <div class="co-section-icon">▦</div>
+                    <div>
+                        <h2>Chọn thành phẩm</h2>
+                        <p>Tìm kiếm thuốc và thêm vào danh sách sản phẩm cần đặt.</p>
+                    </div>
+                </div>
+
+                <div class="co-search-box">
+                    <span>⌕</span>
+                    <input type="text"
+                           id="productSearch"
+                           placeholder="Tìm kiếm theo tên sản phẩm hoặc mã sản phẩm..." />
+                </div>
+
+                <div class="co-table-wrap">
+                    <table class="co-product-table">
+                        <thead>
+                            <tr>
+                                <th>MÃ SẢN PHẨM</th>
+                                <th>TÊN THÀNH PHẨM</th>
+                                <th>ĐƠN VỊ</th>
+                                <th>TỒN KHO</th>
+                                <th>GIÁ BÁN</th>
+                                <th>THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productList">
+
+                            <tr data-id="SP001"
+                                data-name="Paracetamol 500mg"
+                                data-unit="Hộp"
+                                data-stock="100"
+                                data-price="35000">
+                                <td><strong>SP001</strong></td>
+                                <td>
+                                    <div class="co-product-name">
+                                        <span class="co-medicine-icon">💊</span>
+                                        <span>Paracetamol 500mg</span>
+                                    </div>
+                                </td>
+                                <td>Hộp</td>
+                                <td><span class="co-stock">100</span></td>
+                                <td>35.000 ₫</td>
+                                <td>
+                                    <button type="button" class="co-add-btn">
+                                        ＋ Thêm
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr data-id="SP002"
+                                data-name="Vitamin C 500mg"
+                                data-unit="Hộp"
+                                data-stock="80"
+                                data-price="45000">
+                                <td><strong>SP002</strong></td>
+                                <td>
+                                    <div class="co-product-name">
+                                        <span class="co-medicine-icon">💊</span>
+                                        <span>Vitamin C 500mg</span>
+                                    </div>
+                                </td>
+                                <td>Hộp</td>
+                                <td><span class="co-stock">80</span></td>
+                                <td>45.000 ₫</td>
+                                <td>
+                                    <button type="button" class="co-add-btn">
+                                        ＋ Thêm
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr data-id="SP003"
+                                data-name="Amoxicillin 500mg"
+                                data-unit="Hộp"
+                                data-stock="50"
+                                data-price="65000">
+                                <td><strong>SP003</strong></td>
+                                <td>
+                                    <div class="co-product-name">
+                                        <span class="co-medicine-icon">💊</span>
+                                        <span>Amoxicillin 500mg</span>
+                                    </div>
+                                </td>
+                                <td>Hộp</td>
+                                <td><span class="co-stock">50</span></td>
+                                <td>65.000 ₫</td>
+                                <td>
+                                    <button type="button" class="co-add-btn">
+                                        ＋ Thêm
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr data-id="SP004"
+                                data-name="Berberin 100mg"
+                                data-unit="Hộp"
+                                data-stock="60"
+                                data-price="28000">
+                                <td><strong>SP004</strong></td>
+                                <td>
+                                    <div class="co-product-name">
+                                        <span class="co-medicine-icon">💊</span>
+                                        <span>Berberin 100mg</span>
+                                    </div>
+                                </td>
+                                <td>Hộp</td>
+                                <td><span class="co-stock">60</span></td>
+                                <td>28.000 ₫</td>
+                                <td>
+                                    <button type="button" class="co-add-btn">
+                                        ＋ Thêm
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr data-id="SP005"
+                                data-name="Loratadin 10mg"
+                                data-unit="Hộp"
+                                data-stock="45"
+                                data-price="32000">
+                                <td><strong>SP005</strong></td>
+                                <td>
+                                    <div class="co-product-name">
+                                        <span class="co-medicine-icon">💊</span>
+                                        <span>Loratadin 10mg</span>
+                                    </div>
+                                </td>
+                                <td>Hộp</td>
+                                <td><span class="co-stock">45</span></td>
+                                <td>32.000 ₫</td>
+                                <td>
+                                    <button type="button" class="co-add-btn">
+                                        ＋ Thêm
+                                    </button>
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="co-demo-note">
+                    <span>ⓘ</span>
+                    Danh sách sản phẩm và giá bán hiện là dữ liệu minh họa,
+                    chưa kết nối bảng product trong database.
+                </div>
+            </section>
+
+            <!-- SELECTED PRODUCTS -->
+            <section class="co-card">
+                <div class="co-section-heading co-cart-heading">
+                    <div class="co-section-icon">🛒</div>
+                    <div>
+                        <h2>Chi tiết đơn hàng</h2>
+                        <p>Danh sách thành phẩm khách hàng đã chọn mua.</p>
+                    </div>
+
+                    <span class="co-item-count" id="itemCount">0 sản phẩm</span>
+                </div>
+
+                <div class="co-table-wrap">
+                    <table class="co-product-table co-cart-table">
+                        <thead>
+                            <tr>
+                                <th>SẢN PHẨM</th>
+                                <th>ĐƠN VỊ</th>
+                                <th>SỐ LƯỢNG</th>
+                                <th>ĐƠN GIÁ</th>
+                                <th>THÀNH TIỀN</th>
+                                <th>THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartList">
+                            <tr class="co-empty-row" id="emptyCart">
+                                <td colspan="6">
+                                    <div class="co-empty">
+                                        <div>🛒</div>
+                                        <strong>Chưa có sản phẩm nào</strong>
+                                        <span>Vui lòng chọn thành phẩm ở phía trên để thêm vào đơn hàng.</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TOTAL -->
+                <div class="co-total-area">
+                    <div class="co-total-row">
+                        <span>Tổng số loại sản phẩm</span>
+                        <strong id="totalTypes">0</strong>
+                    </div>
+
+                    <div class="co-total-row">
+                        <span>Tổng số lượng</span>
+                        <strong id="totalQuantity">0</strong>
+                    </div>
+
+                    <div class="co-total-final">
+                        <span>TỔNG THANH TOÁN</span>
+                        <strong id="totalAmount">0 ₫</strong>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACTIONS -->
+            <div class="co-actions">
+                <a href="/Sales/Orders" class="co-btn-cancel">
+                    ← Quay lại
+                </a>
+
+                <button type="button" class="co-btn-reset" id="resetOrder">
+                    Làm mới
+                </button>
+
+                <button type="button" class="co-btn-submit" id="createOrder">
+                    ✓ Tạo đơn hàng
+                </button>
+            </div>
+
+            <div class="co-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho và bán hàng dược phẩm</span>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const productList = document.getElementById("productList");
+    const cartList = document.getElementById("cartList");
+    const searchInput = document.getElementById("productSearch");
+
+    const cart = new Map();
+
+    const formatMoney = value =>
+        new Intl.NumberFormat("vi-VN").format(value) + " ₫";
+
+    // TÌM KIẾM SẢN PHẨM
+    searchInput.addEventListener("input", function () {
+        const keyword = this.value.trim().toLowerCase();
+
+        productList.querySelectorAll("tr[data-id]").forEach(row => {
+            const name = row.dataset.name.toLowerCase();
+            const id = row.dataset.id.toLowerCase();
+
+            row.style.display =
+                name.includes(keyword) || id.includes(keyword)
+                    ? ""
+                    : "none";
+        });
+    });
+
+    // THÊM SẢN PHẨM
+    productList.addEventListener("click", function (event) {
+        const button = event.target.closest(".co-add-btn");
+        if (!button) return;
+
+        const row = button.closest("tr");
+
+        const id = row.dataset.id;
+        const name = row.dataset.name;
+        const unit = row.dataset.unit;
+        const stock = Number(row.dataset.stock);
+        const price = Number(row.dataset.price);
+
+        if (cart.has(id)) {
+            alert("Sản phẩm này đã có trong đơn hàng. Bạn có thể chỉnh sửa số lượng ở phần chi tiết.");
+            return;
+        }
+
+        cart.set(id, {
+            id,
+            name,
+            unit,
+            stock,
+            price,
+            quantity: 1
+        });
+
+        renderCart();
+    });
+
+    // HIỂN THỊ GIỎ HÀNG
+    function renderCart() {
+        cartList.innerHTML = "";
+
+        if (cart.size === 0) {
+            cartList.innerHTML = `
+                <tr class="co-empty-row">
+                    <td colspan="6">
+                        <div class="co-empty">
+                            <div>🛒</div>
+                            <strong>Chưa có sản phẩm nào</strong>
+                            <span>Vui lòng chọn thành phẩm ở phía trên để thêm vào đơn hàng.</span>
+                        </div>
+                    </td>
+                </tr>`;
+        } else {
+            cart.forEach(item => {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>
+                        <div class="co-cart-product">
+                            <strong>${item.name}</strong>
+                            <small>${item.id}</small>
+                        </div>
+                    </td>
+                    <td>${item.unit}</td>
+                    <td>
+                        <div class="co-quantity-control">
+                            <button type="button"
+                                    class="co-quantity-btn"
+                                    data-action="minus"
+                                    data-id="${item.id}">−</button>
+
+                            <input type="number"
+                                   min="1"
+                                   max="${item.stock}"
+                                   value="${item.quantity}"
+                                   data-id="${item.id}"
+                                   class="co-quantity-input" />
+
+                            <button type="button"
+                                    class="co-quantity-btn"
+                                    data-action="plus"
+                                    data-id="${item.id}">+</button>
+                        </div>
+                        <small class="co-stock-hint">Tồn: ${item.stock}</small>
+                    </td>
+                    <td>${formatMoney(item.price)}</td>
+                    <td class="co-line-total">
+                        ${formatMoney(item.price * item.quantity)}
+                    </td>
+                    <td>
+                        <button type="button"
+                                class="co-remove-btn"
+                                data-id="${item.id}"
+                                title="Xóa sản phẩm">✕</button>
+                    </td>`;
+
+                cartList.appendChild(row);
+            });
+        }
+
+        updateTotals();
+    }
+
+    // THAY ĐỔI SỐ LƯỢNG / XÓA SẢN PHẨM
+    cartList.addEventListener("click", function (event) {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        const id = button.dataset.id;
+        const item = cart.get(id);
+
+        if (!item) return;
+
+        if (button.classList.contains("co-remove-btn")) {
+            cart.delete(id);
+        }
+
+        if (button.classList.contains("co-quantity-btn")) {
+            if (button.dataset.action === "plus") {
+                if (item.quantity < item.stock) {
+                    item.quantity++;
+                } else {
+                    alert("Số lượng đặt không được vượt quá tồn kho minh họa.");
+                }
+            }
+
+            if (button.dataset.action === "minus") {
+                if (item.quantity > 1) {
+                    item.quantity--;
+                }
+            }
+        }
+
+        renderCart();
+    });
+
+    // NHẬP SỐ LƯỢNG TRỰC TIẾP
+    cartList.addEventListener("change", function (event) {
+        if (!event.target.classList.contains("co-quantity-input")) return;
+
+        const id = event.target.dataset.id;
+        const item = cart.get(id);
+
+        if (!item) return;
+
+        let quantity = Number(event.target.value);
+
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            quantity = 1;
+        }
+
+        if (quantity > item.stock) {
+            quantity = item.stock;
+            alert("Số lượng không được vượt quá tồn kho minh họa.");
+        }
+
+        item.quantity = quantity;
+        renderCart();
+    });
+
+    // TÍNH TỔNG TIỀN
+    function updateTotals() {
+        let totalQuantity = 0;
+        let totalAmount = 0;
+
+        cart.forEach(item => {
+            totalQuantity += item.quantity;
+            totalAmount += item.quantity * item.price;
+        });
+
+        const types = cart.size;
+
+        document.getElementById("summaryProducts").textContent = types;
+        document.getElementById("summaryQuantity").textContent = totalQuantity;
+        document.getElementById("summaryTotal").textContent = formatMoney(totalAmount);
+
+        document.getElementById("itemCount").textContent = types + " sản phẩm";
+        document.getElementById("totalTypes").textContent = types;
+        document.getElementById("totalQuantity").textContent = totalQuantity;
+        document.getElementById("totalAmount").textContent = formatMoney(totalAmount);
+    }
+
+    // LÀM MỚI ĐƠN HÀNG
+    document.getElementById("resetOrder").addEventListener("click", function () {
+        if (!confirm("Bạn có chắc muốn xóa toàn bộ thông tin đơn hàng đang nhập?")) {
+            return;
+        }
+
+        cart.clear();
+
+        document.getElementById("customerName").value = "";
+        document.getElementById("customerPhone").value = "";
+        document.getElementById("shippingAddress").value = "";
+        document.getElementById("orderNote").value = "";
+        searchInput.value = "";
+
+        productList.querySelectorAll("tr[data-id]").forEach(row => {
+            row.style.display = "";
+        });
+
+        renderCart();
+    });
+
+    // TẠO ĐƠN HÀNG - UI CHƯA KẾT NỐI BACKEND
+    document.getElementById("createOrder").addEventListener("click", function () {
+        const name = document.getElementById("customerName").value.trim();
+        const phone = document.getElementById("customerPhone").value.trim();
+        const address = document.getElementById("shippingAddress").value.trim();
+
+        if (!name || !phone || !address) {
+            alert("Vui lòng nhập đầy đủ tên khách hàng, số điện thoại và địa chỉ giao hàng.");
+            return;
+        }
+
+        if (!/^[0-9]{10,11}$/.test(phone)) {
+            alert("Số điện thoại phải gồm 10 hoặc 11 chữ số.");
+            return;
+        }
+
+        if (cart.size === 0) {
+            alert("Vui lòng chọn ít nhất một sản phẩm.");
+            return;
+        }
+
+        alert(
+            "Thông tin đơn hàng đã được kiểm tra trên giao diện!\n\n" +
+            "Khách hàng: " + name +
+            "\nSố sản phẩm: " + cart.size +
+            "\n\nChức năng lưu đơn hàng sẽ được bổ sung khi kết nối Backend."
+        );
+    });
+
+    renderCart();
+});
+</script>

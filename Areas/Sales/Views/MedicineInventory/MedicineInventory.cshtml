@@ -1,3 +1,4 @@
+```cshtml
 @{
     ViewData["Title"] = "Tra cứu thuốc và tồn kho";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -24,23 +25,33 @@
                 <span class="nav-icon">▤</span>
                 <span>Xem đơn hàng</span>
             </a>
+
+            <a href="/Sales/CreateOrder">
+                <span class="nav-icon">＋</span>
+                <span>Tạo đơn hàng thành phẩm</span>
+            </a>
+
             <a href="/Sales/TransactionHistory">
                 <span class="nav-icon">◷</span>
                 <span>Lịch sử đơn hàng nhập xuất</span>
             </a>
+
             <a href="/Sales/ExportSlips">
                 <span class="nav-icon">⇧</span>
                 <span>Theo dõi phiếu xuất kho</span>
             </a>
+
             <a class="active" href="/Sales/MedicineInventory">
                 <span class="nav-icon">▦</span>
                 <span>Tra cứu thuốc và tồn kho</span>
                 <span class="nav-arrow">›</span>
             </a>
+
             <a href="/Sales/SalesAccount">
                 <span class="nav-icon">♟</span>
                 <span>Tài khoản của tôi</span>
             </a>
+
             <a href="/Sales/RevenueReport">
                 <span class="nav-icon">▥</span>
                 <span>Thống kê, báo cáo doanh thu</span>
@@ -175,3 +186,4 @@
 @section Scripts {
     <script src="~/js/medicine-inventory.js" asp-append-version="true"></script>
 }
+```

@@ -7,7 +7,7 @@ namespace httt.Areas.Sales.Controllers
     {
         public IActionResult Index()
         {
-            return View("~/Areas/Sales/Views/SaleAccount/SaleAccount.cshtml");
+            return View("~/Areas/Sales/Views/SalesAccount/SalesAccount.cshtml");
         }
     }
 }

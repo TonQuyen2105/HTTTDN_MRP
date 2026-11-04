@@ -37,6 +37,8 @@ const WarehouseController = (function (Model, View) {
             cardsConfig: Model.getDashboardCardsConfig(),
             inboundConfig: Model.getInboundGridConfig(),
             outboundConfig: Model.getOutboundGridConfig(),
+            vthhConfig: Model.getVthhGridConfig ? Model.getVthhGridConfig() : null,
+            vthhModalData: Model.getVthhModalData ? Model.getVthhModalData() : null,
             activeVoucherData: state.activeVoucherModal
                 ? Model.getVoucherData(state.activeVoucherModal)
                 : null
@@ -157,13 +159,14 @@ const WarehouseController = (function (Model, View) {
                 case 'open-voucher-modal': {
                     e.preventDefault();
                     const vType = actionEl.getAttribute('data-voucher-type') || 'inbound';
+                    const docNo = actionEl.getAttribute('data-doc-no') || '';
                     // Nếu đang từ Đơn mua hàng bấm "Lập lệnh nhập kho" -> chuyển sang tab Lệnh nhập kho và mở Lệnh nhập kho
                     if (vType === 'inbound-command') {
                         Model.setOperationTab('nhap-kho', 'lenh-nhap-kho');
                     } else if (vType === 'outbound-command') {
                         Model.setOperationTab('xuat-kho', 'lenh-xuat-kho');
                     }
-                    Model.openVoucherModal(vType);
+                    Model.openVoucherModal(vType, docNo);
                     renderMainOnly();
                     break;
                 }
@@ -196,12 +199,179 @@ const WarehouseController = (function (Model, View) {
                     break;
                 }
 
+                // Xử lý nút Duyệt / Từ chối trên Lệnh xuất kho
+                case 'approve-outbound-cmd': {
+                    e.preventDefault();
+                    const orderNo = actionEl.getAttribute('data-order-no');
+                    if (orderNo) {
+                        Model.updateOutboundCommandStatus(orderNo, 'Đã xuất kho');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                case 'reject-outbound-cmd': {
+                    e.preventDefault();
+                    const orderNo = actionEl.getAttribute('data-order-no');
+                    if (orderNo) {
+                        Model.updateOutboundCommandStatus(orderNo, 'Chờ xuất kho');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Xử lý nút Duyệt / Từ chối trên Lệnh nhập kho
+                case 'approve-inbound-cmd': {
+                    e.preventDefault();
+                    const orderNo = actionEl.getAttribute('data-order-no');
+                    if (orderNo) {
+                        Model.updateInboundCommandStatus(orderNo, 'Đã nhập kho');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                case 'reject-inbound-cmd': {
+                    e.preventDefault();
+                    const orderNo = actionEl.getAttribute('data-order-no');
+                    if (orderNo) {
+                        Model.updateInboundCommandStatus(orderNo, 'Chờ nhập kho');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
                 case 'add-voucher-row': {
                     e.preventDefault();
                     const vType = actionEl.getAttribute('data-voucher-type');
                     if (vType) {
                         Model.addVoucherItemRow(vType);
                         renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Mở Modal Thêm mới VTHH (Sản phẩm hoặc Nguyên vật liệu)
+                case 'create-vthh-item': {
+                    e.preventDefault();
+                    const itemType = actionEl.getAttribute('data-item-type');
+                    if (itemType && Model.openVthhCreateModal) {
+                        Model.openVthhCreateModal(itemType);
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Lưu hàng hóa VTHH mới tạo
+                case 'save-new-vthh-item': {
+                    e.preventDefault();
+                    const itemType = actionEl.getAttribute('data-item-type');
+                    const formEl = document.getElementById('wh-vthh-form');
+                    if (formEl && Model.addVthhItem) {
+                        const formData = new FormData(formEl);
+                        const newItem = {};
+                        for (const [key, value] of formData.entries()) {
+                            newItem[key] = value;
+                        }
+                        const codeKey = itemType === 'product' ? 'productCode' : 'ingrCode';
+                        const nameKey = itemType === 'product' ? 'productName' : 'ingrName';
+                        if (!newItem[codeKey] || !newItem[codeKey].trim()) {
+                            alert('Vui lòng nhập mã ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'));
+                            return;
+                        }
+                        if (!newItem[nameKey] || !newItem[nameKey].trim()) {
+                            alert('Vui lòng nhập tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'));
+                            return;
+                        }
+                        Model.addVthhItem(itemType, newItem);
+                        Model.closeVthhModal();
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Xem chi tiết VTHH (Chế độ khóa / chỉ xem) khi bấm vào mã SP hoặc mã NVL
+                case 'view-vthh-item': {
+                    e.preventDefault();
+                    const itemType = actionEl.getAttribute('data-item-type');
+                    const itemId = actionEl.getAttribute('data-item-id');
+                    if (itemType && itemId && Model.openVthhModal) {
+                        Model.openVthhModal(itemType, itemId, 'view');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Chỉnh sửa VTHH (Chế độ cho phép sửa thông tin & ảnh, mã bị khóa)
+                case 'edit-vthh-item': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const itemType = actionEl.getAttribute('data-item-type');
+                    const itemId = actionEl.getAttribute('data-item-id');
+                    if (itemType && itemId && Model.openVthhModal) {
+                        Model.openVthhModal(itemType, itemId, 'edit');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Đóng Modal VTHH
+                case 'close-vthh-modal': {
+                    e.preventDefault();
+                    if (Model.closeVthhModal) {
+                        Model.closeVthhModal();
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Lưu thay đổi khi chỉnh sửa VTHH
+                case 'save-vthh-item': {
+                    e.preventDefault();
+                    const itemType = actionEl.getAttribute('data-item-type');
+                    const itemId = actionEl.getAttribute('data-item-id');
+                    const formEl = document.getElementById('wh-vthh-form');
+                    if (formEl && Model.updateVthhItem) {
+                        const formData = new FormData(formEl);
+                        const updatedFields = {};
+                        for (const [key, value] of formData.entries()) {
+                            updatedFields[key] = value;
+                        }
+                        Model.updateVthhItem(itemType, itemId, updatedFields);
+                        Model.closeVthhModal();
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                // Chọn ảnh mẫu nhanh cho sản phẩm
+                case 'pick-img-preset': {
+                    e.preventDefault();
+                    const url = actionEl.getAttribute('data-img-url');
+                    const inputEl = document.getElementById('wh-edit-image-url');
+                    const previewImg = document.getElementById('wh-vthh-img-preview');
+                    if (inputEl) inputEl.value = url;
+                    if (previewImg) {
+                        previewImg.src = url;
+                        previewImg.style.display = 'block';
+                    }
+                    break;
+                }
+
+                // Xử lý xóa dòng trong trang Danh mục VTHH (Sản phẩm hoặc Nguyên vật liệu)
+                case 'delete-vthh-row': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const itemType = actionEl.getAttribute('data-item-type');
+                    const itemId = actionEl.getAttribute('data-item-id');
+                    const itemName = actionEl.getAttribute('data-item-name') || '';
+                    const typeLabel = itemType === 'product' ? 'sản phẩm' : 'nguyên vật liệu';
+                    
+                    if (window.confirm(`Bạn có chắc chắn muốn xóa ${typeLabel} "${itemName}" không?`)) {
+                        if (Model.deleteVthhItem) {
+                            Model.deleteVthhItem(itemType, itemId);
+                            renderMainOnly();
+                        }
                     }
                     break;
                 }
@@ -297,11 +467,16 @@ const WarehouseController = (function (Model, View) {
             }
         });
 
-        // Đóng Phiếu Nhập / Xuất khi bấm phím Escape
+        // Đóng Phiếu Nhập / Xuất hoặc Modal VTHH khi bấm phím Escape
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && Model.getState().activeVoucherModal) {
-                Model.closeVoucherModal();
-                renderMainOnly();
+            if (e.key === 'Escape') {
+                if (Model.getState().vthhModal) {
+                    Model.closeVthhModal();
+                    renderMainOnly();
+                } else if (Model.getState().activeVoucherModal) {
+                    Model.closeVoucherModal();
+                    renderMainOnly();
+                }
             }
         });
 
@@ -327,6 +502,15 @@ const WarehouseController = (function (Model, View) {
         document.addEventListener('input', function (e) {
             const target = e.target;
             if (!target) return;
+
+            if (target.id === 'wh-edit-image-url') {
+                const previewImg = document.getElementById('wh-vthh-img-preview');
+                if (previewImg) {
+                    previewImg.src = target.value.trim();
+                    previewImg.style.display = 'block';
+                }
+                return;
+            }
 
             if (target.id === 'wh-global-search') {
                 Model.setSearchKeyword(target.value);

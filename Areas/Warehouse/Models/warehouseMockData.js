@@ -49,9 +49,7 @@ const WarehouseModel = (function () {
             expanded: false,
             children: [
                 { id: 'nhap-kho', title: 'Nhập kho' },
-                { id: 'xuat-kho', title: 'Xuất kho' },
-                { id: 'dieu-chuyen', title: 'Điều chuyển' },
-                { id: 'kiem-ke', title: 'Kiểm kê' }
+                { id: 'xuat-kho', title: 'Xuất kho' }
             ]
         },
         {
@@ -59,13 +57,6 @@ const WarehouseModel = (function () {
             title: 'Báo cáo',
             icon: 'report',
             section: 'middle'
-        },
-        {
-            id: 'danh-muc',
-            title: 'Danh mục',
-            icon: 'category',
-            hasArrowRight: true,
-            section: 'bottom'
         },
         {
             id: 'he-thong',
@@ -211,14 +202,47 @@ const WarehouseModel = (function () {
             { orderNo: 'DMH00048', orderDate: '01/05/2025', supplier: 'Công ty CP Dược phẩm Hà Tây (Hataphar)', deliveryDate: '12/08/2025', description: 'Nhập lọ thủy tinh nâu 100ml đạt chuẩn GMP', status: 'Đang thực hiện', statusType: 'info' }
         ],
         inboundCommands: [
-            { orderNo: 'LNK00039', orderDate: '25/05/2025', supplier: 'Công ty TNHH Công Nghệ Điện Tử Sáng Tạo (Demo)', deliveryDate: '25/05/2025', description: 'Lệnh nhập kho theo đơn DMH00028, PNK00039', status: 'Hoàn thành', statusType: 'success' },
-            { orderNo: 'LNK00018', orderDate: '28/05/2025', supplier: 'Kho Nguyên liệu GSP (Biệt trữ)', deliveryDate: '29/05/2025', description: 'Lệnh nhập lô L00081 sau khi đạt phiếu Kiểm nghiệm QC', status: 'Đang thực hiện', statusType: 'info' },
-            { orderNo: 'LNK00017', orderDate: '25/05/2025', supplier: 'Phân xưởng Viên nén GMP-WHO', deliveryDate: '26/05/2025', description: 'Nhập thành phẩm Panadol Extra 500mg (Lô SX: 0525)', status: 'Hoàn thành', statusType: 'success' }
+            { orderNo: 'LNK00039', orderDate: '25/05/2025', supplier: 'Nguyễn Tiến Huy', deliveryDate: '25/05/2025', productName: 'Viên nén Panadol Extra 500mg', description: 'Lệnh nhập kho theo đơn DMH00028, PNK00039', status: 'Chờ nhập kho', statusType: 'warning' },
+            { orderNo: 'LNK00018', orderDate: '28/05/2025', supplier: 'Trần Quốc Tuấn', deliveryDate: '29/05/2025', productName: 'Kháng sinh Amoxicillin 500mg', description: 'Lệnh nhập lô L00081 sau khi đạt phiếu Kiểm nghiệm QC', status: 'Chờ nhập kho', statusType: 'warning' },
+            { orderNo: 'LNK00017', orderDate: '25/05/2025', supplier: 'Lê Hoàng Nam', deliveryDate: '26/05/2025', productName: 'Siro Ho Bảo Thanh 125ml', description: 'Nhập thành phẩm Panadol Extra 500mg (Lô SX: 0525)', status: 'Chờ nhập kho', statusType: 'warning' }
         ],
         inboundReceipts: [
-            { voucherNo: 'PNK00005', voucherDate: '24/04/2025 09:25:34', warehouse: 'KHO HƯNG YÊN- HÀNG TƯƠNG LAI', partnerName: 'CÔNG TY CỔ PHẦN CÔNG NGHỆ IAT VIỆT NAM', deliverer: 'Phan Thanh Hà', description: 'Nhập kho mua hàng của CÔNG TY CỔ PHẦN CÔNG NGHỆ IAT VIỆT NAM', subType: 'Nhập kho mua hàng' },
-            { voucherNo: 'PNK00004', voucherDate: '22/04/2025 14:10:00', warehouse: 'KHO HƯNG YÊN- HÀNG TƯƠNG LAI', partnerName: 'Công ty Hồng Hà (Demo)', deliverer: 'Nguyễn Văn Minh', description: 'Nhập kho mua hàng theo đơn DMH00022', subType: 'Nhập kho mua hàng' },
-            { voucherNo: 'PNK00003', voucherDate: '18/04/2025 10:05:12', warehouse: 'Kho Nguyên liệu GSP (Ba Đình)', partnerName: 'Công ty CP Dược phẩm Trung ương CPC1', deliverer: 'Trần Quốc Tuấn', description: 'Nhập kho nguyên liệu Sodium Bicarbonate dược dụng', subType: 'Nhập kho mua hàng' }
+            {
+                voucherNo: 'PNK00005',
+                orderNo: 'PNK00005',
+                voucherDate: '24/04/2025 09:25:34',
+                warehouse: 'KHO HƯNG YÊN- HÀNG TƯƠNG LAI',
+                partnerName: 'Phan Thanh Hà',
+                deliverer: 'Phan Thanh Hà',
+                description: 'Nhập kho nguyên liệu Sodium Bicarbonate dược dụng',
+                status: 'Chờ nhập kho',
+                statusType: 'warning',
+                subType: 'Nhập kho mua hàng'
+            },
+            {
+                voucherNo: 'PNK00004',
+                orderNo: 'PNK00004',
+                voucherDate: '22/04/2025 14:10:00',
+                warehouse: 'KHO HƯNG YÊN- HÀNG TƯƠNG LAI',
+                partnerName: 'Nguyễn Văn Minh',
+                deliverer: 'Nguyễn Văn Minh',
+                description: 'Nhập kho mua hàng theo đơn DMH00022',
+                status: 'Chờ nhập kho',
+                statusType: 'warning',
+                subType: 'Nhập kho mua hàng'
+            },
+            {
+                voucherNo: 'PNK00003',
+                orderNo: 'PNK00003',
+                voucherDate: '18/04/2025 10:05:12',
+                warehouse: 'Kho Nguyên liệu GSP (Ba Đình)',
+                partnerName: 'Trần Quốc Tuấn',
+                deliverer: 'Trần Quốc Tuấn',
+                description: 'Nhập kho nguyên liệu Tá dược Lactose Monohydrate',
+                status: 'Chờ nhập kho',
+                statusType: 'warning',
+                subType: 'Nhập kho mua hàng'
+            }
         ]
     };
 
@@ -257,12 +281,40 @@ const WarehouseModel = (function () {
             { orderNo: 'DHTP00390', orderDate: '28/12/2025', customer: 'Công ty CP Dược phẩm Trung ương 2', deliveryDue: '28/12/2025', description: 'Xuất điều phối Panadol Extra 500mg (Lô L00023)', orderStatus: 'Hoàn thành', orderStatusType: 'success', outboundStatus: 'Hoàn thành' }
         ],
         outboundCommands: [
-            { orderNo: 'LXK00088', orderDate: '31/12/2025', customer: 'Phân xưởng Viên nén GMP', deliveryDue: '31/12/2025', description: 'Lệnh xuất nguyên liệu Paracetamol & Tá dược cho mẻ SX 12', orderStatus: 'Hoàn thành', orderStatusType: 'success', outboundStatus: 'Chưa thực hiện' },
-            { orderNo: 'LXK00087', orderDate: '30/12/2025', customer: 'Hệ thống Nhà thuốc Long Châu', deliveryDue: '30/12/2025', description: 'Lệnh xuất kho theo đơn đặt hàng DHTP00402', orderStatus: 'Hoàn thành', orderStatusType: 'success', outboundStatus: 'Đang thực hiện' }
+            { orderNo: 'LXK00088', orderDate: '31/12/2025', customer: 'Phân xưởng Viên nén GMP', deliveryDue: '31/12/2025', description: 'Lệnh xuất nguyên liệu Paracetamol & Tá dược cho mẻ SX 12', orderStatus: 'Chờ xuất kho', orderStatusType: 'warning', outboundStatus: 'Chưa thực hiện' },
+            { orderNo: 'LXK00087', orderDate: '30/12/2025', customer: 'Hệ thống Nhà thuốc Long Châu', deliveryDue: '30/12/2025', description: 'Lệnh xuất kho theo đơn đặt hàng DHTP00402', orderStatus: 'Chờ xuất kho', orderStatusType: 'warning', outboundStatus: 'Đang thực hiện' }
         ],
         outboundReceipts: [
-            { voucherNo: 'PXK00002', voucherDate: '24/04/2025 08:39:28', warehouse: 'KHO HƯNG YÊN - Kho chính', partnerName: 'CÔNG TY TNHH XUẤT NHẬP KHẨU BANACO VIỆT NAM', receiver: 'Trần Vương', description: 'Xuất kho bán hàng cho CÔNG TY TNHH XUẤT NHẬP KHẨU BANACO VIỆT NAM', subType: 'Xuất kho bán hàng' },
-            { voucherNo: 'PXK00001', voucherDate: '20/04/2025 15:20:10', warehouse: 'KHO HƯNG YÊN - Kho chính', partnerName: 'Nhà Xanh Mart', receiver: 'Lê Hoàng Nam', description: 'Xuất kho bán hàng theo đơn DHTP00390', subType: 'Xuất kho bán hàng' }
+            {
+                voucherNo: 'PXK00002',
+                orderNo: 'PXK00002',
+                voucherDate: '24/04/2025 08:39:28',
+                warehouse: 'KHO HƯNG YÊN - Kho chính',
+                partnerName: 'Trần Vương',
+                receiver: 'Trần Vương',
+                description: 'Xuất kho bán hàng cho CÔNG TY TNHH XUẤT NHẬP KHẨU BANACO VIỆT NAM',
+                status: 'Chờ xuất kho',
+                statusType: 'warning',
+                orderStatus: 'Chờ xuất kho',
+                orderStatusType: 'warning',
+                outboundStatus: 'Chưa thực hiện',
+                subType: 'Xuất kho bán hàng'
+            },
+            {
+                voucherNo: 'PXK00001',
+                orderNo: 'PXK00001',
+                voucherDate: '20/04/2025 15:20:10',
+                warehouse: 'KHO HƯNG YÊN - Kho chính',
+                partnerName: 'Lê Hoàng Nam',
+                receiver: 'Lê Hoàng Nam',
+                description: 'Xuất kho bán hàng theo đơn DHTP00390',
+                status: 'Chờ xuất kho',
+                statusType: 'warning',
+                orderStatus: 'Chờ xuất kho',
+                orderStatusType: 'warning',
+                outboundStatus: 'Chưa thực hiện',
+                subType: 'Xuất kho bán hàng'
+            }
         ]
     };
 
@@ -382,6 +434,269 @@ const WarehouseModel = (function () {
         }
     };
 
+    function makeSvgThumb(bg, svgContent) {
+        const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><rect width="48" height="48" rx="8" fill="${bg}"/>${svgContent}</svg>`;
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent(fullSvg);
+    }
+
+    // 6.2. Dữ liệu Danh mục VTHH (Sản phẩm & Nguyên vật liệu theo bảng product và ingredient)
+    const vthhDatasets = {
+        products: [
+            {
+                id: 1,
+                productCode: 'SP001',
+                imageUrl: makeSvgThumb('#fee2e2', '<circle cx="24" cy="24" r="14" fill="#ffffff" stroke="#ef4444" stroke-width="2"/><path d="M24 10a14 14 0 0 1 0 28" fill="#ef4444"/><path d="M18 24h12M24 18v12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>'),
+                productName: 'Viên nén Panadol Extra 500mg',
+                unit: 'Hộp',
+                quantity: 1250,
+                quantityFormatted: '1.250',
+                cost: 42000,
+                costFormatted: '42.000',
+                expiredDate: '31/12/2027',
+                description: 'Giảm đau, hạ sốt; Paracetamol 500mg & Caffeine 65mg (GMP-WHO)'
+            },
+            {
+                id: 2,
+                productCode: 'SP002',
+                imageUrl: makeSvgThumb('#fef3c7', '<g transform="rotate(-35 24 24)"><rect x="14" y="18" width="10" height="12" rx="5" fill="#f59e0b"/><rect x="24" y="18" width="10" height="12" rx="5" fill="#ef4444"/><rect x="14" y="18" width="20" height="12" rx="6" fill="none" stroke="#b45309" stroke-width="1.5"/></g>'),
+                productName: 'Kháng sinh Amoxicillin 500mg',
+                unit: 'Hộp',
+                quantity: 850,
+                quantityFormatted: '850',
+                cost: 65000,
+                costFormatted: '65.000',
+                expiredDate: '15/10/2026',
+                description: 'Kháng sinh nhóm Aminopenicillin diệt khuẩn hô hấp'
+            },
+            {
+                id: 3,
+                productCode: 'SP003',
+                imageUrl: makeSvgThumb('#ffedd5', '<rect x="20" y="8" width="8" height="5" rx="1.5" fill="#9a3412"/><path d="M16 16h16a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H16a3 3 0 0 1-3-3V19a3 3 0 0 1 3-3z" fill="#ea580c"/><rect x="17" y="22" width="14" height="12" rx="2" fill="#fff" opacity="0.9"/><path d="M24 25v6M21 28h6" stroke="#ea580c" stroke-width="1.5" stroke-linecap="round"/>'),
+                productName: 'Siro Ho Bảo Thanh 125ml',
+                unit: 'Chai',
+                quantity: 2100,
+                quantityFormatted: '2.100',
+                cost: 38000,
+                costFormatted: '38.000',
+                expiredDate: '20/08/2027',
+                description: 'Thuốc ho đông dược bổ phế, giảm ho khan, ho có đờm'
+            },
+            {
+                id: 4,
+                productCode: 'SP004',
+                imageUrl: makeSvgThumb('#e0f2fe', '<rect x="21" y="8" width="6" height="4" fill="#0284c7"/><path d="M17 15h14a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3H17a3 3 0 0 1-3-3V18a3 3 0 0 1 3-3z" fill="#38bdf8"/><path d="M24 21c-3 4-4 6-4 8a4 4 0 0 0 8 0c0-2-1-4-4-8z" fill="#ffffff"/>'),
+                productName: 'Nước muối sinh lý Natri Clorid 0.9%',
+                unit: 'Chai',
+                quantity: 4500,
+                quantityFormatted: '4.500',
+                cost: 8500,
+                costFormatted: '8.500',
+                expiredDate: '12/05/2028',
+                description: 'Dung dịch đẳng trương vô trùng rửa mắt, mũi, vết thương'
+            },
+            {
+                id: 5,
+                productCode: 'SP005',
+                imageUrl: makeSvgThumb('#fff7ed', '<rect x="19" y="8" width="10" height="4" rx="1" fill="#ea580c"/><rect x="18" y="12" width="12" height="26" rx="2" fill="#f97316"/><circle cx="24" cy="22" r="3.5" fill="#fef08a"/><circle cx="24" cy="30" r="3" fill="#ffffff" opacity="0.8"/><circle cx="21" cy="34" r="1.5" fill="#ffffff" opacity="0.6"/>'),
+                productName: 'Vitamin C 500mg Sủi (Tuýp 20V)',
+                unit: 'Tuýp',
+                quantity: 1600,
+                quantityFormatted: '1.600',
+                cost: 28000,
+                costFormatted: '28.000',
+                expiredDate: '30/11/2026',
+                description: 'Bổ sung đề kháng, tăng cường miễn dịch cơ thể'
+            },
+            {
+                id: 6,
+                productCode: 'SP006',
+                imageUrl: makeSvgThumb('#f3e8ff', '<rect x="18" y="8" width="12" height="5" rx="1.5" fill="#eab308"/><rect x="15" y="13" width="18" height="24" rx="3" fill="#7e22ce"/><rect x="18" y="19" width="12" height="12" rx="2" fill="#faf5ff"/><circle cx="24" cy="25" r="3" fill="#eab308"/>'),
+                productName: 'Glucosamine Orihiro 900 viên',
+                unit: 'Lọ',
+                quantity: 320,
+                quantityFormatted: '320',
+                cost: 480000,
+                costFormatted: '480.000',
+                expiredDate: '31/12/2026',
+                description: 'Hỗ trợ tái tạo sụn khớp, giảm thoái hóa khớp'
+            },
+            {
+                id: 7,
+                productCode: 'SP007',
+                imageUrl: makeSvgThumb('#dcfce7', '<rect x="18" y="9" width="12" height="5" rx="1.5" fill="#15803d"/><rect x="15" y="14" width="18" height="23" rx="3" fill="#16a34a"/><circle cx="24" cy="25.5" r="5.5" fill="#ffffff"/><path d="M24 23c-2 0-3 2-3 4 2-1 4-1 6 0 0-2-1-4-3-4z" fill="#15803d"/>'),
+                productName: 'Ginkgo Biloba 120mg Trunature',
+                unit: 'Hộp',
+                quantity: 540,
+                quantityFormatted: '540',
+                cost: 350000,
+                costFormatted: '350.000',
+                expiredDate: '15/09/2027',
+                description: 'Tăng cường tuần hoàn não, cải thiện trí nhớ'
+            },
+            {
+                id: 8,
+                productCode: 'SP008',
+                imageUrl: makeSvgThumb('#fef9c3', '<rect x="22" y="8" width="4" height="6" fill="#ca8a04"/><rect x="17" y="14" width="14" height="23" rx="3" fill="#eab308"/><circle cx="24" cy="25" r="4" fill="#ffffff"/><circle cx="24" cy="25" r="2" fill="#ea580c"/>'),
+                productName: 'LineaBon K2 + D3 Nhỏ giọt 10ml',
+                unit: 'Lọ',
+                quantity: 780,
+                quantityFormatted: '780',
+                cost: 185000,
+                costFormatted: '185.000',
+                expiredDate: '10/04/2027',
+                description: 'Bổ sung Vitamin D3 & K2 giúp hấp thu canxi tối đa'
+            },
+            {
+                id: 9,
+                productCode: 'SP009',
+                imageUrl: makeSvgThumb('#ede9fe', '<rect x="13" y="12" width="22" height="24" rx="3" fill="#6366f1" stroke="#4338ca" stroke-width="1.5"/><circle cx="19" cy="18" r="2.5" fill="#c7d2fe"/><circle cx="29" cy="18" r="2.5" fill="#c7d2fe"/><circle cx="19" cy="25" r="2.5" fill="#c7d2fe"/><circle cx="29" cy="25" r="2.5" fill="#c7d2fe"/>'),
+                productName: 'Cefuroxime Axetil 500mg',
+                unit: 'Hộp',
+                quantity: 620,
+                quantityFormatted: '620',
+                cost: 110000,
+                costFormatted: '110.000',
+                expiredDate: '18/06/2026',
+                description: 'Kháng sinh Cephalosporin thế hệ 2 điều trị nhiễm khuẩn'
+            },
+            {
+                id: 10,
+                productCode: 'SP010',
+                imageUrl: makeSvgThumb('#ecfdf5', '<rect x="18" y="9" width="12" height="5" rx="1.5" fill="#047857"/><rect x="15" y="14" width="18" height="23" rx="3" fill="#10b981"/><circle cx="24" cy="25.5" r="5" fill="#a855f7"/><path d="M24 23v5M21.5 25.5h5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>'),
+                productName: 'Milk Thistle Extract 1000mg',
+                unit: 'Hộp',
+                quantity: 410,
+                quantityFormatted: '410',
+                cost: 290000,
+                costFormatted: '290.000',
+                expiredDate: '25/11/2027',
+                description: 'Chiết xuất kế sữa bảo vệ và giải độc tế bào gan'
+            }
+        ],
+        ingredients: [
+            {
+                id: 1,
+                ingrCode: 'NVL001',
+                ingrName: 'Hoạt chất Paracetamol BP/USP',
+                unit: 'kg',
+                quantity: 500,
+                quantityFormatted: '500',
+                price: 185000,
+                priceFormatted: '185.000',
+                expiredDate: '31/12/2028',
+                description: 'Hoạt chất dược dụng tinh khiết ≥99.8% đạt chuẩn USP/BP'
+            },
+            {
+                id: 2,
+                ingrCode: 'NVL002',
+                ingrName: 'Amoxicillin Trihydrate Compacted',
+                unit: 'kg',
+                quantity: 350,
+                quantityFormatted: '350',
+                price: 450000,
+                priceFormatted: '450.000',
+                expiredDate: '20/07/2027',
+                description: 'Nguyên liệu kháng sinh dập viên trực tiếp chuẩn EP'
+            },
+            {
+                id: 3,
+                ingrCode: 'NVL003',
+                ingrName: 'Tá dược Lactose Monohydrate 200 Mesh',
+                unit: 'kg',
+                quantity: 1200,
+                quantityFormatted: '1.200',
+                price: 42000,
+                priceFormatted: '42.000',
+                expiredDate: '15/10/2029',
+                description: 'Tá dược độn dập viên nén đạt tiêu chuẩn GMP quốc tế'
+            },
+            {
+                id: 4,
+                ingrCode: 'NVL004',
+                ingrName: 'Tá dược Tinh bột ngô (Corn Starch)',
+                unit: 'kg',
+                quantity: 800,
+                quantityFormatted: '800',
+                price: 25000,
+                priceFormatted: '25.000',
+                expiredDate: '30/08/2028',
+                description: 'Tá dược rã và dính cho sản xuất viên nén dược phẩm'
+            },
+            {
+                id: 5,
+                ingrCode: 'NVL005',
+                ingrName: 'Tá dược trơn Magnesium Stearate',
+                unit: 'kg',
+                quantity: 250,
+                quantityFormatted: '250',
+                price: 88000,
+                priceFormatted: '88.000',
+                expiredDate: '12/03/2028',
+                description: 'Chất bôi trơn dập viên chống bám dính chày cối'
+            },
+            {
+                id: 6,
+                ingrCode: 'NVL006',
+                ingrName: 'Tá dược dính Povidone K30 (PVP K30)',
+                unit: 'kg',
+                quantity: 180,
+                quantityFormatted: '180',
+                price: 210000,
+                priceFormatted: '210.000',
+                expiredDate: '05/11/2027',
+                description: 'Polyme tạo hạt ướt cao cấp kiểm soát độ hòa tan'
+            },
+            {
+                id: 7,
+                ingrCode: 'NVL007',
+                ingrName: 'Tá dược siêu rã Croscarmellose Sodium',
+                unit: 'kg',
+                quantity: 150,
+                quantityFormatted: '150',
+                price: 195000,
+                priceFormatted: '195.000',
+                expiredDate: '22/09/2028',
+                description: 'Giúp viên nén rã nhanh trong dạ dày dưới 3 phút'
+            },
+            {
+                id: 8,
+                ingrCode: 'NVL008',
+                ingrName: 'Dung môi Ethanol 96% Dược dụng',
+                unit: 'Lít',
+                quantity: 600,
+                quantityFormatted: '600',
+                price: 35000,
+                priceFormatted: '35.000',
+                expiredDate: '10/01/2029',
+                description: 'Cồn tinh khiết chiết xuất và bào chế dung dịch'
+            },
+            {
+                id: 9,
+                ingrCode: 'NVL009',
+                ingrName: 'Lọ thủy tinh nâu 100ml chuẩn GMP',
+                unit: 'Lọ',
+                quantity: 5000,
+                quantityFormatted: '5.000',
+                price: 3200,
+                priceFormatted: '3.200',
+                expiredDate: '31/12/2030',
+                description: 'Bao bì cấp 1 cản sáng cho siro và dung dịch thuốc'
+            },
+            {
+                id: 10,
+                ingrCode: 'NVL010',
+                ingrName: 'Màng nhôm Alu-Alu bấm vỉ dập lạnh',
+                unit: 'Cuộn',
+                quantity: 120,
+                quantityFormatted: '120',
+                price: 1450000,
+                priceFormatted: '1.450.000',
+                expiredDate: '15/04/2029',
+                description: 'Bảo vệ hoạt chất chống ẩm, oxy và ánh sáng tuyệt đối'
+            }
+        ]
+    };
+
     // 7. Dữ liệu Chi tiết Đơn Mua Hàng (DMH00006) & Đơn Đặt Hàng (DHTP00402)
     // Dùng chung OrderDetailModalComponent (thay đổi nhãn/cột phù hợp theo chiều Nhập/Xuất)
     const ordersDetailData = {
@@ -441,7 +756,7 @@ const WarehouseModel = (function () {
             partnerCodeLabel: 'Mã khách hàng',
             partnerCode: 'KH0018',
             partnerCodeOptions: ['KH0018', 'MB1_BANACO', 'KH_LONGCHAU'],
-            partnerNameLabel: 'Tên khách hàng',
+            partnerNameLabel: 'Tên nhân viên yêu cầu',
             partnerName: 'Organic Good Store - Hệ thống Phân phối Dược & Thực phẩm',
             contactPersonLabel: 'Người nhận hàng',
             contactPerson: 'Nguyễn Minh Quân',
@@ -478,74 +793,46 @@ const WarehouseModel = (function () {
     const commandsDetailData = {
         inboundCommand: {
             docType: 'inbound-command',
-            title: 'Lệnh nhập kho LNK00039',
-            topSearchPlaceholder: 'Nhập số đơn mua hàng',
-            topSearchOptions: ['Nhập số đơn mua hàng', 'DMH00006', 'DMH00028', 'DMH00022'],
+            title: 'Lệnh nhập kho LNK00018',
             commandNoLabel: 'Số lệnh nhập kho',
-            commandNo: 'LNK00039',
+            commandNo: 'LNK00018',
             dueDateLabel: 'Hạn nhập kho',
-            dueDate: '25/05/2025 00:00:00',
-            statusText: 'Hoàn thành',
-            topRightActionLabel: 'Đọc phiếu giao hàng',
-            partnerCode: 'NCC0006',
-            partnerCodeOptions: ['NCC0006', 'NCC014', 'NCC00001'],
-            partnerNameLabel: 'Tên đối tượng giao hàng',
-            partnerName: 'Công ty TNHH Công Nghệ Điện Tử Sáng Tạo (Demo)',
-            warehouseLabel: 'Kho nhập',
-            warehouse: 'Kho nguyên vật liệu',
-            warehouseOptions: ['Kho nguyên vật liệu', 'Kho Nguyên liệu GSP', 'Kho Thành phẩm GMP'],
-            branch: 'Công ty Sản xuất và phân phối dược p',
-            branchOptions: ['Công ty Sản xuất và phân phối dược p', 'CÔNG TY TNHH AN PHÚ (MISA TEST)'],
-            personLabel: 'Người giao',
-            personName: '',
-            description: '',
-            referenceTags: ['DMH00028', 'PNK00039'],
+            dueDate: '28/05/2025 00:00:00',
+            statusText: 'Chờ nhập kho',
+            employeeCode: 'NV0006',
+            employeeCodeOptions: ['NV0006', 'NV0018', 'NV0005', 'NV0021'],
+            employeeName: 'Trần Quốc Tuấn',
+            description: 'Lệnh nhập lô L00081 sau khi đạt phiếu Kiểm nghiệm QC',
             reqQtyColLabel: 'SL Yêu cầu',
             actualQtyColLabel: 'SL thực nhập',
             items: [
-                { id: 1, itemCode: 'Phi LSS', itemName: 'Bộ bàn ghế', specCode: '', unit: 'Amp', location: '', reqQty: 15, actualQty: 15, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 2, itemCode: 'Phi PCS', itemName: 'Tiền xăng xe', specCode: '', unit: 'Vial', location: '', reqQty: 12, actualQty: 12, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 3, itemCode: 'Phi RSS', itemName: 'Thép S45C phi 16  2', specCode: '', unit: 'Set', location: '', reqQty: 35, actualQty: 35, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 4, itemCode: 'Phi THC', itemName: 'Thép S45C phi 18  2', specCode: '', unit: 'Set', location: '', reqQty: 18, actualQty: 18, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 5, itemCode: 'HH004', itemName: 'Dây điện/dây dẹt 2x0.75/2x0.7', specCode: '', unit: 'Vial', location: '', reqQty: 150, actualQty: 150, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 6, itemCode: 'HH005_ACT1', itemName: 'Xe máy Yamaha FZ150i 2', specCode: '', unit: 'Vial', location: '', reqQty: 120, actualQty: 120, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 7, itemCode: 'xang2', itemName: 'Bộ bàn ghế  2', specCode: '', unit: 'Set', location: '', reqQty: 35, actualQty: 35, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 8, itemCode: 'xang2', itemName: 'Bộ bàn ghế  2', specCode: '', unit: 'Set', location: '', reqQty: 18, actualQty: 18, isFull: true, batchNo: '', expiryDate: '' },
-                { id: 9, itemCode: 'Xang xe', itemName: 'Tiền xăng xe 2', specCode: '', unit: 'Vial', location: '', reqQty: 15, actualQty: 15, isFull: true, batchNo: '', expiryDate: '' }
+                { id: 1, itemCode: 'SP001', itemName: 'Viên nén Panadol Extra 500mg', unit: 'Hộp', reqQty: 150, actualQty: 150, isFull: true, expiryDate: '31/12/2026' },
+                { id: 2, itemCode: 'SP002', itemName: 'Kháng sinh Amoxicillin 500mg', unit: 'Hộp', reqQty: 120, actualQty: 120, isFull: true, expiryDate: '31/12/2026' },
+                { id: 3, itemCode: 'SP003', itemName: 'Siro Ho Bảo Thanh 125ml', unit: 'Chai', reqQty: 200, actualQty: 200, isFull: true, expiryDate: '31/12/2026' },
+                { id: 4, itemCode: 'SP004', itemName: 'Nước muối sinh lý Natri Clorid 0.9%', unit: 'Chai', reqQty: 300, actualQty: 300, isFull: true, expiryDate: '31/12/2026' },
+                { id: 5, itemCode: 'SP005', itemName: 'Vitamin C 500mg Sủi (Tuýp 20V)', unit: 'Tuýp', reqQty: 180, actualQty: 180, isFull: true, expiryDate: '31/12/2026' }
             ]
         },
         outboundCommand: {
             docType: 'outbound-command',
             title: 'Lệnh xuất kho LXK00088',
-            topSearchPlaceholder: 'Chọn số đơn đặt hàng',
-            topSearchOptions: ['Chọn số đơn đặt hàng', 'DHTP00402', 'DHTP00393', 'DHTP00401'],
             commandNoLabel: 'Số lệnh xuất kho',
             commandNo: 'LXK00088',
             dueDateLabel: 'Hạn xuất kho',
             dueDate: '31/12/2025 00:00:00',
-            statusText: 'Đang thực hiện',
-            topRightActionLabel: 'Đề xuất lô theo FEFO',
-            partnerCode: 'KH0018',
-            partnerCodeOptions: ['KH0018', 'MB1_BANACO', 'KH_LONGCHAU'],
-            partnerNameLabel: 'Tên đối tượng nhận hàng',
-            partnerName: 'Hệ thống Nhà thuốc FPT Long Châu',
-            warehouseLabel: 'Kho xuất',
-            warehouse: 'Kho thành phẩm GMP',
-            warehouseOptions: ['Kho thành phẩm GMP', 'Kho nguyên vật liệu', 'KHO HƯNG YÊN - Kho chính'],
-            branch: 'Công ty Sản xuất và phân phối dược p',
-            branchOptions: ['Công ty Sản xuất và phân phối dược p', 'CÔNG TY TNHH AN PHÚ (MISA TEST)'],
-            personLabel: 'Người nhận',
-            personName: 'Lê Hoàng Nam',
-            description: 'Xuất thuốc & thực phẩm bảo vệ sức khỏe theo đơn DHTP00402',
-            referenceTags: ['DHTP00402', 'PXK00002'],
+            statusText: 'Chờ xuất kho',
+            employeeCode: 'NV0018',
+            employeeCodeOptions: ['NV0018', 'NV0005', 'NV0021'],
+            employeeName: 'Nguyễn Tiến Huy',
+            description: 'Lệnh xuất nguyên liệu Paracetamol & Tá dược cho mẻ SX 12',
             reqQtyColLabel: 'SL Yêu cầu',
             actualQtyColLabel: 'SL thực xuất',
             items: [
-                { id: 1, itemCode: 'DP001', itemName: 'Ginkgo Biloba 120mg Trunature', specCode: 'Hộp 300V', unit: 'Vial', location: 'Kệ A1-01', reqQty: 30, actualQty: 30, isFull: true, batchNo: 'L00023', expiryDate: '31/12/2025' },
-                { id: 2, itemCode: 'DP002', itemName: 'Glucosamine Orihiro 900 viên', specCode: 'Lọ 900V', unit: 'Set', location: 'Kệ A1-02', reqQty: 25, actualQty: 25, isFull: true, batchNo: 'L00023', expiryDate: '31/12/2025' },
-                { id: 3, itemCode: 'DP003', itemName: 'Glucosamine HCL 1500mg Kirkland', specCode: 'Lọ 375V', unit: 'Vial', location: 'Kệ A2-04', reqQty: 40, actualQty: 40, isFull: true, batchNo: 'L00023', expiryDate: '31/12/2025' },
-                { id: 4, itemCode: 'DP004', itemName: 'LineaBon K2 + D3 Nhỏ giọt 10ml', specCode: 'Lọ 10ml', unit: 'Amp', location: 'Kệ B1-01', reqQty: 15, actualQty: 15, isFull: true, batchNo: 'L00023', expiryDate: '31/12/2025' },
-                { id: 5, itemCode: 'DP005', itemName: 'Milk Thistle Extract 1000mg', specCode: 'Hộp 180V', unit: 'Set', location: 'Kệ B1-03', reqQty: 10, actualQty: 10, isFull: true, batchNo: 'L00023', expiryDate: '31/12/2025' }
+                { id: 1, itemCode: 'NVL001', itemName: 'Hoạt chất Paracetamol BP/USP', unit: 'kg', reqQty: 50, actualQty: 50, isFull: true, expiryDate: '31/12/2026' },
+                { id: 2, itemCode: 'NVL002', itemName: 'Tá dược Lactose Monohydrate 200M', unit: 'kg', reqQty: 30, actualQty: 30, isFull: true, expiryDate: '31/12/2026' },
+                { id: 3, itemCode: 'NVL003', itemName: 'Tá dược Tinh bột ngô (Corn Starch)', unit: 'kg', reqQty: 15, actualQty: 15, isFull: true, expiryDate: '31/12/2026' },
+                { id: 4, itemCode: 'NVL004', itemName: 'Tá dược Povidone K30 (PVP K30)', unit: 'kg', reqQty: 5, actualQty: 5, isFull: true, expiryDate: '31/12/2026' },
+                { id: 5, itemCode: 'NVL005', itemName: 'Tá dược trơn Magnesium Stearate', unit: 'kg', reqQty: 2.5, actualQty: 2.5, isFull: true, expiryDate: '31/12/2026' }
             ]
         }
     };
@@ -568,21 +855,29 @@ const WarehouseModel = (function () {
         },
         // State cho trang Nhập kho
         inbound: {
-            activeTab: 'don-mua-hang',
+            activeTab: 'lenh-nhap-kho',
             searchKeyword: '',
             timeFilter: 'Tháng này',
             statusFilter: 'Tất cả'
         },
         // State cho trang Xuất kho
         outbound: {
-            activeTab: 'don-dat-hang',
+            activeTab: 'lenh-xuat-kho',
             searchKeyword: '',
             orderStatusFilter: 'Tất cả',
             selectedRows: {}
         },
+        // State cho trang Danh mục VTHH (Sản phẩm & Nguyên vật liệu, tìm kiếm riêng)
+        vthh: {
+            activeTab: 'san-pham', // 'san-pham' | 'nguyen-vat-lieu'
+            productsSearchKeyword: '',
+            ingredientsSearchKeyword: ''
+        },
+        vthhModal: null, // { itemType: 'product'|'ingredient', itemId: 1, mode: 'view'|'edit' }
         // Quản lý Modal Chứng từ đang mở:
         // 'purchase-order' | 'sales-order' | 'inbound-command' | 'outbound-command' | 'inbound' | 'outbound' | null
-        activeVoucherModal: null
+        activeVoucherModal: null,
+        activeVoucherDocNo: null
     };
 
     function filterByKeyword(list, kw, keys) {
@@ -612,10 +907,30 @@ const WarehouseModel = (function () {
                     return ordersDetailData.purchaseOrder;
                 case 'sales-order':
                     return ordersDetailData.salesOrder;
-                case 'inbound-command':
+                case 'inbound-command': {
+                    const activeDocNo = state.activeVoucherDocNo || 'LNK00018';
+                    const cmdRow = inboundDatasets.inboundCommands.find(c => c.orderNo === activeDocNo) || inboundDatasets.inboundCommands[0];
+                    if (cmdRow) {
+                        commandsDetailData.inboundCommand.commandNo = cmdRow.orderNo;
+                        commandsDetailData.inboundCommand.title = `Lệnh nhập kho ${cmdRow.orderNo}`;
+                        commandsDetailData.inboundCommand.dueDate = `${cmdRow.deliveryDate || cmdRow.orderDate} 00:00:00`;
+                        commandsDetailData.inboundCommand.statusText = cmdRow.status;
+                        commandsDetailData.inboundCommand.employeeName = cmdRow.supplier;
+                        commandsDetailData.inboundCommand.description = cmdRow.description;
+                    }
                     return commandsDetailData.inboundCommand;
-                case 'outbound-command':
+                }
+                case 'outbound-command': {
+                    const activeDocNo = state.activeVoucherDocNo || 'LXK00088';
+                    const cmdRow = outboundDatasets.outboundCommands.find(c => c.orderNo === activeDocNo) || outboundDatasets.outboundCommands[0];
+                    if (cmdRow) {
+                        commandsDetailData.outboundCommand.commandNo = cmdRow.orderNo;
+                        commandsDetailData.outboundCommand.title = `Lệnh xuất kho ${cmdRow.orderNo}`;
+                        commandsDetailData.outboundCommand.statusText = cmdRow.orderStatus;
+                        commandsDetailData.outboundCommand.description = cmdRow.description;
+                    }
                     return commandsDetailData.outboundCommand;
+                }
                 case 'outbound':
                     return vouchersData.outbound;
                 case 'inbound':
@@ -642,12 +957,68 @@ const WarehouseModel = (function () {
             }
         },
 
-        openVoucherModal(voucherType) {
+        updateOutboundCommandStatus(orderNo, newStatus) {
+            const cmd = outboundDatasets.outboundCommands.find(c => c.orderNo === orderNo);
+            if (cmd) {
+                cmd.orderStatus = newStatus;
+                cmd.orderStatusType = newStatus === 'Đã xuất kho' ? 'success' : 'warning';
+                if (commandsDetailData.outboundCommand.commandNo === orderNo) {
+                    commandsDetailData.outboundCommand.statusText = newStatus;
+                }
+                return;
+            }
+            const receipt = outboundDatasets.outboundReceipts.find(r => r.voucherNo === orderNo || r.orderNo === orderNo);
+            if (receipt) {
+                receipt.status = newStatus;
+                receipt.orderStatus = newStatus;
+                receipt.statusType = newStatus === 'Đã xuất kho' ? 'success' : 'warning';
+                receipt.orderStatusType = receipt.statusType;
+            }
+        },
+
+        updateOutboundReceiptStatus(voucherNo, newStatus) {
+            const receipt = outboundDatasets.outboundReceipts.find(r => r.voucherNo === voucherNo || r.orderNo === voucherNo);
+            if (receipt) {
+                receipt.status = newStatus;
+                receipt.orderStatus = newStatus;
+                receipt.statusType = newStatus === 'Đã xuất kho' ? 'success' : 'warning';
+                receipt.orderStatusType = receipt.statusType;
+            }
+        },
+
+        updateInboundCommandStatus(orderNo, newStatus) {
+            const cmd = inboundDatasets.inboundCommands.find(c => c.orderNo === orderNo);
+            if (cmd) {
+                cmd.status = newStatus;
+                cmd.statusType = newStatus === 'Đã nhập kho' ? 'success' : 'warning';
+                if (commandsDetailData.inboundCommand.commandNo === orderNo) {
+                    commandsDetailData.inboundCommand.statusText = newStatus;
+                }
+                return;
+            }
+            const receipt = inboundDatasets.inboundReceipts.find(r => r.voucherNo === orderNo || r.orderNo === orderNo);
+            if (receipt) {
+                receipt.status = newStatus;
+                receipt.statusType = newStatus === 'Đã nhập kho' ? 'success' : 'warning';
+            }
+        },
+
+        updateInboundReceiptStatus(voucherNo, newStatus) {
+            const receipt = inboundDatasets.inboundReceipts.find(r => r.voucherNo === voucherNo || r.orderNo === voucherNo);
+            if (receipt) {
+                receipt.status = newStatus;
+                receipt.statusType = newStatus === 'Đã nhập kho' ? 'success' : 'warning';
+            }
+        },
+
+        openVoucherModal(voucherType, docNo) {
             state.activeVoucherModal = voucherType;
+            state.activeVoucherDocNo = docNo || null;
         },
 
         closeVoucherModal() {
             state.activeVoucherModal = null;
+            state.activeVoucherDocNo = null;
         },
 
         addVoucherItemRow(voucherType) {
@@ -743,13 +1114,15 @@ const WarehouseModel = (function () {
             return state.lastUpdatedMap[cardId];
         },
 
-        // Cập nhật tab & bộ lọc cho Nhập kho / Xuất kho (KHÔNG tự động bật modal Phiếu khi chuyển tab)
+        // Cập nhật tab & bộ lọc cho Nhập kho / Xuất kho / Danh mục VTHH
         setOperationTab(pageType, tabId) {
             state.activeVoucherModal = null;
             if (pageType === 'nhap-kho') {
                 state.inbound.activeTab = tabId;
             } else if (pageType === 'xuat-kho') {
                 state.outbound.activeTab = tabId;
+            } else if (pageType === 'danh-muc-vthh') {
+                state.vthh.activeTab = tabId;
             }
         },
 
@@ -758,6 +1131,12 @@ const WarehouseModel = (function () {
                 state.inbound.searchKeyword = keyword || '';
             } else if (pageType === 'xuat-kho') {
                 state.outbound.searchKeyword = keyword || '';
+            } else if (pageType === 'danh-muc-vthh') {
+                if (state.vthh.activeTab === 'san-pham') {
+                    state.vthh.productsSearchKeyword = keyword || '';
+                } else {
+                    state.vthh.ingredientsSearchKeyword = keyword || '';
+                }
             }
         },
 
@@ -767,6 +1146,200 @@ const WarehouseModel = (function () {
             } else if (pageType === 'xuat-kho') {
                 state.outbound.orderStatusFilter = statusValue;
             }
+        },
+
+        // Xóa dòng hàng hóa ở Danh mục VTHH (Sản phẩm hoặc Nguyên vật liệu)
+        deleteVthhItem(itemType, itemId) {
+            if (itemType === 'product') {
+                const idx = vthhDatasets.products.findIndex(p => String(p.id) === String(itemId) || p.productCode === String(itemId));
+                if (idx !== -1) {
+                    return vthhDatasets.products.splice(idx, 1)[0];
+                }
+            } else if (itemType === 'ingredient') {
+                const idx = vthhDatasets.ingredients.findIndex(i => String(i.id) === String(itemId) || i.ingrCode === String(itemId));
+                if (idx !== -1) {
+                    return vthhDatasets.ingredients.splice(idx, 1)[0];
+                }
+            }
+            return null;
+        },
+
+        // Quản lý Modal thông tin chi tiết / chỉnh sửa VTHH
+        openVthhModal(itemType, itemId, mode = 'view') {
+            state.vthhModal = {
+                itemType,
+                itemId,
+                mode: mode || 'view'
+            };
+        },
+
+        // Mở pop-up thêm mới sản phẩm hoặc nguyên vật liệu
+        openVthhCreateModal(itemType) {
+            const isProd = itemType === 'product';
+            let nextNum = 1;
+            if (isProd) {
+                if (vthhDatasets.products.length > 0) {
+                    const nums = vthhDatasets.products.map(p => {
+                        const m = String(p.productCode).match(/\d+/);
+                        return m ? parseInt(m[0], 10) : 0;
+                    });
+                    nextNum = Math.max(...nums) + 1;
+                }
+            } else {
+                if (vthhDatasets.ingredients.length > 0) {
+                    const nums = vthhDatasets.ingredients.map(i => {
+                        const m = String(i.ingrCode).match(/\d+/);
+                        return m ? parseInt(m[0], 10) : 0;
+                    });
+                    nextNum = Math.max(...nums) + 1;
+                }
+            }
+            const nextCode = isProd
+                ? `SP${String(nextNum).padStart(3, '0')}`
+                : `NVL${String(nextNum).padStart(3, '0')}`;
+
+            const defaultImg = isProd
+                ? makeSvgThumb('#fee2e2', '<circle cx="24" cy="24" r="14" fill="#ffffff" stroke="#ef4444" stroke-width="2"/><path d="M24 10a14 14 0 0 1 0 28" fill="#ef4444"/><path d="M18 24h12M24 18v12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>')
+                : '';
+
+            const initialItem = isProd ? {
+                id: null,
+                productCode: nextCode,
+                productName: '',
+                imageUrl: defaultImg,
+                unit: 'Hộp',
+                quantity: 100,
+                cost: 50000,
+                expiredDate: '31/12/2028',
+                description: ''
+            } : {
+                id: null,
+                ingrCode: nextCode,
+                ingrName: '',
+                unit: 'kg',
+                quantity: 50,
+                price: 100000,
+                expiredDate: '31/12/2028',
+                description: ''
+            };
+
+            state.vthhModal = {
+                itemType,
+                mode: 'create',
+                item: initialItem
+            };
+        },
+
+        closeVthhModal() {
+            state.vthhModal = null;
+        },
+
+        getVthhModalData() {
+            if (!state.vthhModal) return null;
+            const { itemType, itemId, mode } = state.vthhModal;
+            if (mode === 'create') {
+                return {
+                    isOpen: true,
+                    mode: 'create',
+                    itemType,
+                    item: state.vthhModal.item
+                };
+            }
+            let item = null;
+            if (itemType === 'product') {
+                item = vthhDatasets.products.find(p => String(p.id) === String(itemId) || p.productCode === String(itemId));
+            } else if (itemType === 'ingredient') {
+                item = vthhDatasets.ingredients.find(i => String(i.id) === String(itemId) || i.ingrCode === String(itemId));
+            }
+            if (!item) return null;
+            return {
+                isOpen: true,
+                mode,
+                itemType,
+                item: { ...item }
+            };
+        },
+
+        // Thêm mới sản phẩm hoặc nguyên vật liệu vào danh mục
+        addVthhItem(itemType, newItem) {
+            if (itemType === 'product') {
+                const nextId = vthhDatasets.products.length > 0 ? Math.max(...vthhDatasets.products.map(p => p.id)) + 1 : 1;
+                const qty = Number(newItem.quantity) || 0;
+                const cost = Number(newItem.cost) || 0;
+                const item = {
+                    id: nextId,
+                    productCode: newItem.productCode ? newItem.productCode.trim() : `SP${String(nextId).padStart(3, '0')}`,
+                    imageUrl: newItem.imageUrl || makeSvgThumb('#fee2e2', '<circle cx="24" cy="24" r="14" fill="#ffffff" stroke="#ef4444" stroke-width="2"/><path d="M24 10a14 14 0 0 1 0 28" fill="#ef4444"/><path d="M18 24h12M24 18v12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>'),
+                    productName: newItem.productName ? newItem.productName.trim() : '',
+                    unit: newItem.unit || 'Hộp',
+                    quantity: qty,
+                    quantityFormatted: qty.toLocaleString('vi-VN'),
+                    cost: cost,
+                    costFormatted: cost.toLocaleString('vi-VN'),
+                    expiredDate: newItem.expiredDate || '31/12/2028',
+                    description: newItem.description || ''
+                };
+                vthhDatasets.products.unshift(item);
+                return item;
+            } else if (itemType === 'ingredient') {
+                const nextId = vthhDatasets.ingredients.length > 0 ? Math.max(...vthhDatasets.ingredients.map(i => i.id)) + 1 : 1;
+                const qty = Number(newItem.quantity) || 0;
+                const price = Number(newItem.price) || 0;
+                const item = {
+                    id: nextId,
+                    ingrCode: newItem.ingrCode ? newItem.ingrCode.trim() : `NVL${String(nextId).padStart(3, '0')}`,
+                    ingrName: newItem.ingrName ? newItem.ingrName.trim() : '',
+                    unit: newItem.unit || 'kg',
+                    quantity: qty,
+                    quantityFormatted: qty.toLocaleString('vi-VN'),
+                    price: price,
+                    priceFormatted: price.toLocaleString('vi-VN'),
+                    expiredDate: newItem.expiredDate || '31/12/2028',
+                    description: newItem.description || ''
+                };
+                vthhDatasets.ingredients.unshift(item);
+                return item;
+            }
+            return null;
+        },
+
+        updateVthhItem(itemType, itemId, updatedData) {
+            if (itemType === 'product') {
+                const idx = vthhDatasets.products.findIndex(p => String(p.id) === String(itemId) || p.productCode === String(itemId));
+                if (idx !== -1) {
+                    const current = vthhDatasets.products[idx];
+                    const qty = updatedData.quantity !== undefined ? (Number(updatedData.quantity) || 0) : current.quantity;
+                    const cost = updatedData.cost !== undefined ? (Number(updatedData.cost) || 0) : current.cost;
+                    vthhDatasets.products[idx] = {
+                        ...current,
+                        ...updatedData,
+                        productCode: current.productCode, // Mã sản phẩm là định danh không được sửa
+                        quantity: qty,
+                        quantityFormatted: qty.toLocaleString('vi-VN'),
+                        cost: cost,
+                        costFormatted: cost.toLocaleString('vi-VN')
+                    };
+                    return vthhDatasets.products[idx];
+                }
+            } else if (itemType === 'ingredient') {
+                const idx = vthhDatasets.ingredients.findIndex(i => String(i.id) === String(itemId) || i.ingrCode === String(itemId));
+                if (idx !== -1) {
+                    const current = vthhDatasets.ingredients[idx];
+                    const qty = updatedData.quantity !== undefined ? (Number(updatedData.quantity) || 0) : current.quantity;
+                    const price = updatedData.price !== undefined ? (Number(updatedData.price) || 0) : current.price;
+                    vthhDatasets.ingredients[idx] = {
+                        ...current,
+                        ...updatedData,
+                        ingrCode: current.ingrCode, // Mã NVL là định danh không được sửa
+                        quantity: qty,
+                        quantityFormatted: qty.toLocaleString('vi-VN'),
+                        price: price,
+                        priceFormatted: price.toLocaleString('vi-VN')
+                    };
+                    return vthhDatasets.ingredients[idx];
+                }
+            }
+            return null;
         },
 
         // Lấy cấu hình 4 thẻ Dashboard ở trang Tổng quan
@@ -842,12 +1415,14 @@ const WarehouseModel = (function () {
 
         // Cấu hình truyền vào TabbedDataGridComponent cho trang Nhập kho
         getInboundGridConfig() {
+            if (state.inbound.activeTab === 'don-mua-hang') {
+                state.inbound.activeTab = 'lenh-nhap-kho';
+            }
             const isVoucherTab = state.inbound.activeTab === 'nhap-kho-tab';
+            const isCommandTab = state.inbound.activeTab === 'lenh-nhap-kho';
             let sourceRows = [];
 
-            if (state.inbound.activeTab === 'don-mua-hang') {
-                sourceRows = state.usePharmaFullData ? inboundDatasets.pharmaOrders : inboundDatasets.defaultOrders;
-            } else if (state.inbound.activeTab === 'lenh-nhap-kho') {
+            if (state.inbound.activeTab === 'lenh-nhap-kho') {
                 sourceRows = inboundDatasets.inboundCommands;
             } else {
                 sourceRows = inboundDatasets.inboundReceipts;
@@ -855,59 +1430,49 @@ const WarehouseModel = (function () {
 
             const combinedKw = (state.inbound.searchKeyword || state.searchKeyword).trim();
             let filtered = isVoucherTab
-                ? filterByKeyword(sourceRows, combinedKw, ['voucherNo', 'warehouse', 'partnerName', 'deliverer', 'description', 'subType'])
-                : filterByKeyword(sourceRows, combinedKw, ['orderNo', 'supplier', 'description', 'status']);
+                ? filterByKeyword(sourceRows, combinedKw, ['voucherNo', 'partnerName', 'description', 'status'])
+                : filterByKeyword(sourceRows, combinedKw, ['orderNo', 'supplier', 'productName', 'description', 'status']);
 
-            if (!isVoucherTab && state.inbound.statusFilter !== 'Tất cả') {
+            if (state.inbound.statusFilter && state.inbound.statusFilter !== 'Tất cả') {
                 filtered = filtered.filter(r => r.status === state.inbound.statusFilter);
             }
 
-            const columns = isVoucherTab
-                ? [
-                    { key: 'voucherNo', label: 'Số phiếu nhập kho', isLink: true, width: '140px' },
-                    { key: 'voucherDate', label: 'Ngày nhập kho', width: '155px' },
-                    { key: 'warehouse', label: 'Kho nhập', width: '220px' },
-                    { key: 'partnerName', label: 'Tên đối tượng giao hàng', width: '270px' },
-                    { key: 'deliverer', label: 'Người giao', width: '135px' },
-                    { key: 'description', label: 'Diễn giải' },
-                    { key: 'subType', label: 'Loại phiếu', isStatusLink: true, width: '155px' }
-                ]
-                : [
-                    { key: 'orderNo', label: state.inbound.activeTab === 'lenh-nhap-kho' ? 'Số lệnh nhập' : 'Số đơn hàng', isLink: true, width: '130px' },
-                    { key: 'orderDate', label: state.inbound.activeTab === 'lenh-nhap-kho' ? 'Ngày lệnh' : 'Ngày đơn hàng', width: '135px' },
-                    { key: 'supplier', label: 'Tên nhà cung cấp', width: '290px' },
-                    { key: 'deliveryDate', label: 'Ngày giao hàng', width: '140px' },
-                    { key: 'description', label: 'Diễn giải' },
-                    { key: 'status', label: 'Tình trạng nhập kho', isStatusLink: true, width: '160px' }
+            let columns = [];
+            if (isVoucherTab) {
+                // Tab Nhập kho NVL: chuẩn hóa giống Xuất kho NVL
+                // Bỏ kho nhập, người giao, loại phiếu. Đổi Tên đối tượng giao hàng thành Tên nhân viên yêu cầu.
+                // Thêm cột trạng thái và tình trạng nhập kho có 2 nút duyệt và từ chối.
+                columns = [
+                    { key: 'voucherNo', label: 'Số phiếu nhập kho', isLink: true, width: '150px' },
+                    { key: 'voucherDate', label: 'Ngày nhập kho', width: '160px' },
+                    { key: 'partnerName', label: 'Tên nhân viên yêu cầu', width: '200px' },
+                    { key: 'description', label: 'Ghi chú' },
+                    { key: 'status', label: 'Trạng thái', isOrderStatus: true, width: '150px' },
+                    { key: 'inboundApproval', label: 'Tình trạng nhập kho', isApprovalButtons: true, width: '180px' }
                 ];
-
-            const filters = isVoucherTab
-                ? [
-                    {
-                        id: 'inbound-time-filter',
-                        prefix: 'Thời gian:',
-                        value: state.inbound.timeFilter,
-                        options: ['Tháng này', 'Quý này', 'Năm nay', 'Tất cả']
-                    }
-                ]
-                : [
-                    {
-                        id: 'inbound-time-filter',
-                        prefix: 'Thời gian:',
-                        value: state.inbound.timeFilter,
-                        options: ['Tháng này', 'Quý này', 'Năm nay', 'Tất cả']
-                    },
-                    {
-                        id: 'inbound-status-filter',
-                        prefix: 'Tình trạng nhập kho:',
-                        value: state.inbound.statusFilter,
-                        options: ['Tất cả', 'Đang thực hiện', 'Hoàn thành']
-                    }
+            } else {
+                // Tab Nhập kho thành phẩm: Lệnh nhập kho
+                columns = [
+                    { key: 'orderNo', label: 'Số lệnh nhập', isLink: true, width: '130px' },
+                    { key: 'orderDate', label: 'Ngày giao', width: '120px' },
+                    { key: 'supplier', label: 'Tên nhân viên', width: '180px' },
+                    { key: 'productName', label: 'Tên sản phẩm', width: '240px' },
+                    { key: 'description', label: 'Ghi chú' },
+                    { key: 'status', label: 'Trạng thái', isOrderStatus: true, width: '150px' },
+                    { key: 'inboundApproval', label: 'Tình trạng nhập kho', isApprovalButtons: true, width: '180px' }
                 ];
+            }
 
-            const targetModalType = state.inbound.activeTab === 'don-mua-hang'
-                ? 'purchase-order'
-                : (state.inbound.activeTab === 'lenh-nhap-kho' ? 'inbound-command' : 'inbound');
+            const filters = [
+                {
+                    id: 'inbound-status-filter',
+                    prefix: 'Trạng thái:',
+                    value: state.inbound.statusFilter,
+                    options: ['Tất cả', 'Chờ nhập kho', 'Đã nhập kho']
+                }
+            ];
+
+            const targetModalType = state.inbound.activeTab === 'lenh-nhap-kho' ? 'inbound-command' : 'inbound';
 
             return {
                 pageType: 'nhap-kho',
@@ -915,14 +1480,16 @@ const WarehouseModel = (function () {
                 canOpenVoucher: true,
                 activeTab: state.inbound.activeTab,
                 tabs: [
-                    { id: 'don-mua-hang', label: 'Đơn mua hàng' },
-                    { id: 'lenh-nhap-kho', label: 'Lệnh nhập kho' },
-                    { id: 'nhap-kho-tab', label: 'Nhập kho' }
+                    { id: 'lenh-nhap-kho', label: 'Nhập kho thành phẩm' },
+                    { id: 'nhap-kho-tab', label: 'Nhập kho NVL' }
                 ],
                 searchValue: state.inbound.searchKeyword,
                 filters,
-                showAddButton: true,
+                // Bỏ đi các nút tác vụ chỉ giữ lại nút refresh giống Xuất kho NVL
+                showAddButton: false,
                 addButtonLabel: 'Thêm',
+                hideSplitLayout: true,
+                hideSettings: true,
                 showCheckbox: false,
                 columns,
                 rows: filtered,
@@ -934,12 +1501,14 @@ const WarehouseModel = (function () {
 
         // Cấu hình truyền vào TabbedDataGridComponent cho trang Xuất kho
         getOutboundGridConfig() {
+            if (state.outbound.activeTab === 'don-dat-hang') {
+                state.outbound.activeTab = 'lenh-xuat-kho';
+            }
             const isVoucherTab = state.outbound.activeTab === 'xuat-kho-tab';
+            const isCommandTab = state.outbound.activeTab === 'lenh-xuat-kho';
             let sourceRows = [];
 
-            if (state.outbound.activeTab === 'don-dat-hang') {
-                sourceRows = state.usePharmaFullData ? outboundDatasets.pharmaOrders : outboundDatasets.defaultOrders;
-            } else if (state.outbound.activeTab === 'lenh-xuat-kho') {
+            if (state.outbound.activeTab === 'lenh-xuat-kho') {
                 sourceRows = outboundDatasets.outboundCommands;
             } else {
                 sourceRows = outboundDatasets.outboundReceipts;
@@ -947,59 +1516,47 @@ const WarehouseModel = (function () {
 
             const combinedKw = (state.outbound.searchKeyword || state.searchKeyword).trim();
             let filtered = isVoucherTab
-                ? filterByKeyword(sourceRows, combinedKw, ['voucherNo', 'warehouse', 'partnerName', 'receiver', 'description', 'subType'])
+                ? filterByKeyword(sourceRows, combinedKw, ['voucherNo', 'partnerName', 'description', 'status'])
                 : filterByKeyword(sourceRows, combinedKw, ['orderNo', 'customer', 'description', 'orderStatus', 'outboundStatus']);
 
-            if (!isVoucherTab && state.outbound.orderStatusFilter !== 'Tất cả') {
-                filtered = filtered.filter(r => r.orderStatus === state.outbound.orderStatusFilter);
+            if (state.outbound.orderStatusFilter && state.outbound.orderStatusFilter !== 'Tất cả') {
+                filtered = filtered.filter(r => (r.status === state.outbound.orderStatusFilter || r.orderStatus === state.outbound.orderStatusFilter));
             }
 
-            const isDefaultFullList = !state.usePharmaFullData &&
-                state.outbound.activeTab === 'don-dat-hang' &&
-                !combinedKw &&
-                state.outbound.orderStatusFilter === 'Tất cả';
-
-            const columns = isVoucherTab
-                ? [
-                    { key: 'voucherNo', label: 'Số phiếu xuất kho', isLink: true, width: '140px' },
-                    { key: 'voucherDate', label: 'Ngày xuất kho', width: '155px' },
-                    { key: 'warehouse', label: 'Kho xuất', width: '210px' },
-                    { key: 'partnerName', label: 'Tên đối tượng nhận hàng', width: '270px' },
-                    { key: 'receiver', label: 'Người nhận', width: '135px' },
+            let columns = [];
+            if (isVoucherTab) {
+                // Tab Xuất kho thành phẩm: bỏ kho xuất, người nhận, loại phiếu. Đổi Tên đối tượng nhận hàng thành Tên nhân viên yêu cầu. Thêm cột trạng thái và tình trạng xuất kho
+                columns = [
+                    { key: 'voucherNo', label: 'Số phiếu xuất kho', isLink: true, width: '150px' },
+                    { key: 'voucherDate', label: 'Ngày xuất kho', width: '160px' },
+                    { key: 'partnerName', label: 'Tên nhân viên yêu cầu', width: '200px' },
                     { key: 'description', label: 'Diễn giải' },
-                    { key: 'subType', label: 'Loại phiếu', isStatusLink: true, width: '155px' }
-                ]
-                : [
-                    { key: 'orderNo', label: state.outbound.activeTab === 'lenh-xuat-kho' ? 'Số lệnh xuất' : 'Số đơn hàng', isLink: true, width: '125px' },
-                    { key: 'orderDate', label: state.outbound.activeTab === 'lenh-xuat-kho' ? 'Ngày lệnh' : 'Ngày đơn hàng', width: '125px' },
-                    { key: 'customer', label: 'Tên khách hàng', width: '165px' },
+                    { key: 'status', label: 'Trạng thái', isOrderStatus: true, width: '150px' },
+                    { key: 'outboundStatus', label: 'Tình trạng xuất kho', isApprovalButtons: true, width: '180px' }
+                ];
+            } else {
+                // Tab Xuất kho NVL: Cột diễn giải đổi thành Ghi chú, tình trạng đơn hàng đổi thành trạng thái, tình trạng xuất kho có 2 nút duyệt và từ chối
+                columns = [
+                    { key: 'orderNo', label: 'Số lệnh xuất', isLink: true, width: '125px' },
+                    { key: 'orderDate', label: 'Ngày giao', width: '125px' },
+                    { key: 'customer', label: 'Tên nhân viên yêu cầu', width: '175px' },
                     { key: 'deliveryDue', label: 'Hạn giao hàng', width: '125px' },
-                    { key: 'description', label: 'Diễn giải' },
-                    { key: 'orderStatus', label: 'Tình trạng đơn hàng', isOrderStatus: true, width: '160px' },
-                    { key: 'outboundStatus', label: 'Tình trạng xuất kho', width: '150px' }
+                    { key: 'description', label: 'Ghi chú' },
+                    { key: 'orderStatus', label: 'Trạng thái', isOrderStatus: true, width: '150px' },
+                    { key: 'outboundStatus', label: 'Tình trạng xuất kho', isApprovalButtons: true, width: '180px' }
                 ];
+            }
 
-            const filters = isVoucherTab
-                ? [
-                    {
-                        id: 'outbound-time-filter',
-                        prefix: 'Thời gian:',
-                        value: 'Tháng này',
-                        options: ['Tháng này', 'Quý này', 'Năm nay', 'Tất cả']
-                    }
-                ]
-                : [
-                    {
-                        id: 'outbound-status-filter',
-                        prefix: 'Tình trạng đơn hàng:',
-                        value: state.outbound.orderStatusFilter,
-                        options: ['Tất cả', 'Chưa thực hiện', 'Hoàn thành']
-                    }
-                ];
+            const filters = [
+                {
+                    id: 'outbound-status-filter',
+                    prefix: 'Trạng thái:',
+                    value: state.outbound.orderStatusFilter,
+                    options: ['Tất cả', 'Chờ xuất kho', 'Đã xuất kho']
+                }
+            ];
 
-            const targetModalType = state.outbound.activeTab === 'don-dat-hang'
-                ? 'sales-order'
-                : (state.outbound.activeTab === 'lenh-xuat-kho' ? 'outbound-command' : 'outbound');
+            const targetModalType = state.outbound.activeTab === 'xuat-kho-tab' ? 'outbound' : 'outbound-command';
 
             return {
                 pageType: 'xuat-kho',
@@ -1007,20 +1564,86 @@ const WarehouseModel = (function () {
                 canOpenVoucher: true,
                 activeTab: state.outbound.activeTab,
                 tabs: [
-                    { id: 'don-dat-hang', label: 'Đơn đặt hàng' },
-                    { id: 'lenh-xuat-kho', label: 'Lệnh xuất kho' },
-                    { id: 'xuat-kho-tab', label: 'Xuất kho' }
+                    { id: 'lenh-xuat-kho', label: 'Xuất kho NVL' },
+                    { id: 'xuat-kho-tab', label: 'Xuất kho thành phẩm' }
                 ],
                 searchValue: state.outbound.searchKeyword,
                 filters,
-                showAddButton: state.outbound.activeTab !== 'don-dat-hang',
+                // Bỏ các nút tác vụ thêm, cài đặt, hiển thị, chỉ giữ lại nút refresh như các tab trước
+                showAddButton: false,
                 addButtonLabel: 'Thêm',
+                hideSplitLayout: true,
+                hideSettings: true,
                 showCheckbox: !isVoucherTab,
                 columns,
                 rows: filtered,
-                totalRecords: isDefaultFullList ? 413 : filtered.length,
+                totalRecords: filtered.length,
                 rangeText: filtered.length > 0 ? `1 - ${filtered.length}` : '0 - 0',
-                hasMorePages: isDefaultFullList
+                hasMorePages: false
+            };
+        },
+
+        // Cấu hình truyền vào TabbedDataGridComponent cho trang Danh mục VTHH
+        getVthhGridConfig() {
+            const isProductTab = state.vthh.activeTab === 'san-pham';
+            const sourceRows = isProductTab ? vthhDatasets.products : vthhDatasets.ingredients;
+            const currentKw = (isProductTab
+                ? (state.vthh.productsSearchKeyword || '')
+                : (state.vthh.ingredientsSearchKeyword || '')).trim();
+
+            const filtered = isProductTab
+                ? filterByKeyword(sourceRows, currentKw, ['productCode', 'productName', 'unit', 'description'])
+                : filterByKeyword(sourceRows, currentKw, ['ingrCode', 'ingrName', 'unit', 'description']);
+
+            let columns = [];
+            if (isProductTab) {
+                // Tab Sản phẩm: Cột ảnh ở giữa cột Mã sản phẩm và Tên sản phẩm; Cột thao tác ở cuối
+                columns = [
+                    { key: 'productCode', label: 'Mã sản phẩm', isLink: true, width: '120px' },
+                    { key: 'imageUrl', label: 'Hình ảnh', isImage: true, width: '75px', align: 'center' },
+                    { key: 'productName', label: 'Tên sản phẩm', width: '230px' },
+                    { key: 'unit', label: 'ĐVT', width: '80px' },
+                    { key: 'quantityFormatted', label: 'SL tồn', width: '100px' },
+                    { key: 'costFormatted', label: 'Giá vốn (VNĐ)', width: '130px' },
+                    { key: 'expiredDate', label: 'Hạn sử dụng', width: '120px' },
+                    { key: 'description', label: 'Mô tả / Tiêu chuẩn' },
+                    { key: 'action', label: 'Thao tác', isActionDelete: true, width: '95px', align: 'center' }
+                ];
+            } else {
+                // Tab Nguyên vật liệu: Cột thao tác ở cuối
+                columns = [
+                    { key: 'ingrCode', label: 'Mã nguyên vật liệu', isLink: true, width: '140px' },
+                    { key: 'ingrName', label: 'Tên nguyên vật liệu', width: '240px' },
+                    { key: 'unit', label: 'ĐVT', width: '80px' },
+                    { key: 'quantityFormatted', label: 'SL tồn', width: '100px' },
+                    { key: 'priceFormatted', label: 'Đơn giá (VNĐ)', width: '130px' },
+                    { key: 'expiredDate', label: 'Hạn sử dụng', width: '120px' },
+                    { key: 'description', label: 'Mô tả / Tiêu chuẩn' },
+                    { key: 'action', label: 'Thao tác', isActionDelete: true, width: '95px', align: 'center' }
+                ];
+            }
+
+            return {
+                pageType: 'danh-muc-vthh',
+                voucherType: null,
+                canOpenVoucher: false,
+                activeTab: state.vthh.activeTab,
+                tabs: [
+                    { id: 'san-pham', label: 'Sản phẩm' },
+                    { id: 'nguyen-vat-lieu', label: 'Nguyên vật liệu' }
+                ],
+                searchValue: isProductTab ? state.vthh.productsSearchKeyword : state.vthh.ingredientsSearchKeyword,
+                filters: [],
+                showAddButton: true,
+                addButtonLabel: 'Thêm',
+                hideSplitLayout: true,
+                hideSettings: true,
+                showCheckbox: false,
+                columns,
+                rows: filtered,
+                totalRecords: filtered.length,
+                rangeText: filtered.length > 0 ? `1 - ${filtered.length}` : '0 - 0',
+                hasMorePages: false
             };
         }
     };

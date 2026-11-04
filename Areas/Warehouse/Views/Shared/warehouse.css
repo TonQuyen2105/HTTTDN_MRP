@@ -1584,8 +1584,9 @@ html, body {
     padding: 12px 18px 16px;
     border-bottom: 1px solid #e5e7eb;
     display: grid;
-    grid-template-columns: 1fr 235px;
+    grid-template-columns: 1fr 245px;
     gap: 20px;
+    align-items: start;
 }
 
 @media (max-width: 1024px) {
@@ -1599,6 +1600,13 @@ html, body {
     grid-template-columns: 230px 1fr 1fr;
     column-gap: 12px;
     row-gap: 10px;
+}
+
+.wh-voucher-master-left.wh-outbound-master-left {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    column-gap: 16px;
+    row-gap: 12px;
 }
 
 .wh-voucher-master-right {
@@ -2036,6 +2044,341 @@ html, body {
     align-items: center;
     gap: 6px;
 }
+
+/* ==========================================================================
+   11. ACTION BUTTONS: DUYỆT & TỪ CHỐI (Lệnh xuất kho)
+   ========================================================================== */
+.wh-approval-btns {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wh-btn-approve,
+.wh-btn-reject {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wh-btn-approve {
+    background-color: #ffffff;
+    border-color: #10b981;
+    color: #059669;
+}
+
+.wh-btn-approve:hover {
+    background-color: #ecfdf5;
+    border-color: #059669;
+}
+
+.wh-btn-approve.is-active {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.wh-btn-reject {
+    background-color: #ffffff;
+    border-color: #f87171;
+    color: #dc2626;
+}
+
+.wh-btn-reject:hover {
+    background-color: #fef2f2;
+    border-color: #dc2626;
+}
+
+.wh-btn-reject.is-active {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.3);
+}
+
+/* Product Image Thumbnail in Danh mục VTHH */
+.wh-dg-img-cell {
+    text-align: center;
+    padding: 3px 6px !important;
+}
+
+.wh-product-img-box {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    vertical-align: middle;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.wh-product-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.wh-product-img-placeholder {
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Action Delete Button in Danh mục VTHH */
+.wh-dg-action-cell {
+    text-align: center;
+    padding: 3px 6px !important;
+}
+
+/* Action Buttons in Grid */
+.wh-dg-action-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.wh-btn-action-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    line-height: 1;
+}
+
+.wh-btn-edit-row {
+    border: 1px solid #bfdbfe;
+    background-color: #ffffff;
+    color: #2563eb;
+}
+
+.wh-btn-edit-row:hover {
+    background-color: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35);
+    transform: scale(1.05);
+}
+
+.wh-btn-edit-row svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+.wh-btn-delete-row {
+    border: 1px solid #fee2e2;
+    background-color: #ffffff;
+    color: #ef4444;
+}
+
+.wh-btn-delete-row:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.35);
+    transform: scale(1.05);
+}
+
+.wh-btn-delete-row svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+/* Modal Chi tiết & Chỉnh sửa VTHH */
+.wh-vthh-modal-window {
+    max-width: 660px;
+    width: 92%;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.wh-vthh-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.wh-vthh-mode-badge.is-view {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.wh-vthh-mode-badge.is-edit {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+}
+
+.wh-vthh-mode-badge.is-create {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.wh-vthh-modal-body {
+    padding: 16px 20px;
+    max-height: calc(85vh - 110px);
+    overflow-y: auto;
+    background-color: #ffffff;
+}
+
+.wh-vthh-product-head {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.wh-vthh-img-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.wh-vthh-img-preview-box {
+    width: 90px;
+    height: 90px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background-color: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.wh-vthh-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.wh-vthh-img-fallback {
+    color: #94a3b8;
+}
+
+.wh-vthh-img-controls {
+    width: 100%;
+}
+
+.wh-vthh-preset-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.wh-vthh-preset-pill {
+    padding: 2px 6px;
+    font-size: 10px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.wh-vthh-preset-pill:hover {
+    background-color: #eff6ff;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.wh-vthh-main-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wh-vthh-grid-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+}
+
+.wh-col-span-full {
+    grid-column: 1 / -1;
+}
+
+.wh-lock-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10.5px;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-left: 6px;
+}
+
+.wh-input-control.is-readonly {
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed;
+}
+
+.wh-vthh-bottombar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.wh-vthh-bottombar-left {
+    display: flex;
+    align-items: center;
+}
+
+.wh-vthh-bottombar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wh-vthh-lock-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: #64748b;
+}
+
 
 
 

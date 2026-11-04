@@ -23,6 +23,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<MaterialReceiptDetail> MaterialReceiptDetails { get; set; } = null!;
     public DbSet<ProductReceipt> ProductReceipts { get; set; } = null!;
     public DbSet<ProductReceiptDetail> ProductReceiptDetails { get; set; } = null!;
+    public DbSet<ProductExportReceipt> ProductExportReceipts { get; set; } = null!;
+    public DbSet<ProductExportReceiptDetail> ProductExportReceiptDetails { get; set; } = null!;
+    public DbSet<SaleOrder> SaleOrders { get; set; } = null!;
+    public DbSet<SaleOrderDetail> SaleOrderDetails { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,7 +43,7 @@ public class ApplicationDbContext : DbContext
                   .HasDefaultValue("Active");
         });
 
-        // Khóa chính phức hợp (Composite Primary Keys) cho các bảng chi tiết phiếu kho
+        // Khóa chính phức hợp (Composite Primary Keys) cho các bảng chi tiết
         modelBuilder.Entity<ImportReceiptDetail>()
             .HasKey(d => new { d.IpReceiptId, d.IngrId });
 
@@ -48,5 +52,11 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<ProductReceiptDetail>()
             .HasKey(d => new { d.ProductReceiptId, d.ProductId });
+
+        modelBuilder.Entity<ProductExportReceiptDetail>()
+            .HasKey(d => new { d.ExportReceiptId, d.ProductId });
+
+        modelBuilder.Entity<SaleOrderDetail>()
+            .HasKey(d => new { d.OrderId, d.ProductId });
     }
 }

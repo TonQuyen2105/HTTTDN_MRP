@@ -53,6 +53,12 @@ public class Ingredient
     [MaxLength(255)]
     [Column("imageurl")]
     public string? ImageUrl { get; set; }
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("expireddate")]
+    public DateTime? ExpiredDate { get; set; }
 }
 
 [Table("product")]
@@ -80,6 +86,12 @@ public class Product
     [MaxLength(255)]
     [Column("imageurl")]
     public string? ImageUrl { get; set; }
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("expireddate")]
+    public DateTime? ExpiredDate { get; set; }
 }
 
 [Table("bom")]
@@ -105,6 +117,10 @@ public class Bom
 
     [Column("materialquantity")]
     public int MaterialQuantity { get; set; }
+
+    [MaxLength(100)]
+    [Column("bomcode")]
+    public string? BomCode { get; set; }
 }
 
 [Table("productionrequest")]
@@ -146,6 +162,9 @@ public class ImportReceipt
 
     [Column("createddate")]
     public DateTime? CreatedDate { get; set; }
+
+    [Column("ipreceiptcode")]
+    public string? IpReceiptCode { get; set; }
 }
 
 [Table("importreceiptdetail")]
@@ -186,6 +205,12 @@ public class MaterialReceipt
     [MaxLength(50)]
     [Column("status")]
     public string? Status { get; set; } = "Pending";
+
+    [Column("expreceiptcode")]
+    public string? ExpReceiptCode { get; set; }
+
+    [Column("requestid")]
+    public int? RequestId { get; set; }
 }
 
 [Table("materialreceiptdetail")]
@@ -198,7 +223,7 @@ public class MaterialReceiptDetail
     public int IngrId { get; set; }
 
     [Column("quantity")]
-    public int Quantity { get; set; }
+    public decimal Quantity { get; set; }
 
     [MaxLength(50)]
     [Column("status")]
@@ -210,6 +235,9 @@ public class MaterialReceiptDetail
 
     [Column("createddate")]
     public DateTime? CreatedDate { get; set; }
+
+    [Column("exportdate")]
+    public DateTime? ExportDate { get; set; }
 }
 
 [Table("productreceipt")]
@@ -231,6 +259,9 @@ public class ProductReceipt
     [MaxLength(50)]
     [Column("status")]
     public string? Status { get; set; } = "Pending";
+
+    [Column("requestid")]
+    public int? RequestId { get; set; }
 }
 
 [Table("productreceiptdetail")]
@@ -257,3 +288,101 @@ public class ProductReceiptDetail
     public DateTime? CreatedDate { get; set; }
 }
 
+[Table("productexportreceipt")]
+public class ProductExportReceipt
+{
+    [Key]
+    [Column("exportreceiptid")]
+    public int ExportReceiptId { get; set; }
+
+    [Column("requestedby")]
+    public int? RequestedBy { get; set; }
+
+    [Column("approvedby")]
+    public int? ApprovedBy { get; set; }
+
+    [Column("createddate")]
+    public DateTime? CreatedDate { get; set; }
+
+    [MaxLength(50)]
+    [Column("status")]
+    public string? Status { get; set; }
+
+    [Column("expreceiptcode")]
+    public string? ExpReceiptCode { get; set; }
+
+    [Column("orderid")]
+    public int? OrderId { get; set; }
+}
+
+[Table("productexportreceiptdetail")]
+public class ProductExportReceiptDetail
+{
+    [Column("exportreceiptid")]
+    public int ExportReceiptId { get; set; }
+
+    [Column("productid")]
+    public int ProductId { get; set; }
+
+    [Column("quantity")]
+    public int Quantity { get; set; }
+
+    [Column("price")]
+    public decimal? Price { get; set; }
+
+    [MaxLength(50)]
+    [Column("status")]
+    public string? Status { get; set; }
+
+    [Column("note")]
+    public string? Note { get; set; }
+
+    [Column("createddate")]
+    public DateTime? CreatedDate { get; set; }
+}
+
+[Table("saleorder")]
+public class SaleOrder
+{
+    [Key]
+    [Column("orderid")]
+    public int OrderId { get; set; }
+
+    [Column("createdby")]
+    public int? CreatedBy { get; set; }
+
+    [MaxLength(150)]
+    [Column("customername")]
+    public string? CustomerName { get; set; }
+
+    [MaxLength(20)]
+    [Column("customerphone")]
+    public string? CustomerPhone { get; set; }
+
+    [MaxLength(255)]
+    [Column("shippingaddress")]
+    public string? ShippingAddress { get; set; }
+
+    [Column("totalamount")]
+    public decimal? TotalAmount { get; set; }
+
+    [Column("orderdate")]
+    public DateTime? OrderDate { get; set; }
+
+    [MaxLength(50)]
+    [Column("status")]
+    public string? Status { get; set; }
+}
+
+[Table("saleorderdetail")]
+public class SaleOrderDetail
+{
+    [Column("orderid")]
+    public int OrderId { get; set; }
+
+    [Column("productid")]
+    public int ProductId { get; set; }
+
+    [Column("quantity")]
+    public int Quantity { get; set; }
+}

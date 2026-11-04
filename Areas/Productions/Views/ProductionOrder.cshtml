@@ -1,6 +1,11 @@
+@model IEnumerable<httt.Models.ProductionRequest>
 @{
     Layout = null;
-    ViewData["Title"] = "AMIS Sản xuất - Thêm Lệnh sản xuất";
+    ViewData["Title"] = "AMIS Sản xuất - Quản lý Lệnh sản xuất thuốc GMP";
+    var totalOrders = Model?.Count() ?? 0;
+    var pendingOrders = Model?.Count(m => m.Status == "Pending") ?? 0;
+    var inProgOrders = Model?.Count(m => m.Status == "In Production" || m.Status == "Approved") ?? 0;
+    var completedOrders = Model?.Count(m => m.Status == "Completed") ?? 0;
 }
 
 <!DOCTYPE html>
@@ -31,21 +36,21 @@
           </svg>
         </button>
 
-        <div class="app-brand">
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
           <div class="app-brand-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M2 20h20"></path>
               <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
             </svg>
           </div>
-          <span class="app-brand-name">Sản xuất</span>
-        </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
       </div>
 
       <div class="header-right">
         <div class="branch-selector" title="Chọn chi nhánh làm việc">
           <span>Chi nhánh:</span>
-          <strong>Công ty cơ khí Kim Khí Miền Nam</strong>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -76,22 +81,22 @@
           </button>
         </div>
 
-        <div class="user-profile" title="Tài khoản cá nhân">
-          <div class="user-avatar">NV</div>
-          <span class="user-name">Nguyễn Văn Dev</span>
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;" title="Tài khoản cá nhân">
+          <div class="user-avatar">MT</div>
+          <span class="user-name">DS. Nguyễn Minh Tài</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
-        </div>
+        </a>
       </div>
     </header>
 
-    <!-- SIDEBAR -->
+            <!-- SIDEBAR -->
     <aside class="app-sidebar" id="appSidebar">
       <div class="sidebar-nav-container">
         
         <div class="nav-item">
-          <a asp-action="Index" class="nav-link" title="Chuyển về trang Tổng quan">
+          <a href="/Productions/Home/Index" class="nav-link ">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -103,7 +108,7 @@
         </div>
 
         <div class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -112,11 +117,11 @@
                 <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
             </span>
-            <span class="nav-text">Đơn đặt hàng</span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
           </a>
         </div>
 
-        <div class="nav-item has-sub">
+        <div class="nav-item has-sub open">
           <a href="#" class="nav-link">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -132,12 +137,11 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Tính nhu cầu vật tư</a>
-            <a href="#" class="sub-link">Lập kế hoạch SX</a>
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
           </div>
         </div>
 
-        <!-- Điều phối & thực thi (ACTIVE LỆNH SẢN XUẤT) -->
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
         <div class="nav-item has-sub open">
           <a href="#" class="nav-link">
             <span class="nav-icon">
@@ -152,26 +156,12 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a asp-action="ProductionOrder" class="sub-link active">Lệnh sản xuất</a>
-            <a href="#" class="sub-link">Lịch sản xuất</a>
-            <a href="#" class="sub-link">Yêu cầu xuất vật tư</a>
-            <a href="#" class="sub-link">Thống kê sản xuất</a>
-            <a href="#" class="sub-link">Nhập thành phẩm</a>
-            <a href="#" class="sub-link">Bàn giao thành phẩm</a>
-            <a href="#" class="sub-link">Tình hình giao hàng</a>
+            <a href="/Productions/Home/ProductionOrder" class="sub-link active">Lệnh sản xuất thuốc</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
           </div>
-        </div>
-
-        <div class="nav-item">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 11l3 3L22 4"></path>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-            </span>
-            <span class="nav-text">Kiểm tra chất lượng</span>
-          </a>
         </div>
 
         <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
@@ -191,45 +181,19 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt NVL</a>
+            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
+            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
           </div>
         </div>
 
         <div class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="/Productions/Home/BomList" class="nav-link ">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
             </span>
-            <span class="nav-text">Sản phẩm, NVL</span>
-          </a>
-        </div>
-
-        <div class="nav-item">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Quy trình sản xuất</span>
-          </a>
-        </div>
-
-        <div class="nav-item">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-              </svg>
-            </span>
-            <span class="nav-text">Năng lực sản xuất</span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
           </a>
         </div>
 
@@ -250,9 +214,35 @@
     <main class="app-main">
       <div class="main-container page-fade-in">
 
-        <div class="order-header-card">
-          <h1 class="order-header-title">Thêm Lệnh sản xuất</h1>
+        <!-- HEADER TRANG & CHUYỂN CHẾ ĐỘ XEM -->
+        <div class="order-header-card" style="margin-bottom: 16px; border-radius: 8px; border-bottom: 1px solid var(--card-border);">
+          <div>
+            <h1 class="order-header-title">Quản lý Lệnh sản xuất thuốc (GMP)</h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Dữ liệu đồng bộ trực tiếp từ bảng <code>productionrequest</code> hệ thống ERP Dược</p>
+          </div>
+
           <div class="order-header-actions">
+            <div class="order-view-toggle">
+              <button type="button" class="btn-view-tab active" id="tabOrderList">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                Danh sách Lệnh (@totalOrders)
+              </button>
+              <button type="button" class="btn-view-tab" id="tabOrderCreate">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                + Lập Lệnh mới
+              </button>
+            </div>
+
             <button type="button" class="btn-header-tool" title="Trợ giúp">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -260,14 +250,197 @@
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
             </button>
-            <button type="button" class="btn-header-tool" id="btnCloseOrder" title="Đóng và quay lại">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
           </div>
         </div>
+
+        <!-- ==================== VIEW 1: DANH SÁCH LỆNH SẢN XUẤT ==================== -->
+        <div id="orderListView">
+
+          <!-- KPI Summary Cards -->
+          <div class="order-kpi-grid">
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@totalOrders</div>
+                <div class="order-kpi-label">Tổng số Lệnh sản xuất</div>
+              </div>
+            </div>
+
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon amber">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@pendingOrders</div>
+                <div class="order-kpi-label">Lệnh chờ duyệt (Pending)</div>
+              </div>
+            </div>
+
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@inProgOrders</div>
+                <div class="order-kpi-label">Đang sản xuất / Đã duyệt</div>
+              </div>
+            </div>
+
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@completedOrders</div>
+                <div class="order-kpi-label">Lô đã hoàn thành</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="order-list-card">
+            <div class="order-filter-toolbar">
+              <div class="order-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="orderSearchInput" placeholder="Tìm theo mã LSX, tên thuốc, dược sĩ...">
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <select id="statusFilterSelect" class="form-select" style="width: 170px; height: 34px; font-size: 13px;">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="Pending">Chờ duyệt (Pending)</option>
+                  <option value="Approved">Đã duyệt (Approved)</option>
+                  <option value="In Production">Đang sản xuất</option>
+                  <option value="Completed">Đã hoàn thành</option>
+                </select>
+
+                <button type="button" class="btn-save-submit" id="btnOpenCreateFromList" style="padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  + Lập Lệnh sản xuất
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="bom-table">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 50px;">STT</th>
+                    <th>Số Lệnh sản xuất</th>
+                    <th>Ngày lập</th>
+                    <th>Sản phẩm thuốc</th>
+                    <th class="text-right">Số lượng yêu cầu</th>
+                    <th class="text-right">Đơn giá định mức</th>
+                    <th>Dược sĩ phụ trách</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center" style="width: 150px;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="orderListTableBody">
+                  @if (Model != null && Model.Any())
+                  {
+                      int stt = 1;
+                      foreach (var order in Model)
+                      {
+                          var prodName = order.Product?.ProductName ?? "Sản phẩm thuốc dược dụng";
+                          var unit = order.Product?.Unit ?? "Hộp";
+                          var managerName = order.Manager?.FullName ?? "DS. Nguyễn Minh Tài";
+                          var dateStr = order.CreatedDate?.ToString("dd/MM/yyyy") ?? "22/01/2026";
+                          var costStr = order.Product?.Cost.HasValue == true ? order.Product.Cost.Value.ToString("N0") + " đ" : "—";
+                          var statusClass = order.Status switch {
+                              "Pending" => "badge-status-pending",
+                              "Approved" => "badge-status-approved",
+                              "In Production" => "badge-status-inprog",
+                              "Completed" => "badge-status-completed",
+                              _ => "badge-status-pending"
+                          };
+                          var statusText = order.Status switch {
+                              "Pending" => "Chờ duyệt",
+                              "Approved" => "Đã duyệt",
+                              "In Production" => "Đang sản xuất",
+                              "Completed" => "Hoàn thành",
+                              _ => order.Status
+                          };
+
+                          <tr data-status="@order.Status" data-name="@prodName.ToLower()" data-code="lsx-gmp-0@(order.RequestId)">
+                            <td class="text-center">@stt</td>
+                            <td><strong style="color: var(--color-primary);">LSX-GMP-0@(order.RequestId)</strong></td>
+                            <td>@dateStr</td>
+                            <td>
+                              <strong>@prodName</strong>
+                              <div style="font-size: 11.5px; color: #64748b;">Mã SP: SP@(order.ProductId?.ToString("D4") ?? "0000")</div>
+                            </td>
+                            <td class="text-right"><strong>@order.QuantityRequired.ToString("N0")</strong> @unit</td>
+                            <td class="text-right" style="color: #64748b;">@costStr</td>
+                            <td>@managerName</td>
+                            <td class="text-center">
+                              <span class="badge-status @statusClass">@statusText</span>
+                            </td>
+                            <td class="text-center">
+                              <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <a href="/Productions/Home/MaterialRequirement?requestId=@order.RequestId" class="row-action-link primary" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:2px 8px; border-radius:4px; font-weight:600;" title="Tính nhu cầu NVL theo BOM">
+                                  Tính NVL
+                                </a>
+                                <a href="/Productions/Home/MaterialRequisitionCreate" class="row-action-link primary" title="Xuất kho nguyên liệu cho lệnh này">
+                                  Xuất NVL
+                                </a>
+                                <a href="/Productions/Home/ProductionStatisticsList" class="row-action-link blue" title="Thống kê sản xuất">
+                                  Thống kê
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                          stt++;
+                      }
+                  }
+                  else
+                  {
+                      <tr>
+                        <td colspan="9" class="text-center" style="padding: 30px; color: #64748b;">
+                          Chưa có lệnh sản xuất nào trong cơ sở dữ liệu. Nhấn <strong>+ Lập Lệnh sản xuất</strong> để tạo mới.
+                        </td>
+                      </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer-bar">
+              <div class="table-footer-left">
+                <span>Tổng số: <strong>@totalOrders</strong> lệnh sản xuất</span>
+              </div>
+              <div class="table-footer-right">
+                <span>Số dòng/trang</span>
+                <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                  <option selected>20</option>
+                  <option>50</option>
+                </select>
+                <span>1 - @totalOrders</span>
+                <button type="button" class="pagination-btn" title="Trang trước">&lt;</button>
+                <button type="button" class="pagination-btn" title="Trang sau">&gt;</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==================== VIEW 2: FORM LẬP LỆNH SẢN XUẤT MỚI ==================== -->
+        <div id="orderFormView" style="display: none;">
+
+          <div class="order-header-card">
+            <div>
+              <h2 class="order-header-title">Lập Lệnh sản xuất thuốc mới</h2>
+              <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Khai báo kế hoạch sản xuất theo tiêu chuẩn thực hành sản xuất thuốc tốt (GMP-WHO)</p>
+            </div>
+            <div class="order-header-actions">
+              <button type="button" class="btn-cancel" id="btnBackToList" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                Quay lại danh sách
+              </button>
+            </div>
+          </div>
 
         <div class="order-form-body">
           
@@ -301,11 +474,24 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">Sản phẩm <span class="required-mark">*</span></label>
+                  <label class="form-label">Sản phẩm thuốc <span class="required-mark">*</span></label>
                   <div class="form-control-wrap">
                     <select class="form-select">
-                      <option selected>SIRO - Siro ho, bổ phế</option>
-                      <option>VIEN - Viên ngậm thảo dược</option>
+                      @if (ViewBag.Products != null && ((IEnumerable<httt.Models.Product>)ViewBag.Products).Any())
+                      {
+                          foreach (var prod in (IEnumerable<httt.Models.Product>)ViewBag.Products)
+                          {
+                              <option value="@prod.ProductId">@prod.ProductName (@prod.Unit)</option>
+                          }
+                      }
+                      else
+                      {
+                          <option selected>Ginkgo Biloba 120mg Trunature (Hộp 6 vỉ x 10 viên)</option>
+                          <option>Glucosamine HCL 1500mg (Chai 180 viên nén)</option>
+                          <option>Milk Thistle Extract 1000mg (Hộp 60 viên)</option>
+                          <option>Viên nén Paracetamol 500mg (Hộp 10 vỉ x 10 viên)</option>
+                          <option>Amoxicillin Trihydrate 500mg (Hộp 10 vỉ x 10 viên)</option>
+                      }
                     </select>
                   </div>
                 </div>
@@ -313,30 +499,14 @@
                 <div class="form-group">
                   <label class="form-label">Số lượng sản xuất <span class="required-mark">*</span></label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input text-right" value="2.000,000 ml">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">
-                    Số lô 
-                    <span class="info-tooltip-icon" title="Hệ thống có thể tự sinh số lô">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                      </svg>
-                    </span>
-                  </label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input" placeholder="Nhập số lô hoặc hệ thống tự sinh">
+                    <input type="text" class="form-input text-right" value="500 Hộp">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">Hạn sử dụng</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input has-calendar" placeholder="DD/MM/YYYY">
+                    <input type="text" class="form-input has-calendar" value="28/10/2028">
                     <span class="calendar-icon-btn">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -349,43 +519,37 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">BOM</label>
+                  <label class="form-label">BOM công thức</label>
                   <div class="form-control-wrap">
                     <select class="form-select">
-                      <option selected>BOM_SIRO - Định mức nguyên vật liệu sản xuất Siro ho, bổ ...</option>
+                      @if (ViewBag.Boms != null && ((IEnumerable<httt.Models.Bom>)ViewBag.Boms).Any())
+                      {
+                          foreach (var bom in (IEnumerable<httt.Models.Bom>)ViewBag.Boms)
+                          {
+                              <option value="@bom.BomId">@bom.BomName - Định mức @(bom.Product?.ProductName ?? "Thành phẩm thuốc")</option>
+                          }
+                      }
+                      else
+                      {
+                          <option selected>BOM-GINKGO120-API - Định mức chiết xuất Ginkgo Biloba</option>
+                          <option>BOM-GLUCO1500-API - Định mức Glucosamine HCL</option>
+                      }
                     </select>
                   </div>
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">Quy trình sản xuất</label>
+                  <label class="form-label">Dược sĩ phụ trách</label>
                   <div class="form-control-wrap">
-                    <select class="form-select">
-                      <option selected>QTSX_SIROHO - Quy trình sản xuất siro ho, bổ phế</option>
-                    </select>
+                    <input type="text" class="form-input" value="DS. Nguyễn Minh Tài">
                   </div>
                 </div>
-
-                <div class="form-group">
-                  <label class="form-label">Người phụ trách</label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input" value="Trần Thị Chung Phương">
-                  </div>
-                </div>
+                
 
                 <div class="form-group full-width">
                   <label class="form-label">Diễn giải</label>
                   <div class="form-control-wrap">
-                    <textarea class="form-textarea" placeholder="Nhập diễn giải cho lệnh sản xuất..."></textarea>
-                  </div>
-                </div>
-
-                <div class="form-group full-width">
-                  <label class="form-label">Đơn vị sản xuất <span class="required-mark">*</span></label>
-                  <div class="form-control-wrap">
-                    <select class="form-select">
-                      <option selected>CÔNG TY TNHH FAVITA VIỆT NAM</option>
-                    </select>
+                    <textarea class="form-textarea" placeholder="Nhập diễn giải cho lệnh sản xuất...">Lô sản xuất viên nang cứng Ginkgo Biloba 120mg theo tiêu chuẩn GMP-WHO đợt 1 năm 2026.</textarea>
                   </div>
                 </div>
 
@@ -399,7 +563,7 @@
                 <div class="status-meta-row">
                   <div class="status-meta-item">
                     <label class="status-meta-label">Số lệnh sản xuất <span class="required-mark">*</span></label>
-                    <input type="text" class="form-input" value="LSX0096">
+                    <input type="text" class="form-input" value="LSX-GMP-0001">
                   </div>
 
                   <div class="status-meta-item">
@@ -430,20 +594,8 @@
                   </div>
 
                   <div class="status-meta-item">
-                    <span class="status-meta-label">Trạng thái xếp lịch</span>
-                    <span class="status-pill-gray">Chưa xếp lịch</span>
-                  </div>
-                </div>
-
-                <div class="status-meta-row">
-                  <div class="status-meta-item">
                     <span class="status-meta-label">Trạng thái sản xuất</span>
                     <span class="status-pill-gray">Chưa sản xuất</span>
-                  </div>
-
-                  <div class="status-meta-item">
-                    <span class="status-meta-label">Gửi sang kế toán</span>
-                    <span class="status-pill-gray">Chưa gửi</span>
                   </div>
                 </div>
 
@@ -542,9 +694,6 @@
           <div class="tabs-section-card">
             <div class="order-tabs-bar">
               <span class="order-tab-link active">Chi tiết nguyên vật liệu</span>
-              <span class="order-tab-link">Công đoạn sản xuất</span>
-              <span class="order-tab-link">Phụ phẩm</span>
-              <span class="order-tab-link">Tệp đính kèm (0)</span>
             </div>
 
             <div class="tab-toolbar">
@@ -573,9 +722,6 @@
                     <th class="text-center" style="width: 45px;">STT</th>
                     <th>Mã nguyên vật liệu</th>
                     <th>Tên nguyên vật liệu</th>
-                    <th>Tính chất</th>
-                    <th class="text-center" style="width: 130px;">Tự động lập lệnh SX</th>
-                    <th>Tên công đoạn</th>
                     <th>ĐVT</th>
                     <th class="text-center">Là NVL chính ⓘ</th>
                     <th class="text-right">Định mức theo BOM ⓘ</th>
@@ -586,15 +732,12 @@
                 <tbody id="bomTableBody">
                   <tr>
                     <td class="text-center col-stt">1</td>
-                    <td><strong>NUOCCAT</strong></td>
-                    <td>Nước cất</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
-                    <td>ml</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td class="text-right">650,0000</td>
-                    <td class="text-right"><strong>1.300,000</strong></td>
+                    <td><strong>GINKGO_API</strong></td>
+                    <td>Cao khô lá Bạch Quả (Ginkgo Biloba Extract)</td>
+                    <td>kg</td>
+                    <td class="text-center"><input type="checkbox" checked></td>
+                    <td class="text-right">0,1200</td>
+                    <td class="text-right"><strong>60,000</strong></td>
                     <td class="text-center">
                       <div class="row-actions-cell">
                         <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
@@ -609,15 +752,12 @@
 
                   <tr>
                     <td class="text-center col-stt">2</td>
-                    <td><strong>GLUCO</strong></td>
-                    <td>Đường trắng/glucose</td>
-                    <td>Nguyên vật liệu</td>
+                    <td><strong>LACTOSE_TD</strong></td>
+                    <td>Tá dược độn Lactose Monohydrate dược dụng</td>
+                    <td>kg</td>
                     <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
-                    <td>g</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td class="text-right">500,0000</td>
-                    <td class="text-right"><strong>1.000,000</strong></td>
+                    <td class="text-right">0,0800</td>
+                    <td class="text-right"><strong>40,000</strong></td>
                     <td class="text-center">
                       <div class="row-actions-cell">
                         <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
@@ -634,9 +774,6 @@
                     <td class="text-center col-stt">3</td>
                     <td><strong>GLY</strong></td>
                     <td>Glycerin/sorbitol</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
                     <td>ml</td>
                     <td class="text-center"><input type="checkbox"></td>
                     <td class="text-right">45,0000</td>
@@ -657,9 +794,6 @@
                     <td class="text-center col-stt">4</td>
                     <td><strong>AXIT</strong></td>
                     <td>Acid citric</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
                     <td>g</td>
                     <td class="text-center"><input type="checkbox"></td>
                     <td class="text-right">3,0000</td>
@@ -711,21 +845,17 @@
               </div>
             </div>
 
-            <div class="sample-data-stamp">
-              <div class="stamp-inner">
-                DỮ LIỆU MẪU
-              </div>
-            </div>
-
           </div>
 
         </div>
 
         <div class="order-bottom-actions">
-          <button type="button" class="btn-cancel" id="btnCancelOrder">Hủy</button>
+          <button type="button" class="btn-cancel" id="btnCancelOrder">Quay lại danh sách</button>
           <button type="button" class="btn-save-draft">Lưu nháp</button>
           <button type="button" class="btn-save-submit" id="btnSubmitOrder">Lưu Lệnh sản xuất</button>
         </div>
+
+        </div> <!-- End orderFormView -->
 
       </div>
     </main>

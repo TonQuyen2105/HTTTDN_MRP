@@ -24,7 +24,7 @@
           </svg>
         </button>
 
-        <div class="app-brand">
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
           <div class="app-brand-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M2 20h20"></path>
@@ -32,7 +32,7 @@
             </svg>
           </div>
           <span class="app-brand-name">Sản xuất</span>
-        </div>
+        </a>
       </div>
 
       <div class="header-right">
@@ -69,7 +69,7 @@
           </button>
         </div>
 
-        <a href="UserProfile.html" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
           <div class="user-avatar">NV</div>
           <span class="user-name">Nguyễn Văn Dev</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -84,7 +84,7 @@
       <div class="sidebar-nav-container">
         
         <div class="nav-item">
-          <a href="Index.html" class="nav-link">
+          <a href="/Productions/Home/Index" class="nav-link">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -125,7 +125,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Tính nhu cầu vật tư</a>
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
             <a href="#" class="sub-link">Lập kế hoạch SX</a>
           </div>
         </div>
@@ -144,12 +144,12 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="ProductionOrder.html" class="sub-link">Lệnh sản xuất</a>
+            <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất</a>
             <a href="#" class="sub-link">Lịch sản xuất</a>
-            <a href="MaterialRequisitionList.html" class="sub-link">Yêu cầu xuất vật tư</a>
-            <a href="ProductionStatisticsList.html" class="sub-link">Thống kê sản xuất</a>
-            <a href="FinishedGoodsReceiptList.html" class="sub-link">Nhập thành phẩm</a>
-            <a href="HandoverList.html" class="sub-link">Bàn giao thành phẩm</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link">Yêu cầu xuất vật tư</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link">Nhập thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link">Bàn giao thành phẩm</a>
             <a href="#" class="sub-link">Tình hình giao hàng</a>
           </div>
         </div>
@@ -201,7 +201,7 @@
 
         <!-- MỤC ĐỊNH MỨC NVL (BOM) - ACTIVE MÀU XANH LÁ -->
         <div class="nav-item">
-          <a href="BomList.html" class="nav-link active">
+          <a href="/Productions/Home/BomList" class="nav-link active">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -257,7 +257,7 @@
         <div class="bom-list-header">
           <h1 class="bom-page-title">Định mức nguyên vật liệu (BOM)</h1>
           <div class="bom-header-right">
-            <a href="BomCreate.html" class="btn-add-bom">
+            <a href="/Productions/Home/BomCreate" class="btn-add-bom">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -317,7 +317,7 @@
                   <td>15/01/2026</td>
                   <td class="text-center"><span class="badge-status-active">Đang sử dụng</span></td>
                   <td class="text-center">
-                    <a href="BomEdit.html" class="btn-edit-action" title="Sửa định mức BOM">
+                    <a href="/Productions/Home/BomEdit" class="btn-edit-action" title="Sửa định mức BOM">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -344,7 +344,7 @@
                   <td>01/01/2026</td>
                   <td class="text-center"><span class="badge-status-inactive">Ngừng sử dụng</span></td>
                   <td class="text-center">
-                    <a href="BomEdit.html" class="btn-edit-action" title="Sửa định mức BOM">
+                    <a href="/Productions/Home/BomEdit" class="btn-edit-action" title="Sửa định mức BOM">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>

@@ -1,0 +1,612 @@
+@model httt.Models.UserAccount?
+@{
+    Layout = null;
+    var fullName = Model?.FullName ?? "DS. Nguyễn Minh Tài";
+    var username = Model?.Username ?? "minhtai";
+    var role = Model?.Role ?? "Admin";
+    var phone = Model?.Phone ?? "0988 776 543";
+    var status = Model?.Status ?? "Active";
+    var userId = Model?.UserID != null ? $"NV00{Model.UserID}" : "NV0018";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Thông tin cá nhân</title>
+  
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/productions/user-profile.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        
+        <!-- Profile header link -->
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          <div class="user-avatar">MT</div>
+          <span class="user-name">DS. Nguyễn Minh Tài</span>
+        </a>
+      </div>
+    </header>
+
+            <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+
+        <div class="nav-item has-sub">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Báo cáo</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
+            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
+          </div>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (TRANG THÔNG TIN CÁ NHÂN) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in" style="padding-bottom: 30px;">
+
+        <!-- GRID 2 CỘT -->
+        <div class="profile-grid">
+          
+          <!-- CỘT TRÁI: USER IDENTITY CARD (CỐ ĐỊNH HOÀN TOÀN KHI CUỘN) -->
+          <div class="profile-identity-card">
+            <div class="profile-cover"></div>
+            
+            <div class="profile-avatar-wrapper">
+              <div class="profile-avatar-large" id="userAvatarLarge">MT</div>
+              <button type="button" class="btn-change-avatar" id="btnChangeAvatar" title="Đổi ảnh đại diện">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </button>
+              <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+            </div>
+
+            <div class="profile-user-summary">
+              <div class="profile-user-name">@fullName</div>
+              <div class="profile-user-role">Dược sĩ (@role)</div>
+              <span class="profile-status-badge">Đang hoạt động (@status)</span>
+            </div>
+
+            <div class="profile-meta-list">
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  Tài khoản:
+                </span>
+                <span class="profile-meta-val">@username</span>
+              </div>
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                  Đơn vị:
+                </span>
+                <span class="profile-meta-val">Nhà máy Dược GMP Nam Hà</span>
+              </div>
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  Điện thoại:
+                </span>
+                <span class="profile-meta-val">@phone</span>
+              </div>
+            </div>
+
+            <!-- Menu Tabs điều hướng -->
+            <div class="profile-nav-tabs">
+              <button type="button" class="profile-tab-btn active" data-tab="tab-personal">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Thông tin cá nhân
+              </button>
+              <button type="button" class="profile-tab-btn" data-tab="tab-security">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Đổi mật khẩu & Bảo mật
+              </button>
+              <button type="button" class="profile-tab-btn" data-tab="tab-permissions">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Vai trò & Phân quyền
+              </button>
+            </div>
+
+          </div>
+
+          <!-- CỘT PHẢI: NỘI DUNG TABS -->
+          <div class="profile-main-content">
+            
+            <!-- Breadcrumb & Header nằm trên cột phải -->
+            <div class="profile-page-header">
+              <div class="profile-breadcrumb">
+                <a href="/Productions/Home/Index">Trang chủ</a>
+                <span class="separator">/</span>
+                <a href="#">Tài khoản & Thiết lập</a>
+                <span class="separator">/</span>
+                <span class="current">Thông tin cá nhân</span>
+              </div>
+              <h1 class="profile-page-title">Hồ sơ thông tin người dùng</h1>
+            </div>
+
+            <!-- TAB 1: THÔNG TIN CÁ NHÂN -->
+            <div class="profile-tab-content active" id="tab-personal">
+              
+              <!-- Thẻ 1: Thông tin lý lịch cơ bản -->
+              <div class="profile-section-card">
+                <div class="profile-card-header">
+                  <div>
+                    <div class="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                      Thông tin cơ bản
+                    </div>
+                    <div class="profile-card-subtitle">Hồ sơ định danh và thông tin nhân sự trên hệ thống</div>
+                  </div>
+                </div>
+
+                <div class="profile-form-grid">
+                  <div class="profile-form-group">
+                    <label>Họ và tên <span class="required-star">*</span></label>
+                    <input type="text" class="form-input" value="@fullName" placeholder="Nhập họ và tên...">
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Mã nhân viên</label>
+                    <input type="text" class="form-input" value="@userId" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Ngày sinh</label>
+                    <div class="date-input-wrap">
+                      <input type="text" class="form-input" value="12/08/1992">
+                      <span class="date-picker-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Giới tính</label>
+                    <select class="form-select">
+                      <option selected>Nam</option>
+                      <option>Nữ</option>
+                      <option>Khác</option>
+                    </select>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Số CCCD / Hộ chiếu</label>
+                    <input type="text" class="form-input" value="079092008899">
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Ngày cấp & Nơi cấp</label>
+                    <input type="text" class="form-input" value="15/06/2021 - Cục CSQLHC về TTXH">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thẻ 2: Thông tin liên hệ -->
+              <div class="profile-section-card">
+                <div class="profile-card-header">
+                  <div>
+                    <div class="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      Thông tin liên hệ
+                    </div>
+                    <div class="profile-card-subtitle">Địa chỉ email, số điện thoại và nơi cư trú</div>
+                  </div>
+                </div>
+
+                <div class="profile-form-grid">
+                  <div class="profile-form-group">
+                    <label>Email công vụ (AMIS) <span class="required-star">*</span></label>
+                    <input type="email" class="form-input" value="@(username)@@namhapharma.com" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Số điện thoại di động <span class="required-star">*</span></label>
+                    <input type="tel" class="form-input" value="@phone">
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Email cá nhân</label>
+                    <input type="email" class="form-input" value="vandev.pro@gmail.com">
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Máy lẻ nội bộ</label>
+                    <input type="text" class="form-input" value="Ext: 108 (Xưởng SX)">
+                  </div>
+
+                  <div class="profile-form-group full-width">
+                    <label>Địa chỉ thường trú</label>
+                    <input type="text" class="form-input" value="123 Nguyễn Văn Linh, Phường Tân Phong, Quận 7, TP. Hồ Chí Minh">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thẻ 3: Thông tin công việc & Vị trí -->
+              <div class="profile-section-card">
+                <div class="profile-card-header">
+                  <div>
+                    <div class="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                      Thông tin công việc & Vị trí
+                    </div>
+                    <div class="profile-card-subtitle">Chi tiết bộ phận, chức danh và người quản lý</div>
+                  </div>
+                </div>
+
+                <div class="profile-form-grid">
+                  <div class="profile-form-group">
+                    <label>Phòng ban / Phân xưởng</label>
+                    <input type="text" class="form-input" value="Phòng Kế hoạch & Điều phối Sản xuất" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Vị trí chức danh</label>
+                    <input type="text" class="form-input" value="Trưởng ca điều phối sản xuất" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Người quản lý trực tiếp</label>
+                    <input type="text" class="form-input" value="Trần Quốc Toản (Giám đốc Nhà máy)" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Loại hợp đồng lao động</label>
+                    <input type="text" class="form-input" value="Hợp đồng lao động không xác định thời hạn" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Ca làm việc mặc định</label>
+                    <input type="text" class="form-input" value="Ca 1 (Hành chính: 07:30 - 16:30)" readonly>
+                  </div>
+
+                  <div class="profile-form-group">
+                    <label>Trạng thái tài khoản</label>
+                    <div><span class="profile-status-badge">Đang hoạt động bình thường</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thanh nút hành động -->
+              <div class="profile-action-footer">
+                <button type="button" class="btn-profile-cancel" id="btnCancelProfile">Hủy thay đổi</button>
+                <button type="button" class="btn-profile-save" id="btnSaveProfile">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  Lưu thay đổi hồ sơ
+                </button>
+              </div>
+
+            </div>
+
+            <!-- TAB 2: ĐỔI MẬT KHẨU & BẢO MẬT -->
+            <div class="profile-tab-content" id="tab-security">
+              
+              <!-- Đổi mật khẩu -->
+              <div class="profile-section-card">
+                <div class="profile-card-header">
+                  <div>
+                    <div class="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      Đổi mật khẩu tài khoản
+                    </div>
+                    <div class="profile-card-subtitle">Nên thay đổi mật khẩu định kỳ 90 ngày để đảm bảo an toàn thông tin</div>
+                  </div>
+                </div>
+
+                <div class="password-rule-box">
+                  <strong>Quy chuẩn mật khẩu hợp lệ:</strong>
+                  <ul>
+                    <li>Tối thiểu từ 8 ký tự trở lên.</li>
+                    <li>Bao gồm chữ hoa, chữ thường và ít nhất một chữ số (0-9).</li>
+                    <li>Không trùng lặp với 3 mật khẩu đã sử dụng gần nhất.</li>
+                  </ul>
+                </div>
+
+                <div class="profile-form-grid" style="max-width: 600px;">
+                  <div class="profile-form-group full-width">
+                    <label>Mật khẩu hiện tại <span class="required-star">*</span></label>
+                    <input type="password" id="currentPassword" class="form-input" placeholder="Nhập mật khẩu bạn đang dùng...">
+                  </div>
+
+                  <div class="profile-form-group full-width">
+                    <label>Mật khẩu mới <span class="required-star">*</span></label>
+                    <input type="password" id="newPassword" class="form-input" placeholder="Nhập mật khẩu mới...">
+                  </div>
+
+                  <div class="profile-form-group full-width">
+                    <label>Xác nhận mật khẩu mới <span class="required-star">*</span></label>
+                    <input type="password" id="confirmPassword" class="form-input" placeholder="Nhập lại mật khẩu mới...">
+                  </div>
+
+                  <div class="profile-form-group full-width" style="margin-top: 6px;">
+                    <button type="button" class="btn-profile-save" id="btnChangePassword" style="width: fit-content;">
+                      Cập nhật mật khẩu mới
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Phiên đăng nhập & Thiết bị -->
+              <div class="profile-section-card">
+                <div class="profile-card-header">
+                  <div>
+                    <div class="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                      Thiết bị & Phiên làm việc
+                    </div>
+                    <div class="profile-card-subtitle">Các thiết bị đang đăng nhập tài khoản của bạn</div>
+                  </div>
+                </div>
+
+                <div class="session-item">
+                  <div class="session-info">
+                    <div class="session-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    </div>
+                    <div>
+                      <div class="session-title">Apple MacBook Pro (macOS Sonoma) - Chrome 124.0</div>
+                      <div class="session-meta">TP. Hồ Chí Minh, Việt Nam • IP: 14.161.42.18 • <strong>Phiên hiện tại</strong></div>
+                    </div>
+                  </div>
+                  <span class="profile-status-badge">Đang hoạt động</span>
+                </div>
+
+                <div class="session-item">
+                  <div class="session-info">
+                    <div class="session-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                    </div>
+                    <div>
+                      <div class="session-title">iPhone 14 Pro - Safari Mobile</div>
+                      <div class="session-meta">TP. Hồ Chí Minh, Việt Nam • Hoạt động 2 giờ trước</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-profile-cancel" style="padding: 4px 12px; font-size: 12px; color:#ef4444; border-color:#fca5a5;">Đăng xuất</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- TAB 3: VAI TRÒ & PHÂN QUYỀN -->
+            <div class="profile-tab-content" id="tab-permissions">
+              <div class="profile-section-card">
+                <div class="profile-card-header">
+                  <div>
+                    <div class="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                      Nhóm quyền hạn trên hệ thống
+                    </div>
+                    <div class="profile-card-subtitle">Quyền thực hiện các nghiệp vụ trong phân hệ AMIS Sản xuất</div>
+                  </div>
+                  <span class="profile-status-badge">Quản đốc phân xưởng</span>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="perm-table">
+                    <thead>
+                      <tr>
+                        <th>Nghiệp vụ chức năng</th>
+                        <th>Phân hệ</th>
+                        <th>Quyền hạn được cấp</th>
+                        <th>Phạm vi dữ liệu</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Lập & Điều hành Lệnh sản xuất</strong></td>
+                        <td>Điều phối & thực thi</td>
+                        <td><span class="perm-badge">Toàn quyền (Xem, Thêm, Sửa, Duyệt)</span></td>
+                        <td>Nhà máy Dược phẩm GMP Nam Hà</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Định mức nguyên vật liệu (BOM)</strong></td>
+                        <td>Quản trị định mức</td>
+                        <td><span class="perm-badge">Toàn quyền (Xem, Thêm, Sửa)</span></td>
+                        <td>Toàn công ty</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Yêu cầu xuất vật tư sản xuất</strong></td>
+                        <td>Kho & Điều phối</td>
+                        <td><span class="perm-badge">Lập & Duyệt yêu cầu</span></td>
+                        <td>Kho NVL Chính, Kho Phụ liệu</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Thống kê sản xuất & Báo cáo tiến độ</strong></td>
+                        <td>Thực thi phân xưởng</td>
+                        <td><span class="perm-badge">Ghi nhận sản lượng & Duyệt</span></td>
+                        <td>Các xưởng gia công, lắp ráp</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Nhập kho thành phẩm</strong></td>
+                        <td>Thành phẩm & KCS</td>
+                        <td><span class="perm-badge">Lập phiếu & Xác nhận nhập kho</span></td>
+                        <td>Kho Thành phẩm chính</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Bàn giao bán thành phẩm</strong></td>
+                        <td>Điều phối xưởng</td>
+                        <td><span class="perm-badge">Lập & Xác nhận bàn giao</span></td>
+                        <td>Các công đoạn sản xuất nội bộ</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Báo cáo chi phí giá thành sản xuất</strong></td>
+                        <td>Quản trị & Báo cáo</td>
+                        <td><span class="perm-badge view-only">Chỉ xem báo cáo</span></td>
+                        <td>Phòng Kế hoạch & Ban Giám đốc</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/productions/user-profile.js"></script>
+</body>
+</html>

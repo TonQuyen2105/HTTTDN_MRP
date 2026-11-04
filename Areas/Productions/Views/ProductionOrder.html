@@ -26,7 +26,7 @@
           </svg>
         </button>
 
-        <div class="app-brand">
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
           <div class="app-brand-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M2 20h20"></path>
@@ -34,7 +34,7 @@
             </svg>
           </div>
           <span class="app-brand-name">Sản xuất</span>
-        </div>
+        </a>
       </div>
 
       <div class="header-right">
@@ -71,7 +71,7 @@
           </button>
         </div>
 
-        <a href="UserProfile.html" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
           <div class="user-avatar">NV</div>
           <span class="user-name">Nguyễn Văn Dev</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -86,7 +86,7 @@
       <div class="sidebar-nav-container">
         
         <div class="nav-item">
-          <a href="Index.html" class="nav-link" title="Chuyển về trang Tổng quan">
+          <a href="/Productions/Home/Index" class="nav-link" title="Chuyển về trang Tổng quan">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -127,7 +127,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Tính nhu cầu vật tư</a>
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
             <a href="#" class="sub-link">Lập kế hoạch SX</a>
           </div>
         </div>
@@ -148,12 +148,12 @@
           </a>
           <div class="sub-menu">
             <!-- Nút Lệnh sản xuất ACTIVE màu xanh nổi bật -->
-            <a href="ProductionOrder.html" class="sub-link active">Lệnh sản xuất</a>
+            <a href="/Productions/Home/ProductionOrder" class="sub-link active">Lệnh sản xuất</a>
             <a href="#" class="sub-link">Lịch sản xuất</a>
-            <a href="MaterialRequisitionList.html" class="sub-link">Yêu cầu xuất vật tư</a>
-            <a href="ProductionStatisticsList.html" class="sub-link">Thống kê sản xuất</a>
-            <a href="FinishedGoodsReceiptList.html" class="sub-link">Nhập thành phẩm</a>
-            <a href="HandoverList.html" class="sub-link">Bàn giao thành phẩm</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link">Yêu cầu xuất vật tư</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link">Nhập thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link">Bàn giao thành phẩm</a>
             <a href="#" class="sub-link">Tình hình giao hàng</a>
           </div>
         </div>
@@ -205,7 +205,7 @@
 
         <!-- Định mức NVL (BOM) -->
         <div class="nav-item">
-          <a href="BomList.html" class="nav-link">
+          <a href="/Productions/Home/BomList" class="nav-link">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -330,22 +330,6 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">
-                    Số lô 
-                    <span class="info-tooltip-icon" title="Hệ thống có thể tự sinh số lô">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                      </svg>
-                    </span>
-                  </label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input" placeholder="Nhập số lô hoặc hệ thống tự sinh">
-                  </div>
-                </div>
-
-                <div class="form-group">
                   <label class="form-label">Hạn sử dụng</label>
                   <div class="form-control-wrap">
                     <input type="text" class="form-input has-calendar" placeholder="DD/MM/YYYY">
@@ -371,15 +355,6 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">Quy trình sản xuất</label>
-                  <div class="form-control-wrap">
-                    <select class="form-select">
-                      <option selected>QTSX_SIROHO - Quy trình sản xuất siro ho, bổ phế</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-group">
                   <label class="form-label">Người phụ trách</label>
                   <div class="form-control-wrap">
                     <input type="text" class="form-input" value="Trần Thị Chung Phương">
@@ -390,15 +365,6 @@
                   <label class="form-label">Diễn giải</label>
                   <div class="form-control-wrap">
                     <textarea class="form-textarea" placeholder="Nhập diễn giải cho lệnh sản xuất..."></textarea>
-                  </div>
-                </div>
-
-                <div class="form-group full-width">
-                  <label class="form-label">Đơn vị sản xuất <span class="required-mark">*</span></label>
-                  <div class="form-control-wrap">
-                    <select class="form-select">
-                      <option selected>CÔNG TY TNHH FAVITA VIỆT NAM</option>
-                    </select>
                   </div>
                 </div>
 
@@ -434,7 +400,7 @@
                   </div>
                 </div>
 
-                <!-- Hàng 2: Ưu tiên & Trạng thái xếp lịch -->
+                <!-- Hàng 2: Ưu tiên & Trạng thái sản xuất -->
                 <div class="status-meta-row">
                   <div class="status-meta-item">
                     <span class="status-meta-label">Ưu tiên</span>
@@ -447,21 +413,8 @@
                   </div>
 
                   <div class="status-meta-item">
-                    <span class="status-meta-label">Trạng thái xếp lịch</span>
-                    <span class="status-pill-gray">Chưa xếp lịch</span>
-                  </div>
-                </div>
-
-                <!-- Hàng 3: Trạng thái sản xuất & Gửi sang kế toán -->
-                <div class="status-meta-row">
-                  <div class="status-meta-item">
                     <span class="status-meta-label">Trạng thái sản xuất</span>
                     <span class="status-pill-gray">Chưa sản xuất</span>
-                  </div>
-
-                  <div class="status-meta-item">
-                    <span class="status-meta-label">Gửi sang kế toán</span>
-                    <span class="status-pill-gray">Chưa gửi</span>
                   </div>
                 </div>
 
@@ -566,9 +519,6 @@
             
             <div class="order-tabs-bar">
               <span class="order-tab-link active">Chi tiết nguyên vật liệu</span>
-              <span class="order-tab-link">Công đoạn sản xuất</span>
-              <span class="order-tab-link">Phụ phẩm</span>
-              <span class="order-tab-link">Tệp đính kèm (0)</span>
             </div>
 
             <div class="tab-toolbar">
@@ -597,9 +547,6 @@
                     <th class="text-center" style="width: 45px;">STT</th>
                     <th>Mã nguyên vật liệu</th>
                     <th>Tên nguyên vật liệu</th>
-                    <th>Tính chất</th>
-                    <th class="text-center" style="width: 130px;">Tự động lập lệnh SX</th>
-                    <th>Tên công đoạn</th>
                     <th>ĐVT</th>
                     <th class="text-center">Là NVL chính ⓘ</th>
                     <th class="text-right">Định mức theo BOM ⓘ</th>
@@ -612,9 +559,6 @@
                     <td class="text-center col-stt">1</td>
                     <td><strong>NUOCCAT</strong></td>
                     <td>Nước cất</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
                     <td>ml</td>
                     <td class="text-center"><input type="checkbox"></td>
                     <td class="text-right">650,0000</td>
@@ -635,9 +579,6 @@
                     <td class="text-center col-stt">2</td>
                     <td><strong>GLUCO</strong></td>
                     <td>Đường trắng/glucose</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
                     <td>g</td>
                     <td class="text-center"><input type="checkbox"></td>
                     <td class="text-right">500,0000</td>
@@ -658,9 +599,6 @@
                     <td class="text-center col-stt">3</td>
                     <td><strong>GLY</strong></td>
                     <td>Glycerin/sorbitol</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
                     <td>ml</td>
                     <td class="text-center"><input type="checkbox"></td>
                     <td class="text-right">45,0000</td>
@@ -681,9 +619,6 @@
                     <td class="text-center col-stt">4</td>
                     <td><strong>AXIT</strong></td>
                     <td>Acid citric</td>
-                    <td>Nguyên vật liệu</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td>-</td>
                     <td>g</td>
                     <td class="text-center"><input type="checkbox"></td>
                     <td class="text-right">3,0000</td>

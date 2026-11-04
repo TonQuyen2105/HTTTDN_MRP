@@ -34,21 +34,21 @@
           </svg>
         </button>
 
-        <div class="app-brand">
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
           <div class="app-brand-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M2 20h20"></path>
               <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
             </svg>
           </div>
-          <span class="app-brand-name">Sản xuất</span>
-        </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
       </div>
 
       <div class="header-right">
         <div class="branch-selector" title="Chọn chi nhánh làm việc">
           <span>Chi nhánh:</span>
-          <strong>Công ty cơ khí Kim Khí Miền Nam</strong>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -79,22 +79,22 @@
           </button>
         </div>
 
-        <div class="user-profile" title="Tài khoản cá nhân">
-          <div class="user-avatar">NV</div>
-          <span class="user-name">Nguyễn Văn Dev</span>
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;" title="Tài khoản cá nhân">
+          <div class="user-avatar">MT</div>
+          <span class="user-name">DS. Nguyễn Minh Tài</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
-        </div>
+        </a>
       </div>
     </header>
 
-    <!-- SIDEBAR -->
+            <!-- SIDEBAR -->
     <aside class="app-sidebar" id="appSidebar">
       <div class="sidebar-nav-container">
         
         <div class="nav-item">
-          <a href="#" class="nav-link active">
+          <a href="/Productions/Home/Index" class="nav-link active">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -106,7 +106,7 @@
         </div>
 
         <div class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -115,7 +115,7 @@
                 <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
             </span>
-            <span class="nav-text">Đơn đặt hàng</span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
           </a>
         </div>
 
@@ -135,11 +135,11 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Tính nhu cầu vật tư</a>
-            <a href="#" class="sub-link">Lập kế hoạch SX</a>
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
           </div>
         </div>
 
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
         <div class="nav-item has-sub open">
           <a href="#" class="nav-link">
             <span class="nav-icon">
@@ -154,26 +154,12 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Lệnh sản xuất</a>
-            <a href="#" class="sub-link">Lịch sản xuất</a>
-            <a href="#" class="sub-link">Yêu cầu xuất vật tư</a>
-            <a href="#" class="sub-link">Thống kê sản xuất</a>
-            <a href="#" class="sub-link">Nhập thành phẩm</a>
-            <a href="#" class="sub-link">Bàn giao thành phẩm</a>
-            <a href="#" class="sub-link">Tình hình giao hàng</a>
+            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
           </div>
-        </div>
-
-        <div class="nav-item">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 11l3 3L22 4"></path>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-            </span>
-            <span class="nav-text">Kiểm tra chất lượng</span>
-          </a>
         </div>
 
         <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
@@ -193,45 +179,19 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt NVL</a>
+            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
+            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
           </div>
         </div>
 
         <div class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="/Productions/Home/BomList" class="nav-link ">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
             </span>
-            <span class="nav-text">Sản phẩm, NVL</span>
-          </a>
-        </div>
-
-        <div class="nav-item">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Quy trình sản xuất</span>
-          </a>
-        </div>
-
-        <div class="nav-item">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-              </svg>
-            </span>
-            <span class="nav-text">Năng lực sản xuất</span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
           </a>
         </div>
 
@@ -285,7 +245,7 @@
             
             <div class="filter-select-box" tabindex="0">
               <span class="filter-label">Đơn vị sản xuất:</span>
-              <span class="filter-value">Công ty cơ khí, kim khí, mã...</span>
+              <span class="filter-value">Nhà máy Dược phẩm GMP Nam Hà</span>
               <span class="filter-chevron">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="7 15 12 20 17 15"></polyline>
@@ -334,12 +294,12 @@
           </button>
         </section>
 
-        <!-- 3. Hàng KPI -->
+        <!-- 3. Hàng KPI Sản xuất Dược phẩm -->
         <section class="stats-grid">
           
           <article class="stat-card">
             <div class="stat-header">
-              <span class="stat-title">ĐƠN CHƯA HOÀN THÀNH</span>
+              <span class="stat-title">LÔ SX ĐANG THỰC HIỆN</span>
               <div class="stat-icon-badge badge-orange">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -350,15 +310,15 @@
               </div>
             </div>
 
-            <div class="stat-value">24,00</div>
+            <div class="stat-value">@(ViewBag.TotalRequests ?? 5)</div>
 
             <div class="stat-subtext">
-              <span class="stat-percent-badge">96,00%</span>
-              <span>Số lượng đơn hàng: 25,00</span>
+              <span class="stat-percent-badge">100%</span>
+              <span>Tổng yêu cầu sản xuất thuốc</span>
             </div>
 
             <div class="stat-footer">
-              <span>Số liệu tính đến: <strong class="stat-time-val">14:40</strong></span>
+              <span>Số liệu tính đến: <strong class="stat-time-val">Hôm nay</strong></span>
               <button type="button" class="btn-refresh-stat" title="Làm mới dữ liệu">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -369,7 +329,7 @@
 
           <article class="stat-card">
             <div class="stat-header">
-              <span class="stat-title">LỆNH CHƯA HOÀN THÀNH</span>
+              <span class="stat-title">LỆNH CHỜ PHÊ DUYỆT / CHƯA XONG</span>
               <div class="stat-icon-badge badge-yellow">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="3"></circle>
@@ -378,15 +338,15 @@
               </div>
             </div>
 
-            <div class="stat-value">36,00</div>
+            <div class="stat-value">@(ViewBag.PendingRequests ?? 4)</div>
 
             <div class="stat-subtext">
-              <span class="stat-percent-badge">76,60%</span>
-              <span>Lệnh sản xuất: 47,00</span>
+              <span class="stat-percent-badge">80,00%</span>
+              <span>Tổng số lệnh chờ sản xuất: 5</span>
             </div>
 
             <div class="stat-footer">
-              <span>Số liệu tính đến: <strong class="stat-time-val">14:40</strong></span>
+              <span>Số liệu tính đến: <strong class="stat-time-val">Hôm nay</strong></span>
               <button type="button" class="btn-refresh-stat" title="Làm mới dữ liệu">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -397,7 +357,7 @@
 
           <article class="stat-card">
             <div class="stat-header">
-              <span class="stat-title">SẢN LƯỢNG CHƯA SX</span>
+              <span class="stat-title">SẢN LƯỢNG THUỐC CẦN SẢN XUẤT</span>
               <div class="stat-icon-badge badge-blue">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -406,15 +366,15 @@
               </div>
             </div>
 
-            <div class="stat-value">3.837,67</div>
+            <div class="stat-value">@((ViewBag.TotalQuantityRequired ?? 0).ToString("N0")) Hộp</div>
 
             <div class="stat-subtext">
-              <span class="stat-percent-badge">82,05%</span>
-              <span>Cần sản xuất: 4.626,67</span>
+              <span class="stat-percent-badge">Kho</span>
+              <span>Tồn kho hoạt chất: @(ViewBag.TotalStock ?? 890) kg (@(ViewBag.TotalIngredients ?? 8) loại)</span>
             </div>
 
             <div class="stat-footer">
-              <span>Số liệu tính đến: <strong class="stat-time-val">14:40</strong></span>
+              <span>Số liệu tính đến: <strong class="stat-time-val">Hôm nay</strong></span>
               <button type="button" class="btn-refresh-stat" title="Làm mới dữ liệu">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -493,6 +453,15 @@
   </div>
 
   <!-- Javascript -->
+  <script>
+    window.dbTopProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+      ((IEnumerable<httt.Models.Product>)(ViewBag.TopProducts ?? new List<httt.Models.Product>()))
+        .Select(p => new { name = p.ProductName, qty = p.Quantity })
+    ));
+    window.dbStatusCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+      ViewBag.StatusCounts ?? new object[0]
+    ));
+  </script>
   <script src="~/js/app.js" asp-append-version="true"></script>
   <script src="~/js/productions/overview.js" asp-append-version="true"></script>
 </body>

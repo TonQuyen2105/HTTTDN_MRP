@@ -1,0 +1,514 @@
+@model httt.Models.MaterialRequirementViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "AMIS Sản xuất Dược phẩm - Tính nhu cầu nguyên vật liệu (MRP)";
+    var checkedDateStr = Model.CheckedAt.ToString("dd/MM/yyyy HH:mm:ss");
+    var hasActiveOrder = !string.IsNullOrWhiteSpace(Model.ProductionOrderCode) && !Model.ProductionOrderCode.Contains("(Chưa");
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@ViewData["Title"]</title>
+  
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/productions/production-order.css">
+  <link rel="stylesheet" href="/css/productions/bom.css">
+  <link rel="stylesheet" href="/css/productions/material-requirement.css">
+</head>
+<body>
+  @Html.AntiForgeryToken()
+
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10H12V2z"></path></svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <!-- Kế hoạch sản xuất -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link active">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất thuốc</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+
+        <div class="nav-item has-sub">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Báo cáo</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
+            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
+          </div>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (MAIN) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in" style="padding-bottom: 40px;">
+        
+        <!-- Header trang & Thanh nút thao tác -->
+        <div class="mrp-header-card">
+          <div>
+            <div class="mrp-title">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              Tính nhu cầu nguyên vật liệu (MRP)
+            </div>
+            <div class="mrp-subtitle">
+              Tiếp nhận nhu cầu sản xuất thành phẩm, đối chiếu định mức BOM và tồn kho khả dụng để lập kế hoạch cấp phát nguyên phụ liệu
+            </div>
+          </div>
+
+          <div class="mrp-header-actions">
+            <!-- Nút Tính nhu cầu -->
+            <button type="button" class="btn-mrp btn-mrp-primary" id="btnCalculate" title="Tính lượng nguyên vật liệu cần dùng theo BOM" @(Model.HasBom ? "" : "disabled")>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              Tính nhu cầu
+            </button>
+
+            <!-- Nút Kiểm tra lại tồn kho -->
+            <button type="button" class="btn-mrp btn-mrp-secondary" id="btnRefreshStock" title="Lấy số lượng tồn kho mới nhất từ cơ sở dữ liệu và tính lại">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              Kiểm tra lại tồn kho
+            </button>
+
+            <!-- Nút Xem BOM -->
+            <button type="button" class="btn-mrp btn-mrp-secondary" id="btnViewBom" title="Xem danh sách định mức công thức BOM">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Xem BOM
+            </button>
+
+            <!-- Nút Tạo phiếu yêu cầu cấp nguyên vật liệu -->
+            <button type="button" class="btn-mrp btn-mrp-success" id="btnCreateSlip" title="Lập phiếu yêu cầu cấp nguyên vật liệu gửi kho" @(hasActiveOrder && Model.IsCalculated ? "" : "disabled")>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              Tạo phiếu yêu cầu cấp nguyên vật liệu
+            </button>
+          </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+          <div class="mrp-alert mrp-alert-danger" style="margin-bottom: 16px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <div>@Model.ErrorMessage</div>
+          </div>
+        }
+
+        <!-- KHU VỰC NHẬP LIỆU THÔNG TIN ĐẦU VÀO -->
+        <div class="mrp-section-card">
+          <div class="mrp-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Thông tin đầu vào nhu cầu sản xuất
+          </div>
+
+          <!-- Dòng 1: Yêu cầu nguồn, Lệnh sản xuất, Sản phẩm -->
+          <div class="mrp-grid-3col">
+            <div class="mrp-field">
+              <label class="mrp-label">Yêu cầu sản xuất nguồn</label>
+              <select class="form-select" id="selectProductionRequest">
+                <option value="0">-- (Không chọn - Tính thử độc lập) --</option>
+                @foreach (var r in Model.ProductionRequests)
+                {
+                    <option value="@r.RequestId" selected="@(Model.RequestId == r.RequestId ? "selected" : null)" data-product-id="@r.ProductId" data-qty="@r.QuantityRequired" data-unit="@r.Unit" data-status="@r.Status" data-order-code="@r.RelatedOrderCode">
+                      @r.RequestCode - @r.ProductName (SL: @r.QuantityRequired.ToString("N0") @r.Unit) [@r.Status]
+                    </option>
+                }
+              </select>
+            </div>
+
+            <div class="mrp-field">
+              <label class="mrp-label">Lệnh sản xuất liên quan <span class="required">*</span></label>
+              <input type="text" class="form-input" id="inputOrderCode" value="@(hasActiveOrder ? Model.ProductionOrderCode : (!string.IsNullOrWhiteSpace(Model.ProductionOrderCode) ? Model.ProductionOrderCode : "(Chưa liên kết Lệnh sản xuất)"))" readonly style="background-color: #f8fafc; font-weight: 700; color: @(hasActiveOrder ? "#1e40af" : "#d97706");">
+            </div>
+
+            <div class="mrp-field">
+              <label class="mrp-label">Sản phẩm cần sản xuất <span class="required">*</span></label>
+              <select class="form-select" id="selectProduct">
+                @foreach (var p in Model.Products)
+                {
+                    <option value="@p.ProductId" selected="@(Model.ProductId == p.ProductId ? "selected" : null)" data-unit="@p.Unit" data-has-bom="@p.HasBom.ToString().ToLower()">
+                      @p.ProductName (@p.Unit) @(!p.HasBom ? "[Chưa có BOM]" : "")
+                    </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Dòng 2: Số lượng, ĐVT, BOM, Sản lượng chuẩn BOM -->
+          <div class="mrp-grid-4col" style="margin-top: 14px;">
+            <div class="mrp-field">
+              <label class="mrp-label">Số lượng thành phẩm cần sản xuất <span class="required">*</span></label>
+              <div class="mrp-input-addon-wrap">
+                <input type="number" class="form-input text-right" id="inputTargetQuantity" value="@Model.TargetQuantity.ToString("0.####")" min="1" step="any" style="font-weight: 700;">
+                <span class="mrp-addon" id="spanProductUnit">@Model.ProductUnit</span>
+              </div>
+            </div>
+
+            <div class="mrp-field">
+              <label class="mrp-label">BOM áp dụng <span class="required">*</span></label>
+              <select class="form-select" id="selectBom" @(Model.HasBom ? "" : "disabled")>
+                @if (Model.HasBom)
+                {
+                    var matchingBoms = Model.Boms.Where(b => b.ProductId == Model.ProductId).ToList();
+                    foreach (var b in matchingBoms)
+                    {
+                        <option value="@b.BomCode" selected="@(Model.BomCode == b.BomCode ? "selected" : null)" data-output="@b.StandardOutput" data-unit="@b.Unit">
+                          @b.BomCode - @b.BomName
+                        </option>
+                    }
+                }
+                else
+                {
+                    <option value="">-- Chưa có BOM --</option>
+                }
+              </select>
+            </div>
+
+            <div class="mrp-field">
+              <label class="mrp-label">Định mức áp dụng cho</label>
+              <div class="mrp-input-addon-wrap">
+                <input type="number" class="form-input text-right" id="inputStandardOutput" value="1" min="1" step="any" readonly style="background-color: #f8fafc; font-weight: 600;">
+                <span class="mrp-addon" id="bomUnitLabel">@Model.ProductUnit</span>
+              </div>
+              <small>Định mức cho 1 đơn vị thành phẩm × số lượng cần sản xuất.</small>
+            </div>
+
+            <div class="mrp-field">
+              <label class="mrp-label">Ngày cần nguyên vật liệu <span class="required">*</span></label>
+              <input type="date" class="form-input" id="inputRequiredDate" value="@(Model.RequiredDate?.ToString("yyyy-MM-dd") ?? DateTime.Now.AddDays(1).ToString("yyyy-MM-dd"))">
+            </div>
+          </div>
+
+          <!-- Dòng 3: Ghi chú -->
+          <div class="mrp-field" style="margin-top: 14px;">
+            <label class="mrp-label">Ghi chú kế hoạch cấp phát</label>
+            <input type="text" class="form-input" id="inputNote" value="@Model.Note" placeholder="Nhập ghi chú đặc biệt cho kho hoặc phân xưởng bào chế...">
+          </div>
+
+          <!-- CẢNH BÁO: CHƯA CÓ BOM -->
+          <div id="noBomAlert" class="mrp-alert mrp-alert-danger" style="display: @(Model.HasBom ? "none" : "flex");">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <div style="flex: 1;">
+              <strong>Sản phẩm này chưa có Định mức nguyên vật liệu (BOM) nào trong hệ thống!</strong>
+              <div>Không thể thực hiện tính toán nhu cầu hoặc tạo phiếu gửi kho khi chưa khai báo công thức sản xuất. Vui lòng tạo BOM trước:</div>
+            </div>
+            <a href="/Productions/Home/BomCreate?productId=@Model.ProductId" class="btn-mrp btn-mrp-primary" style="padding: 4px 10px; font-size: 12px;">+ Tạo BOM ngay</a>
+          </div>
+
+          <!-- CẢNH BÁO: TÍNH THỬ (CHƯA LIÊN KẾT LỆNH SX) -->
+          <div id="trialAlert" class="mrp-alert mrp-alert-warning" style="display: @(hasActiveOrder ? "none" : "flex");">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <div>
+              <strong>Chế độ tính thử:</strong> Bạn đang tính toán nhu cầu thử nghiệm. Hệ thống cho phép kiểm tra định mức và đối chiếu tồn kho tự do, nhưng <strong>chỉ cho phép tạo Phiếu yêu cầu cấp vật tư chính thức</strong> khi liên kết với một Lệnh sản xuất (Production Order) đã được phê duyệt.
+            </div>
+          </div>
+
+          <!-- CẢNH BÁO: ĐÃ CÓ PHIẾU CẤP ĐANG XỬ LÝ -->
+          <div id="existingSlipAlert" class="mrp-alert mrp-alert-blue" style="display: @(Model.HasExistingSlip ? "flex" : "none");">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            <div style="flex: 1;">
+              <strong>Đã có phiếu yêu cầu cấp vật tư đang xử lý cho lệnh này:</strong> Phiếu <a id="existingSlipLink" href="/Productions/Home/MaterialRequisitionCreate?id=@Model.ExistingReceiptId" target="_blank">@Model.ExistingReceiptCode (Trạng thái: @Model.ExistingReceiptStatus)</a>. Hệ thống sẽ chặn tạo trùng ngoài ý muốn.
+            </div>
+          </div>
+
+          <!-- CẢNH BÁO: DỮ LIỆU ĐÃ SỬA CHƯA TÍNH LẠI -->
+          <div id="outdatedAlert" class="mrp-alert mrp-alert-warning" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <div>
+              <strong>Dữ liệu đầu vào đã thay đổi!</strong> Kết quả đối chiếu bên dưới không còn phản ánh đúng thông số mới. Vui lòng bấm <strong>"Tính nhu cầu"</strong> để cập nhật lại trước khi tạo phiếu.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- THẺ TÓM TẮT KPI (SUMMARY CARDS) -->
+        <div class="mrp-kpi-grid">
+          
+          <!-- Thẻ 1: Tổng số loại nguyên vật liệu -->
+          <div class="mrp-kpi-card">
+            <div class="mrp-kpi-icon blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            </div>
+            <div>
+              <div class="mrp-kpi-val" id="kpiTotalTypes">@Model.TotalMaterialTypes</div>
+              <div class="mrp-kpi-label">Tổng số loại NVL</div>
+            </div>
+          </div>
+
+          <!-- Thẻ 2: Số loại đủ -->
+          <div class="mrp-kpi-card">
+            <div class="mrp-kpi-icon green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div>
+              <div class="mrp-kpi-val" id="kpiSufficient" style="color: #059669;">@Model.SufficientCount</div>
+              <div class="mrp-kpi-label">Số loại đủ tồn kho</div>
+            </div>
+          </div>
+
+          <!-- Thẻ 3: Số loại thiếu -->
+          <div class="mrp-kpi-card">
+            <div class="mrp-kpi-icon red">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+            </div>
+            <div>
+              <div class="mrp-kpi-val" id="kpiShortage" style="color: #dc2626;">@Model.ShortageCount</div>
+              <div class="mrp-kpi-label">Số loại thiếu hụt</div>
+            </div>
+          </div>
+
+          <!-- Thẻ 4: Kết luận -->
+          <div class="mrp-kpi-card conclusion-card">
+            <div style="font-size: 12px; font-weight: 600; color: #64748b;">Kết luận kiểm tra tồn:</div>
+            <div id="kpiConclusionBadge" class="mrp-conclusion-badge @(Model.IsAllSufficient ? "sufficient" : "shortage")">
+              @if (Model.IsAllSufficient)
+              {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                @Model.Conclusion
+              }
+              else
+              {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                @Model.Conclusion
+              }
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BẢNG CHI TIẾT ĐỐI CHIẾU NGUYÊN VẬT LIỆU -->
+        <div class="mrp-section-card" id="mrpTableContainer" style="padding: 0; overflow: hidden;">
+          
+          <!-- Toolbar của bảng -->
+          <div class="mrp-table-toolbar">
+            <div class="mrp-filter-tabs">
+              <span style="font-size: 12.5px; font-weight: 600; color: #475569; margin-right: 6px;">Bộ lọc:</span>
+              <button type="button" class="mrp-filter-btn active" id="filterAll">Tất cả NVL</button>
+              <button type="button" class="mrp-filter-btn" id="filterShortageOnly">Chỉ nguyên vật liệu thiếu</button>
+            </div>
+
+            <div class="mrp-timestamp">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>Thời điểm kiểm tra tồn: <strong id="stockCheckedTimestamp">@checkedDateStr</strong></span>
+            </div>
+          </div>
+
+          <!-- Bảng dữ liệu chi tiết -->
+          <div class="table-responsive">
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 45px;">STT</th>
+                  <th>Mã nguyên vật liệu</th>
+                  <th>Tên nguyên vật liệu</th>
+                  <th>ĐVT</th>
+                  <th class="text-right">Định mức / 1 thành phẩm</th>
+                  <th class="text-right">Tổng lượng cần</th>
+                  <th class="text-right">Tồn kho thực tế (sổ sách)*</th>
+                  <th class="text-right">Lượng còn thiếu</th>
+                  <th class="text-center" style="width: 110px;">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody id="mrpTableBody">
+                @if (Model.Lines != null && Model.Lines.Any())
+                {
+                    foreach (var line in Model.Lines)
+                    {
+                        var isShortage = line.Shortage > 0;
+                        var isMismatch = line.IsUnitMismatch;
+
+                        <tr class="mrp-data-row" data-shortage="@(isShortage ? "true" : "false")">
+                          <td class="text-center">@line.Stt</td>
+                          <td><strong style="color: #1e293b;">@line.IngrCode</strong></td>
+                          <td>
+                            <strong>@line.IngrName</strong>
+                            @if (line.IsDiscrete)
+                            {
+                                <div style="font-size: 11px; color: #64748b;">(Vật tư đếm rời - đã làm tròn lên)</div>
+                            }
+                          </td>
+                          <td>@line.Unit</td>
+                          <td class="text-right" style="color: #475569;">@line.BomNorm.ToString("0.############") @line.Unit / 1 @Model.ProductUnit</td>
+                          <td class="text-right"><strong style="color: #0f172a; font-size: 13.5px;">@line.TotalRequired.ToString("N2")</strong></td>
+                          <td class="text-right" style="color: @(isShortage ? "#dc2626" : "#16a34a"); font-weight: 600;">@line.AvailableStock.ToString("N2")</td>
+                          <td class="text-right"><strong style="color: @(isShortage ? "#dc2626" : "#64748b"); font-size: 13.5px;">@line.Shortage.ToString("N2")</strong></td>
+                          <td class="text-center">
+                            @if (isMismatch)
+                            {
+                                <span class="badge-status-mismatch">Lệch ĐVT</span>
+                            }
+                            else if (isShortage)
+                            {
+                                <span class="badge-status-shortage">Thiếu tồn kho</span>
+                            }
+                            else
+                            {
+                                <span class="badge-status-sufficient">Đủ tồn kho</span>
+                            }
+                          </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 24px; color: #64748b;">
+                        @(Model.HasBom ? "Nhấn 'Tính nhu cầu' để xem bảng tính định mức nguyên vật liệu." : "Sản phẩm chưa có BOM, vui lòng tạo BOM trước.")
+                      </td>
+                    </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Chú thích giới hạn số tồn -->
+          <div class="mrp-table-note">
+            * <strong>Giới hạn đối chiếu tồn kho:</strong> Số lượng tồn kho được lấy trực tiếp theo tồn thực tế trên sổ sách kho (On-hand Quantity). Dự án hiện tại chưa tích hợp phân hệ giữ hàng cho đơn đặt hàng (Reservation), phân lô sản xuất và kiểm định trạng thái chất lượng QC. Tồn kho chỉ được trừ khi kho xác nhận xuất thực tế.
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/productions/material-requirement.js"></script>
+</body>
+</html>

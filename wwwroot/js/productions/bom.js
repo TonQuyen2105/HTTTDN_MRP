@@ -148,7 +148,7 @@ function initBomFormActions() {
   const btnSave = document.getElementById('btnSaveBom');
 
   function returnToList() {
-    window.location.href = 'BomList.html';
+    window.location.href = '/Productions/Home/BomList';
   }
 
   if (btnCancel) btnCancel.addEventListener('click', returnToList);

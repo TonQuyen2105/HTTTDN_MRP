@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Xử lý thêm, xóa dòng và tính toán chênh lệch trong Bảng Chi tiết bàn giao
+ * Xử lý thêm, xóa dòng trong Bảng Chi tiết bàn giao
  */
 function initHandoverDetailTable() {
   const tableBody = document.getElementById('handoverTableBody');
@@ -32,17 +32,13 @@ function initHandoverDetailTable() {
       const rowIdx = tableBody.querySelectorAll('tr').length + 1;
       row.innerHTML = `
         <td class="text-center">${rowIdx}</td>
-        <td><input type="text" class="form-input" value="SIRO" style="height:26px; font-size:12px; width:90px;"></td>
-        <td><input type="text" class="form-input" value="Siro ho, bổ phế" style="height:26px; font-size:12px;"></td>
-        <td>ml</td>
-        <td><a href="#" class="ref-link">DH00082</a></td>
-        <td><input type="text" class="form-input" value="RNWYS1W5..." style="height:26px; font-size:12px; width:110px;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right val-max" value="1.980,000" style="height:26px; font-size:12px;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right val-send" value="1.980,000" style="height:26px; font-size:12px; font-weight:600;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right val-recv" value="1.780,000" style="height:26px; font-size:12px; font-weight:600;"></td>
-        <td class="text-right"><strong class="val-diff" style="color:#e54848;">200,000</strong></td>
-        <td><input type="text" class="form-input" value="không đạt chất lượng" style="height:26px; font-size:12px;"></td>
-        <td class="text-center"><input type="checkbox" style="accent-color:var(--color-primary); cursor:pointer;"></td>
+        <td><input type="text" class="form-input" value="GINKGO120" style="height:26px; font-size:12px; width:90px;"></td>
+        <td><input type="text" class="form-input" value="Ginkgo Biloba 120mg Trunature" style="height:26px; font-size:12px;"></td>
+        <td>Hộp</td>
+        <td><a href="#" class="ref-link">DH-DPH-0001</a></td>
+        <td class="text-right"><input type="text" class="form-input text-right val-max" value="500" style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><input type="text" class="form-input text-right val-send" value="500" style="height:26px; font-size:12px; font-weight:600;"></td>
+        <td class="text-center"><input type="checkbox" checked style="accent-color:var(--color-primary); cursor:pointer;"></td>
         <td class="text-center">
           <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,24 +70,6 @@ function initHandoverDetailTable() {
         }
       }
     });
-
-    // Tự động tính chênh lệch khi sửa SL bàn giao hoặc SL nhận
-    tableBody.addEventListener('input', (e) => {
-      const row = e.target.closest('tr');
-      if (!row) return;
-
-      const inputSend = row.querySelector('.val-send');
-      const inputRecv = row.querySelector('.val-recv');
-      const diffDisplay = row.querySelector('.val-diff');
-
-      if (inputSend && inputRecv && diffDisplay) {
-        const send = parseFloat(inputSend.value.replace(/\./g, '').replace(',', '.')) || 0;
-        const recv = parseFloat(inputRecv.value.replace(/\./g, '').replace(',', '.')) || 0;
-        const diff = send - recv;
-        diffDisplay.textContent = diff.toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-        diffDisplay.style.color = diff !== 0 ? '#e54848' : '#2ea664';
-      }
-    });
   }
 
   // Xóa tất cả dòng
@@ -115,7 +93,7 @@ function initHandoverFormActions() {
   const btnSaveAndNew = document.getElementById('btnSaveAndNewHandover');
 
   function returnToList() {
-    window.location.href = 'HandoverList.html';
+    window.location.href = '/Productions/Home/HandoverList';
   }
 
   if (btnCancel) btnCancel.addEventListener('click', returnToList);
@@ -124,7 +102,7 @@ function initHandoverFormActions() {
   if (btnSave) {
     btnSave.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Phiếu bàn giao bán thành phẩm BG00006 thành công!');
+      alert('Đã lưu Biên bản bàn giao thành phẩm thành công!');
       returnToList();
     });
   }

@@ -1,16 +1,95 @@
 /**
  * PRODUCTIONS - PRODUCTION ORDER JS
- * Xử lý tương tác form "Thêm Lệnh sản xuất"
+ * Xử lý tương tác trang Lệnh sản xuất thuốc GMP (Danh sách & Lập lệnh mới)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  initViewToggle();
+  initOrderSearchAndFilter();
   initTabs();
   initTableActions();
   initFormButtons();
 });
 
 /**
- * Xử lý chuyển đổi các Tab (Chi tiết NVL, Công đoạn, Phụ phẩm, Đính kèm)
+ * Xử lý chuyển đổi giữa Chế độ xem: Danh sách Lệnh SX <-> Form Lập Lệnh mới
+ */
+function initViewToggle() {
+  const tabList = document.getElementById('tabOrderList');
+  const tabCreate = document.getElementById('tabOrderCreate');
+  const viewList = document.getElementById('orderListView');
+  const viewForm = document.getElementById('orderFormView');
+  const btnOpenCreate = document.getElementById('btnOpenCreateFromList');
+  const btnBackToList = document.getElementById('btnBackToList');
+
+  function showList() {
+    if (viewList) viewList.style.display = 'block';
+    if (viewForm) viewForm.style.display = 'none';
+    if (tabList) tabList.classList.add('active');
+    if (tabCreate) tabCreate.classList.remove('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showForm() {
+    if (viewList) viewList.style.display = 'none';
+    if (viewForm) viewForm.style.display = 'block';
+    if (tabList) tabList.classList.remove('active');
+    if (tabCreate) tabCreate.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  if (tabList) tabList.addEventListener('click', showList);
+  if (tabCreate) tabCreate.addEventListener('click', showForm);
+  if (btnOpenCreate) btnOpenCreate.addEventListener('click', showForm);
+  if (btnBackToList) btnBackToList.addEventListener('click', showList);
+
+  const btnCancel = document.getElementById('btnCancelOrder');
+  if (btnCancel) {
+    btnCancel.addEventListener('click', (e) => {
+      e.preventDefault();
+      showList();
+    });
+  }
+}
+
+/**
+ * Lọc và tìm kiếm danh sách Lệnh sản xuất (Table filter)
+ */
+function initOrderSearchAndFilter() {
+  const searchInput = document.getElementById('orderSearchInput');
+  const statusFilter = document.getElementById('statusFilterSelect');
+  const tableBody = document.getElementById('orderListTableBody');
+
+  if (!tableBody) return;
+
+  function applyFilter() {
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const status = statusFilter ? statusFilter.value : '';
+    const rows = tableBody.querySelectorAll('tr');
+
+    rows.forEach(row => {
+      const rowStatus = row.getAttribute('data-status') || '';
+      const rowName = row.getAttribute('data-name') || '';
+      const rowCode = row.getAttribute('data-code') || '';
+      const text = row.textContent.toLowerCase();
+
+      const matchesQuery = !query || text.includes(query) || rowName.includes(query) || rowCode.includes(query);
+      const matchesStatus = !status || rowStatus.toLowerCase() === status.toLowerCase();
+
+      if (matchesQuery && matchesStatus) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  if (searchInput) searchInput.addEventListener('input', applyFilter);
+  if (statusFilter) statusFilter.addEventListener('change', applyFilter);
+}
+
+/**
+ * Xử lý chuyển đổi các Tab con trong Form (Chi tiết NVL, Công đoạn, Phụ phẩm, Đính kèm)
  */
 function initTabs() {
   const tabs = document.querySelectorAll('.order-tab-link');
@@ -55,14 +134,11 @@ function initTableActions() {
       newRow.innerHTML = `
         <td class="text-center col-stt">${newIndex}</td>
         <td><input type="text" class="form-input" placeholder="Mã NVL..." style="height:26px; font-size:12px;"></td>
-        <td><input type="text" class="form-input" placeholder="Tên nguyên vật liệu..." style="height:26px; font-size:12px;"></td>
-        <td>Nguyên vật liệu</td>
-        <td class="text-center"><input type="checkbox"></td>
-        <td>-</td>
-        <td>cái</td>
+        <td><input type="text" class="form-input" placeholder="Tên hoạt chất / tá dược..." style="height:26px; font-size:12px;"></td>
+        <td>kg</td>
         <td class="text-center"><input type="checkbox"></td>
         <td class="text-right">1,0000</td>
-        <td class="text-right">2,000</td>
+        <td class="text-right">1,000</td>
         <td class="text-center">
           <div class="row-actions-cell">
             <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
@@ -111,26 +187,18 @@ function initTableActions() {
 }
 
 /**
- * Xử lý các nút Lưu / Hủy
+ * Xử lý các nút Lưu / Submit Lệnh sản xuất
  */
 function initFormButtons() {
-  const btnCancel = document.getElementById('btnCancelOrder');
-  const btnClose = document.getElementById('btnCloseOrder');
   const btnSubmit = document.getElementById('btnSubmitOrder');
-
-  function goBack() {
-    // Trở về trang Tổng quan
-    window.location.href = 'Index.html';
-  }
-
-  if (btnCancel) btnCancel.addEventListener('click', goBack);
-  if (btnClose) btnClose.addEventListener('click', goBack);
 
   if (btnSubmit) {
     btnSubmit.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Lệnh sản xuất LSX0096 thành công!');
-      goBack();
+      alert('Đã lưu Lệnh sản xuất thuốc GMP thành công vào hệ thống!');
+      // Chuyển lại về màn hình danh sách lệnh sản xuất
+      const tabList = document.getElementById('tabOrderList');
+      if (tabList) tabList.click();
     });
   }
 }

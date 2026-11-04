@@ -1,0 +1,1310 @@
+@model IEnumerable<httt.Models.ProductionRequest>
+@{
+    Layout = null;
+    ViewData["Title"] = "AMIS Sản xuất - Đơn đặt hàng thuốc";
+    var allOrders = Model ?? new List<httt.Models.ProductionRequest>();
+    var pendingList = ViewBag.PendingRequests as IEnumerable<httt.Models.ProductionRequest> ?? allOrders.Where(m => m.Status == "Pending").ToList();
+    var pendingOrders = pendingList.Count();
+    var acceptedOrders = allOrders.Where(m => m.Status != "Pending").ToList();
+    var totalAccepted = acceptedOrders.Count;
+    var inProgOrders = acceptedOrders.Count(m => m.Status == "In Production" || m.Status == "Approved");
+    var completedOrders = acceptedOrders.Count(m => m.Status == "Completed");
+    var totalQtyRequired = acceptedOrders.Sum(m => (long)m.QuantityRequired);
+    var totalQtyCompleted = acceptedOrders.Where(m => m.Status == "Completed").Sum(m => (long)m.QuantityRequired);
+    var products = ViewBag.Products as IEnumerable<httt.Models.Product> ?? new List<httt.Models.Product>();
+    var managers = ViewBag.Managers as IEnumerable<httt.Models.UserAccount> ?? new List<httt.Models.UserAccount>();
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@ViewData["Title"]</title>
+  
+  <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/productions/production-order.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/productions/drug-order.css" asp-append-version="true" />
+</head>
+<body class="drug-order-page">
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+
+          <button type="button" class="icon-btn" title="Thông báo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="badge-dot"></span>
+          </button>
+        </div>
+
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;" title="Tài khoản cá nhân">
+          <div class="user-avatar">MT</div>
+          <span class="user-name">DS. Nguyễn Minh Tài</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link active">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất thuốc</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link">Thống kê sản xuất</a>
+            <a href="/Productions/Home/HandoverList" class="sub-link">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+
+        <div class="nav-item has-sub">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Báo cáo</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
+            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
+          </div>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="app-main">
+      <div class="main-container page-fade-in">
+        
+        <!-- HEADER TRANG -->
+        <div class="order-header-card">
+          <div>
+            <h1 class="order-header-title">Đơn đặt hàng thuốc</h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">
+              Danh sách đơn đã tiếp nhận vào kế hoạch sản xuất. Theo dõi tiến độ & nghiệm thu thành phẩm đạt chuẩn GMP.
+            </p>
+          </div>
+
+          <div class="order-header-actions">
+            <a href="/Productions/Home/MaterialRequirement" class="btn-mrp-link" title="Tính định mức NVL theo đơn hàng">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              Tính nhu cầu NVL (MRP)
+            </a>
+            <button type="button" class="btn-receive-warehouse" id="btnOpenCreateModal" title="Mở danh sách phiếu từ kho để xem xét tiếp nhận">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              + Tiếp nhận phiếu từ kho
+              @if (pendingOrders > 0)
+              {
+                <span class="badge-pill-count">@pendingOrders</span>
+              }
+            </button>
+          </div>
+        </div>
+
+        <!-- THẺ THỐNG KÊ (KPI SUMMARY CARDS) -->
+        <div class="order-kpi-grid">
+          <div class="order-kpi-card">
+            <div class="order-kpi-content">
+              <div class="order-kpi-label">ĐƠN ĐÃ TIẾP NHẬN SẢN XUẤT</div>
+              <div class="order-kpi-val" id="statTotalOrders">@totalAccepted</div>
+              <div class="order-kpi-sub">Tổng đặt: @totalQtyRequired.ToString("N0") Hộp</div>
+            </div>
+            <div class="order-kpi-icon blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            </div>
+          </div>
+
+          <div class="order-kpi-card" style="cursor: pointer;" onclick="document.getElementById('btnOpenCreateModal').click();" title="Bấm để mở danh sách phiếu kho chờ tiếp nhận">
+            <div class="order-kpi-content">
+              <div class="order-kpi-label">PHIẾU KHO CHỜ TIẾP NHẬN</div>
+              <div class="order-kpi-val amber" id="statPendingOrders">@pendingOrders</div>
+              <div class="order-kpi-sub">Chưa lên lệnh sản xuất</div>
+            </div>
+            <div class="order-kpi-icon amber">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+          </div>
+
+          <div class="order-kpi-card">
+            <div class="order-kpi-content">
+              <div class="order-kpi-label">ĐANG SẢN XUẤT</div>
+              <div class="order-kpi-val purple" id="statInProgOrders">@inProgOrders</div>
+              <div class="order-kpi-sub">Đang bào chế / đóng gói</div>
+            </div>
+            <div class="order-kpi-icon purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+          </div>
+
+          <div class="order-kpi-card">
+            <div class="order-kpi-content">
+              <div class="order-kpi-label">ĐÃ HOÀN THÀNH SẢN XUẤT</div>
+              <div class="order-kpi-val green" id="statCompletedOrders">@completedOrders</div>
+              <div class="order-kpi-sub">Đã đạt: @totalQtyCompleted.ToString("N0") Hộp</div>
+            </div>
+            <div class="order-kpi-icon green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH ĐƠN HÀNG ĐÃ TIẾP NHẬN SẢN XUẤT (CHUẨN FORM ERP) -->
+        <div class="order-list-card">
+          
+          <!-- THANH TÌM KIẾM & LỌC -->
+          <div class="order-filter-toolbar">
+            <div class="order-search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" aria-label="Tìm kiếm đơn đặt hàng" id="orderSearchInput" placeholder="Tìm theo mã đơn (ĐH-KHO-...), phiếu gốc (YCSX-...), tên thuốc...">
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 13px; color: #64748b;">Trạng thái:</span>
+                <select aria-label="Lọc trạng thái" id="statusFilterSelect" class="filter-select" style="width: 180px;">
+                  <option value="ALL">Tất cả trạng thái (@totalAccepted)</option>
+                  <option value="In Production">Đang sản xuất (@inProgOrders)</option>
+                  <option value="Completed">Đã hoàn thành (@completedOrders)</option>
+                </select>
+              </div>
+
+              <button type="button" id="btnRefreshList" class="btn-refresh" title="Làm mới danh sách">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Làm mới
+              </button>
+            </div>
+          </div>
+
+          <!-- BẢNG HIỂN THỊ DỮ LIỆU ĐƠN ĐÃ TIẾP NHẬN -->
+          <div class="table-responsive" tabindex="0" aria-label="Bảng dữ liệu đơn đặt hàng thuốc đã tiếp nhận">
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 45px;">STT</th>
+                  <th style="width: 145px;">Mã đơn / Phiếu kho</th>
+                  <th class="text-center" style="width: 105px;">Ngày nhận</th>
+                  <th style="min-width: 240px;">Sản phẩm thuốc</th>
+                  <th class="text-right" style="width: 130px;">Số lượng đặt (Kho)</th>
+                  <th style="width: 170px;">Thành phẩm đã sản xuất</th>
+                  <th style="width: 175px;">Người phụ trách kho</th>
+                  <th class="text-center" style="width: 140px;">Trạng thái</th>
+                  <th class="text-center" style="width: 180px;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="orderListTableBody">
+                @if (acceptedOrders.Any())
+                {
+                    int stt = 1;
+                    foreach (var order in acceptedOrders)
+                    {
+                        var prodName = order.Product?.ProductName ?? "Sản phẩm thuốc dược dụng";
+                        var unit = order.Product?.Unit ?? "Hộp";
+                        var managerName = order.Manager?.FullName ?? "DS. Nguyễn Minh Tài";
+                        var dateStr = order.CreatedDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
+                        var reqQty = order.QuantityRequired;
+                        var prodQty = order.ProducedQuantity;
+                        var percent = reqQty > 0 ? (int)Math.Min(100, Math.Round((double)prodQty * 100 / reqQty)) : 0;
+                        if (order.Status == "Completed" && percent == 0) { percent = 100; prodQty = reqQty; }
+
+                        var statusClass = order.Status switch {
+                            "Completed" => "badge-status-completed",
+                            _ => "badge-status-inprog"
+                        };
+                        var statusText = order.Status switch {
+                            "Completed" => "Đã hoàn thành",
+                            "In Production" => "Đang sản xuất",
+                            "Approved" => "Đã duyệt tiếp nhận",
+                            _ => order.Status
+                        };
+
+                        <tr class="order-row" data-id="@order.RequestId" data-status="@order.Status" data-name="@prodName.ToLower()" data-code="đh-kho-@order.RequestId.ToString("D4")" data-ycsx="ycsx-@order.RequestId.ToString("D4")">
+                          <td class="text-center" style="color: #64748b; font-weight: 500;">@stt</td>
+                          <td>
+                            <a href="javascript:void(0)" onclick="openOrderDetail(@order.RequestId)" style="color: #059669; font-weight: 700; text-decoration: none;" title="Xem chi tiết đơn này">ĐH-KHO-@order.RequestId.ToString("D4")</a>
+                            <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">Phiếu gốc: YCSX-@order.RequestId.ToString("D4")</div>
+                          </td>
+                          <td class="text-center" style="color: #475569;">@dateStr</td>
+                          <td>
+                            <strong style="color: #0f172a;">@prodName</strong>
+                            <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">Mã SP: SP@(order.ProductId?.ToString("D4") ?? "0000") • ĐVT: @unit</div>
+                          </td>
+                          <td class="text-right">
+                            <strong style="font-size: 13.5px; color: #0f172a;">@reqQty.ToString("N0")</strong> <span style="font-size: 11.5px; color: #64748b;">@unit</span>
+                          </td>
+                          <td>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 2px;">
+                              <span>
+                                <strong style="color: @(percent >= 100 ? "#059669" : (percent > 0 ? "#2563eb" : "#475569"));">@prodQty.ToString("N0")</strong>
+                                <span style="color: #64748b;">/ @reqQty.ToString("N0")</span>
+                              </span>
+                              <strong style="color: @(percent >= 100 ? "#059669" : (percent > 0 ? "#2563eb" : "#64748b")); font-size: 11.5px;">@percent%</strong>
+                            </div>
+                            <div class="table-progress-wrap">
+                              <div class="table-progress-fill @(percent >= 100 ? "green" : (percent > 0 ? "blue" : "gray"))" style="width: @percent%;"></div>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="user-chip">
+                              <span class="user-avatar-circle">@(managerName.Length >= 2 ? managerName.Substring(0, 2).ToUpper() : "QL")</span>
+                              <span>@managerName</span>
+                            </div>
+                          </td>
+                          <td class="text-center">
+                            <span class="badge-status @statusClass">● @statusText</span>
+                          </td>
+                          <td class="text-center">
+                            <div class="row-actions-group">
+                              <button type="button" onclick="openOrderDetail(@order.RequestId)" class="row-btn blue" title="Xem chi tiết đơn hàng & định mức BOM">
+                                Chi tiết
+                              </button>
+                              <button type="button" onclick="openMarkModal(@order.RequestId, '@prodName.Replace("'", "\\'")', @reqQty, @prodQty, '@unit', '@order.Status')" class="row-btn green" title="Đánh dấu thành phẩm đã sản xuất">
+                                Đánh dấu
+                              </button>
+                              <a href="/Productions/Home/MaterialRequirement?requestId=@order.RequestId" class="row-btn gray" title="Tính nhu cầu NVL theo BOM">
+                                NVL
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                        stt++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 45px 20px; color: #64748b;">
+                        <div style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 6px;">Chưa có đơn đặt hàng nào trong phân xưởng sản xuất</div>
+                        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 14px;">Các phiếu yêu cầu sản xuất từ Kho đang nằm trong mục chờ tiếp nhận.</div>
+                        <button type="button" class="btn-receive-warehouse" onclick="document.getElementById('btnOpenCreateModal').click();" style="display: inline-flex; margin: 0 auto;">
+                          + Xem danh sách phiếu kho chờ tiếp nhận (@pendingOrders)
+                        </button>
+                      </td>
+                    </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- FOOTER THANH BẢNG -->
+          <div class="table-footer-bar">
+            <div class="table-footer-left">
+              <span>Tổng số: <strong id="lblTotalRowCount">@totalAccepted</strong> đơn sản xuất</span>
+            </div>
+            <div class="table-footer-right">
+              <span>Số dòng/trang</span>
+              <select class="filter-select" style="width: 70px; height: 28px; padding: 0 4px; font-size: 12px;">
+                <option selected>20</option>
+                <option>50</option>
+              </select>
+              <span>1 - @totalAccepted</span>
+              <button type="button" class="pagination-btn" title="Trang trước">&lt;</button>
+              <button type="button" class="pagination-btn" title="Trang sau">&gt;</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 1: XEM CHI TIẾT ĐƠN HÀNG & ĐỊNH MỨC BOM
+       ========================================================================== -->
+  <div class="order-modal-backdrop" id="modalDetailBackdrop">
+    <div class="order-modal-dialog" style="max-width: 680px;">
+      <div class="order-modal-header">
+        <div class="order-modal-title-wrap">
+          <div class="order-modal-icon-box blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          </div>
+          <div>
+            <h3 class="order-modal-title" id="mdlDetailTitle">Chi tiết Đơn đặt hàng thuốc</h3>
+            <div class="order-modal-subtitle">Thông tin tiếp nhận từ kho & định mức hoạt chất BOM</div>
+          </div>
+        </div>
+        <button type="button" class="order-modal-close" onclick="closeDetailModal()" title="Đóng">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="order-modal-body" id="mdlDetailBody">
+        <div style="text-align: center; padding: 40px; color: #64748b;">Đang tải thông tin đơn hàng...</div>
+      </div>
+
+      <div class="order-modal-footer">
+        <button type="button" class="row-btn gray" onclick="closeDetailModal()" style="padding: 7px 18px; font-size: 13px;">Đóng</button>
+        <button type="button" class="btn-receive-warehouse" id="btnDetailToMark" style="padding: 7px 18px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          Đánh dấu thành phẩm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: ĐÁNH DẤU THÀNH PHẨM SẢN XUẤT ĐƯỢC
+       ========================================================================== -->
+  <div class="order-modal-backdrop" id="modalMarkBackdrop">
+    <div class="order-modal-dialog" style="max-width: 540px;">
+      
+      <!-- Modal Header -->
+      <div class="order-modal-header">
+        <div class="order-modal-title-wrap">
+          <div class="order-modal-icon-box green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          </div>
+          <div>
+            <h3 class="order-modal-title">Đánh dấu thành phẩm sản xuất được</h3>
+            <div class="order-modal-subtitle">Ghi nhận sản lượng hoàn thành & nghiệm thu đạt chuẩn GMP</div>
+          </div>
+        </div>
+        <button type="button" class="order-modal-close" onclick="closeMarkModal()" title="Đóng">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="order-modal-body">
+        <input type="hidden" id="markRequestId" value="0">
+        <input type="hidden" id="markReqQty" value="0">
+
+        <!-- Product Hero Card -->
+        <div class="modal-product-hero">
+          <div class="modal-product-tag">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            <span id="markOrderCodeTag">SẢN PHẨM THUỐC ĐẶT SẢN XUẤT</span>
+          </div>
+          <div class="modal-product-name" id="markProductName">Ginkgo Biloba 120mg Trunature (Hộp 6 vỉ x 10 viên)</div>
+          
+          <div class="modal-stat-ribbon">
+            <div class="modal-stat-box">
+              <div class="modal-stat-label">Kho đặt yêu cầu</div>
+              <div class="modal-stat-val" id="markTargetQty">500 Hộp</div>
+            </div>
+            <div class="modal-stat-box">
+              <div class="modal-stat-label">Đã ghi nhận</div>
+              <div class="modal-stat-val" id="markPrevQty">0 Hộp</div>
+            </div>
+            <div class="modal-stat-box">
+              <div class="modal-stat-label">Tiến độ đạt</div>
+              <div class="modal-stat-val" id="markPercentVal">0%</div>
+            </div>
+          </div>
+
+          <!-- Progress Bar Preview -->
+          <div style="background: #e2e8f0; height: 6px; border-radius: 999px; overflow: hidden; margin-top: 12px;">
+            <div id="markProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #2563eb, #059669); transition: width 0.3s ease; border-radius: 999px;"></div>
+          </div>
+        </div>
+
+        <!-- Quantity Input Field -->
+        <div class="modal-field">
+          <label class="modal-label" for="inputProducedQty">
+            <span>Số lượng thành phẩm đã sản xuất được <span class="req">*</span></span>
+            <span style="font-size: 11.5px; font-weight: 500; color: #64748b;">(Tự động tính % hoàn thành)</span>
+          </label>
+          <div class="modal-input-group">
+            <button type="button" class="modal-stepper-btn minus" onclick="stepMarkQty(-50)" title="Giảm 50">-</button>
+            <input type="number" id="inputProducedQty" class="modal-qty-input" min="0" value="0" placeholder="0">
+            <button type="button" class="modal-stepper-btn plus" onclick="stepMarkQty(50)" title="Tăng 50">+</button>
+            <span class="modal-unit-tag" id="markUnitLabel">Hộp</span>
+          </div>
+
+          <!-- Quick Preset Chips -->
+          <div class="quick-chips-grid">
+            <button type="button" class="quick-chip" id="chip100" onclick="setQuickQty(1.0)">Đạt 100%</button>
+            <button type="button" class="quick-chip" id="chip75" onclick="setQuickQty(0.75)">Đạt 75%</button>
+            <button type="button" class="quick-chip" id="chip50" onclick="setQuickQty(0.5)">Đạt 50%</button>
+            <button type="button" class="quick-chip" id="chip25" onclick="setQuickQty(0.25)">Đạt 25%</button>
+          </div>
+        </div>
+
+        <!-- Completion Callout Toggle -->
+        <div class="modal-completion-callout" id="completionCalloutWrap" onclick="toggleCompleteCheck()">
+          <input type="checkbox" id="chkCompleteOrder" onclick="event.stopPropagation(); syncCalloutState();">
+          <div>
+            <div class="modal-completion-title">Đánh dấu hoàn thành toàn bộ đơn hàng (Chuyển sang "Đã hoàn thành")</div>
+            <div class="modal-completion-desc">Chuyển trạng thái đơn sang "Đã hoàn thành" và chuyển sang danh mục bàn giao Kho.</div>
+          </div>
+        </div>
+
+        <!-- Notes Field -->
+        <div class="modal-field" style="margin-bottom: 0;">
+          <label class="modal-label" for="inputMarkNote">Ghi chú kiểm nghiệm / Lô sản xuất</label>
+          <input type="text" id="inputMarkNote" class="form-input" style="width: 100%; border-radius: 8px; padding: 10px 14px; font-size: 13px; border: 1px solid #cbd5e1; box-sizing: border-box;" placeholder="VD: Lô kiểm nghiệm đạt chỉ tiêu cảm quan & vi sinh..." value="Đạt tiêu chuẩn chất lượng sản xuất dược">
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="order-modal-footer">
+        <button type="button" class="row-btn gray" onclick="closeMarkModal()" style="padding: 7px 18px; font-size: 13px;">Hủy</button>
+        <button type="button" class="btn-receive-warehouse" id="btnSaveMark" onclick="submitMarkProduced()" style="padding: 7px 22px; font-size: 13px; display: inline-flex; align-items: center; gap: 7px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Lưu kết quả sản xuất
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: MỤC TIẾP NHẬN PHIẾU YÊU CẦU SẢN XUẤT TỪ KHO THÀNH PHẨM
+       (ĐÂY LÀ NƠI DUY NHẤT CHỨA VÀ DUYỆT CÁC PHIẾU CHỜ TIẾP NHẬN)
+       ========================================================================== -->
+  <div class="order-modal-backdrop" id="modalCreateBackdrop">
+    <div class="order-modal-dialog wide-modal">
+      
+      <!-- Modal Header -->
+      <div class="order-modal-header">
+        <div class="order-modal-title-wrap">
+          <div class="order-modal-icon-box blue">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+          </div>
+          <div>
+            <h3 class="order-modal-title">Tiếp nhận Phiếu sản xuất từ Kho</h3>
+            <div class="order-modal-subtitle">Danh sách phiếu yêu cầu từ kho thành phẩm gửi sang - Duyệt tiếp nhận vào kế hoạch sản xuất</div>
+          </div>
+        </div>
+        <button type="button" class="order-modal-close" onclick="closeCreateModal()" title="Đóng">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Tab Navigation inside Modal -->
+      <div class="modal-tab-bar">
+        <button type="button" class="modal-tab-btn active" id="tabPendingWarehouseList" onclick="switchWarehouseModalTab('list')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          Phiếu kho chờ tiếp nhận
+          <span class="modal-tab-badge" id="modalPendingCountBadge">@pendingOrders</span>
+        </button>
+        <button type="button" class="modal-tab-btn" id="tabManualCreateWarehouse" onclick="switchWarehouseModalTab('form')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          + Nhập phiếu khẩn thủ công
+        </button>
+      </div>
+
+      <!-- TAB 1: DANH SÁCH CÁC PHIẾU TỪ KHO CHỜ TIẾP NHẬN -->
+      <div class="order-modal-body" id="modalViewPendingList">
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 11px 16px; flex-wrap: wrap; gap: 10px;">
+          <div style="font-size: 13px; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span>Hiện có <strong id="modalPendingTextCount">@pendingOrders</strong> phiếu yêu cầu sản xuất từ Kho đang chờ tiếp nhận vào phân xưởng.</span>
+          </div>
+          @if (pendingOrders > 0)
+          {
+              <button type="button" onclick="acceptAllWarehouseOrders()" class="btn-receive-warehouse" style="padding: 6px 14px; font-size: 12.5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Tiếp nhận tất cả (@pendingOrders phiếu)
+              </button>
+          }
+        </div>
+
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 400px; overflow-y: auto;">
+          <table class="pending-table">
+            <thead>
+              <tr style="position: sticky; top: 0; z-index: 2;">
+                <th class="text-center" style="width: 45px;">STT</th>
+                <th style="width: 145px;">Mã phiếu kho</th>
+                <th style="width: 105px;">Ngày gửi</th>
+                <th>Sản phẩm thuốc yêu cầu</th>
+                <th class="text-right" style="width: 125px;">Số lượng đặt</th>
+                <th style="width: 160px;">Phụ trách bên kho</th>
+                <th class="text-center" style="width: 110px;">Mức độ</th>
+                <th class="text-center" style="width: 170px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="modalPendingTableBody">
+              @if (pendingList.Any())
+              {
+                  int pStt = 1;
+                  foreach (var item in pendingList)
+                  {
+                      var prodName = item.Product?.ProductName ?? "Sản phẩm thuốc dược dụng";
+                      var unit = item.Product?.Unit ?? "Hộp";
+                      var managerName = item.Manager?.FullName ?? "DS. Nguyễn Minh Tài";
+                      var dateStr = item.CreatedDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
+                      var reqQty = item.QuantityRequired;
+                      var isUrgent = reqQty >= 600;
+
+                      <tr id="row-modal-pending-@item.RequestId">
+                        <td class="text-center" style="color: #64748b; font-weight: 500;">@pStt</td>
+                        <td>
+                          <strong style="color: #059669;">YCSX-@item.RequestId.ToString("D4")</strong>
+                          <div style="font-size: 11px; color: #64748b;">ĐH-KHO-@item.RequestId.ToString("D4")</div>
+                        </td>
+                        <td style="color: #475569;">@dateStr</td>
+                        <td>
+                          <strong style="color: #0f172a;">@prodName</strong>
+                          <div style="font-size: 11.5px; color: #64748b;">Mã SP: SP@(item.ProductId?.ToString("D4") ?? "0000")</div>
+                        </td>
+                        <td class="text-right">
+                          <strong style="color: #059669; font-size: 14px;">@reqQty.ToString("N0")</strong> <span style="font-size: 11.5px; color: #64748b;">@unit</span>
+                        </td>
+                        <td>@managerName</td>
+                        <td class="text-center">
+                          <span class="priority-tag @(isUrgent ? "urgent" : "standard")">
+                            @(isUrgent ? "Khẩn cấp" : "Tiêu chuẩn")
+                          </span>
+                        </td>
+                        <td class="text-center">
+                          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <button type="button" onclick="acceptSingleWarehouseOrder(@item.RequestId, '@prodName.Replace("'", "\\'")')" class="btn-receive-warehouse" style="padding: 4px 10px; font-size: 12px; gap: 4px;" title="Tiếp nhận phiếu sản xuất này vào phân xưởng">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              Tiếp nhận
+                            </button>
+                            <button type="button" onclick="openOrderDetail(@item.RequestId)" class="row-btn blue" style="font-size: 12px; padding: 4px 8px;" title="Xem chi tiết phiếu & định mức BOM">
+                              Chi tiết
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      pStt++;
+                  }
+              }
+              else
+              {
+                  <tr>
+                    <td colspan="8" class="text-center" style="padding: 45px 20px; color: #64748b;">
+                      <div style="width: 48px; height: 48px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </div>
+                      <div style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">Hiện không có phiếu yêu cầu nào từ kho đang chờ tiếp nhận</div>
+                      <div style="font-size: 12.5px; color: #64748b;">Tất cả các phiếu từ kho đã được phân xưởng Dược tiếp nhận vào kế hoạch sản xuất.</div>
+                    </td>
+                  </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- TAB 2: FORM NHẬP THỦ CÔNG PHIẾU KHẨN TỪ KHO -->
+      <div class="order-modal-body" id="modalViewManualForm" style="display: none;">
+        
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 11px 16px; margin-bottom: 18px; font-size: 13px; color: #92400e; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>Dùng biểu mẫu này khi kho thành phẩm yêu cầu đột xuất / khẩn cấp bằng giấy hoặc điện thoại để nhập trực tiếp vào hệ thống.</span>
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label" for="newOrderProductSelect">
+            <span>Sản phẩm thuốc đặt sản xuất <span class="req">*</span></span>
+          </label>
+          <select id="newOrderProductSelect" class="form-select" style="width: 100%; height: 40px; border-radius: 8px; font-size: 13.5px; border: 1px solid #cbd5e1;">
+            @if (products.Any())
+            {
+                foreach (var prod in products)
+                {
+                    <option value="@prod.ProductId" data-unit="@prod.Unit">@prod.ProductName (@prod.Unit)</option>
+                }
+            }
+          </select>
+          <div class="modal-helper">Chọn thành phẩm thuốc cần sản xuất theo danh mục Dược phẩm</div>
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label" for="newOrderQuantity">
+            <span>Số lượng cần sản xuất theo phiếu kho <span class="req">*</span></span>
+          </label>
+          <div class="modal-input-group">
+            <button type="button" class="modal-stepper-btn minus" onclick="stepNewOrderQty(-100)">-</button>
+            <input type="number" id="newOrderQuantity" class="modal-qty-input" value="500" min="1">
+            <button type="button" class="modal-stepper-btn plus" onclick="stepNewOrderQty(100)">+</button>
+            <span class="modal-unit-tag" id="newOrderUnitSpan">Hộp</span>
+          </div>
+          <div class="modal-helper">Khối lượng mẻ thuốc sẽ được tự động quy đổi sang định mức nguyên liệu BOM</div>
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label" for="newOrderManagerSelect">
+            <span>Người phụ trách tiếp nhận bên Kho <span class="req">*</span></span>
+          </label>
+          <select id="newOrderManagerSelect" class="form-select" style="width: 100%; height: 40px; border-radius: 8px; font-size: 13.5px; border: 1px solid #cbd5e1;">
+            @if (managers.Any())
+            {
+                foreach (var user in managers)
+                {
+                    <option value="@user.UserID" selected="@(user.Username == "minhtai" ? "selected" : null)">@user.FullName (@user.Role)</option>
+                }
+            }
+          </select>
+        </div>
+
+        <div class="modal-field" style="margin-bottom: 0;">
+          <label class="modal-label" for="newOrderNote">Ghi chú phiếu yêu cầu từ kho</label>
+          <textarea id="newOrderNote" class="form-textarea" rows="2" style="width: 100%; border-radius: 8px; font-size: 13px; border: 1px solid #cbd5e1; padding: 10px 14px; box-sizing: border-box;" placeholder="Ghi chú kế hoạch phân phối...">Yêu cầu sản xuất bổ sung lượng tồn kho theo kế hoạch phân phối quý.</textarea>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="order-modal-footer">
+        <button type="button" class="row-btn gray" onclick="closeCreateModal()" style="padding: 7px 18px; font-size: 13px;">Hủy bỏ</button>
+        <button type="button" class="btn-receive-warehouse" id="btnSubmitCreateOrder" onclick="submitCreateOrder()" style="padding: 7px 20px; font-size: 13px; display: none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Xác nhận tiếp nhận đơn
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT XỬ LÝ -->
+  <script src="~/js/app.js" asp-append-version="true"></script>
+  <script>
+    let currentDetailOrderId = 0;
+
+    // Filter & Search Logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('orderSearchInput');
+      const statusSelect = document.getElementById('statusFilterSelect');
+      const refreshBtn = document.getElementById('btnRefreshList');
+
+      function filterRows() {
+        const query = searchInput.value.toLowerCase().trim();
+        const status = statusSelect.value;
+        const rows = document.querySelectorAll('#orderListTableBody tr.order-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+          const rowStatus = row.getAttribute('data-status') || '';
+          const rowName = row.getAttribute('data-name') || '';
+          const rowCode = row.getAttribute('data-code') || '';
+          const rowYcsx = row.getAttribute('data-ycsx') || '';
+
+          const matchSearch = !query || rowName.includes(query) || rowCode.includes(query) || rowYcsx.includes(query);
+          const matchStatus = (!status || status === 'ALL') || (rowStatus === status);
+
+          if (matchSearch && matchStatus) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        const lblTotal = document.getElementById('lblTotalRowCount');
+        if (lblTotal) lblTotal.textContent = visibleCount;
+      }
+
+      if (searchInput) searchInput.addEventListener('input', filterRows);
+      if (statusSelect) statusSelect.addEventListener('change', filterRows);
+      if (refreshBtn) refreshBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        statusSelect.value = 'ALL';
+        filterRows();
+      });
+
+      // Mở modal tạo đơn mới / tiếp nhận từ kho
+      const btnOpenCreate = document.getElementById('btnOpenCreateModal');
+      if (btnOpenCreate) {
+        btnOpenCreate.addEventListener('click', () => {
+          switchWarehouseModalTab('list');
+          document.getElementById('modalCreateBackdrop').classList.add('show');
+        });
+      }
+
+      // Đổi unit khi đổi sản phẩm ở modal tạo mới
+      const newProdSel = document.getElementById('newOrderProductSelect');
+      const newUnitSpan = document.getElementById('newOrderUnitSpan');
+      if (newProdSel && newUnitSpan) {
+        newProdSel.addEventListener('change', () => {
+          const opt = newProdSel.options[newProdSel.selectedIndex];
+          newUnitSpan.textContent = opt.getAttribute('data-unit') || 'Hộp';
+        });
+      }
+
+      // Input số lượng ở modal đánh dấu
+      const inpProduced = document.getElementById('inputProducedQty');
+      if (inpProduced) {
+        inpProduced.addEventListener('input', updateMarkProgress);
+      }
+    });
+
+    // ==========================================================================
+    // CÁC HÀM TIỆN ÍCH MODAL ĐÁNH DẤU THÀNH PHẨM
+    // ==========================================================================
+    function stepMarkQty(delta) {
+      const inp = document.getElementById('inputProducedQty');
+      let current = parseInt(inp.value || '0') + delta;
+      if (current < 0) current = 0;
+      inp.value = current;
+      updateMarkProgress();
+    }
+
+    function stepNewOrderQty(delta) {
+      const inp = document.getElementById('newOrderQuantity');
+      let current = parseInt(inp.value || '0') + delta;
+      if (current < 1) current = 1;
+      inp.value = current;
+    }
+
+    function updateMarkProgress() {
+      const inp = document.getElementById('inputProducedQty');
+      const reqQty = parseInt(document.getElementById('markReqQty').value || '0');
+      const val = parseInt(inp.value || '0');
+      
+      const percent = reqQty > 0 ? Math.min(100, Math.round((val * 100) / reqQty)) : 0;
+      
+      const lblPercent = document.getElementById('markPercentVal');
+      if (lblPercent) lblPercent.textContent = percent + '%';
+      
+      const bar = document.getElementById('markProgressBar');
+      if (bar) bar.style.width = percent + '%';
+      
+      const chk = document.getElementById('chkCompleteOrder');
+      if (chk) {
+        if (val >= reqQty && reqQty > 0) {
+          chk.checked = true;
+        }
+      }
+      syncCalloutState();
+      
+      // Đổi trạng thái active trên các nút chip
+      ['chip100', 'chip75', 'chip50', 'chip25'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+      });
+      if (reqQty > 0) {
+        const ratio = val / reqQty;
+        if (Math.abs(ratio - 1) < 0.01) document.getElementById('chip100')?.classList.add('active');
+        else if (Math.abs(ratio - 0.75) < 0.01) document.getElementById('chip75')?.classList.add('active');
+        else if (Math.abs(ratio - 0.5) < 0.01) document.getElementById('chip50')?.classList.add('active');
+        else if (Math.abs(ratio - 0.25) < 0.01) document.getElementById('chip25')?.classList.add('active');
+      }
+    }
+
+    function toggleCompleteCheck() {
+      const chk = document.getElementById('chkCompleteOrder');
+      if (chk) {
+        chk.checked = !chk.checked;
+        syncCalloutState();
+      }
+    }
+
+    function syncCalloutState() {
+      const chk = document.getElementById('chkCompleteOrder');
+      const wrap = document.getElementById('completionCalloutWrap');
+      if (chk && wrap) {
+        if (chk.checked) {
+          wrap.classList.add('completed');
+        } else {
+          wrap.classList.remove('completed');
+        }
+      }
+    }
+
+    // ==========================================================================
+    // MODAL XEM CHI TIẾT ĐƠN HÀNG
+    // ==========================================================================
+    async function openOrderDetail(id) {
+      currentDetailOrderId = id;
+      const modal = document.getElementById('modalDetailBackdrop');
+      const body = document.getElementById('mdlDetailBody');
+      const title = document.getElementById('mdlDetailTitle');
+      
+      title.textContent = `Chi tiết đơn đặt hàng: ĐH-KHO-${String(id).padStart(4, '0')}`;
+      body.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">Đang tải thông tin từ CSDL...</div>';
+      modal.classList.add('show');
+
+      try {
+        const res = await fetch(`/Productions/Home/GetDrugOrderDetail?id=${id}`);
+        const data = await res.json();
+
+        if (!data.success) {
+          body.innerHTML = `<div style="color: #ef4444; padding: 20px;">${data.message || 'Lỗi khi tải chi tiết đơn hàng.'}</div>`;
+          return;
+        }
+
+        let statusClass = "badge-status-inprog";
+        let statusText = "Đang sản xuất";
+        if (data.status === "Completed") {
+          statusClass = "badge-status-completed";
+          statusText = "Đã hoàn thành";
+        } else if (data.status === "Approved") {
+          statusClass = "badge-status-approved";
+          statusText = "Đã duyệt tiếp nhận";
+        } else if (data.status === "Pending") {
+          statusClass = "badge-status-pending";
+          statusText = "Chờ tiếp nhận";
+        }
+        const statusBadge = `<span class="badge-status ${statusClass}">● ${statusText}</span>`;
+
+        let bomHtml = '';
+        if (data.boms && data.boms.length > 0) {
+          bomHtml = `
+            <div style="margin-top: 16px;">
+              <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                ĐỊNH MỨC NGUYÊN LIỆU (BOM) TIÊU CHUẨN ĐỂ SẢN XUẤT:
+              </div>
+              <table class="modal-bom-table">
+                <thead>
+                  <tr>
+                    <th>Mã BOM</th>
+                    <th>Hoạt chất / Tá dược</th>
+                    <th class="text-right">Định mức/đơn vị</th>
+                    <th class="text-right">Tồn kho hiện có</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.boms.map(b => `
+                    <tr>
+                      <td><strong>${b.bomCode || 'BOM'}</strong></td>
+                      <td>${b.ingredientName}</td>
+                      <td class="text-right">${b.materialQuantity} ${b.unit}</td>
+                      <td class="text-right" style="color: #059669; font-weight: 600;">${b.stock} ${b.unit}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          bomHtml = `
+            <div style="margin-top: 14px; font-size: 12.5px; color: #64748b; font-style: italic;">
+              Chưa gán định mức BOM chi tiết cho sản phẩm này trong CSDL.
+            </div>
+          `;
+        }
+
+        body.innerHTML = `
+          <div class="modal-info-grid">
+            <div class="modal-info-card">
+              <div class="modal-info-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                THÔNG TIN PHIẾU KHO
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Mã đơn đặt hàng:</span>
+                <span class="modal-info-val" style="color: #059669;">${data.orderCode}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Mã phiếu sản xuất kho:</span>
+                <span class="modal-info-val">${data.requestCode}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Ngày nhận từ kho:</span>
+                <span class="modal-info-val">${data.createdDate}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Bộ phận yêu cầu:</span>
+                <span class="modal-info-val">Kho Dược phẩm & Hoạt chất GMP</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Người lập phiếu kho:</span>
+                <span class="modal-info-val">${data.managerName}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Trạng thái:</span>
+                <span>${statusBadge}</span>
+              </div>
+            </div>
+
+            <div class="modal-info-card">
+              <div class="modal-info-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                THÀNH PHẨM & TIẾN ĐỘ
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Sản phẩm thuốc:</span>
+                <span class="modal-info-val" style="color: #0f172a;">${data.productName}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Đơn vị tính:</span>
+                <span class="modal-info-val">${data.productUnit}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Số lượng kho đặt:</span>
+                <span class="modal-info-val" style="color: #2563eb; font-size: 14px;">${data.quantityRequired.toLocaleString()} ${data.productUnit}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Đã sản xuất được:</span>
+                <span class="modal-info-val" style="color: #059669; font-size: 14px;">${data.producedQuantity.toLocaleString()} ${data.productUnit}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Tỷ lệ hoàn thành:</span>
+                <span class="modal-info-val" style="color: ${data.percent >= 100 ? '#059669' : '#d97706'}; font-weight: 700;">${data.percent}%</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Ghi chú:</span>
+                <span class="modal-info-val" style="font-weight: normal; font-size: 12px;">${data.description}</span>
+              </div>
+            </div>
+          </div>
+
+          ${bomHtml}
+        `;
+
+        const btnMarkFromDetail = document.getElementById('btnDetailToMark');
+        if (btnMarkFromDetail) {
+          btnMarkFromDetail.onclick = () => {
+            closeDetailModal();
+            openMarkModal(data.orderId, data.productName, data.quantityRequired, data.producedQuantity, data.productUnit, data.status);
+          };
+        }
+
+      } catch (err) {
+        body.innerHTML = `<div style="color: #ef4444; padding: 20px;">Lỗi kết nối máy chủ: ${err.message}</div>`;
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById('modalDetailBackdrop').classList.remove('show');
+    }
+
+    // ==========================================================================
+    // MODAL ĐÁNH DẤU THÀNH PHẨM SẢN XUẤT ĐƯỢC
+    // ==========================================================================
+    function openMarkModal(id, prodName, reqQty, currentProduced, unit, status) {
+      document.getElementById('markRequestId').value = id;
+      document.getElementById('markReqQty').value = reqQty;
+      document.getElementById('markProductName').textContent = prodName;
+      document.getElementById('markTargetQty').textContent = `${reqQty.toLocaleString()} ${unit}`;
+      document.getElementById('markPrevQty').textContent = `${currentProduced.toLocaleString()} ${unit}`;
+      document.getElementById('markUnitLabel').textContent = unit;
+
+      const tag = document.getElementById('markOrderCodeTag');
+      if (tag) tag.textContent = `ĐH-KHO-000${id} • PHIẾU GỐC: YCSX-000${id}`;
+
+      const inp = document.getElementById('inputProducedQty');
+      inp.value = currentProduced > 0 ? currentProduced : reqQty;
+      
+      const chk = document.getElementById('chkCompleteOrder');
+      chk.checked = (status === 'Completed') || (currentProduced >= reqQty && reqQty > 0);
+
+      updateMarkProgress();
+      document.getElementById('modalMarkBackdrop').classList.add('show');
+    }
+
+    function closeMarkModal() {
+      document.getElementById('modalMarkBackdrop').classList.remove('show');
+    }
+
+    function setQuickQty(ratio) {
+      const target = parseInt(document.getElementById('markReqQty').value || '0');
+      const qty = Math.round(target * ratio);
+      document.getElementById('inputProducedQty').value = qty;
+      updateMarkProgress();
+    }
+
+    async function submitMarkProduced() {
+      const btn = document.getElementById('btnSaveMark');
+      const reqId = parseInt(document.getElementById('markRequestId').value);
+      const producedQty = parseInt(document.getElementById('inputProducedQty').value || '0');
+      const isCompleted = document.getElementById('chkCompleteOrder').checked;
+      const note = document.getElementById('inputMarkNote').value.trim();
+
+      if (producedQty < 0) {
+        alert('Số lượng thành phẩm sản xuất không thể âm.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Đang lưu...';
+
+      try {
+        const res = await fetch('/Productions/Home/MarkProducedGoods', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            requestId: reqId,
+            producedQuantity: producedQty,
+            isCompleted: isCompleted,
+            note: note
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          closeMarkModal();
+          window.location.reload();
+        } else {
+          alert('❌ ' + (data.message || 'Không thể lưu kết quả.'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Lưu kết quả sản xuất';
+      }
+    }
+
+    // ==========================================================================
+    // MỤC TIẾP NHẬN PHIẾU TỪ KHO
+    // ==========================================================================
+    function switchWarehouseModalTab(tab) {
+      const btnList = document.getElementById('tabPendingWarehouseList');
+      const btnForm = document.getElementById('tabManualCreateWarehouse');
+      const viewList = document.getElementById('modalViewPendingList');
+      const viewForm = document.getElementById('modalViewManualForm');
+      const btnSubmit = document.getElementById('btnSubmitCreateOrder');
+
+      if (tab === 'list') {
+        if (btnList) btnList.classList.add('active');
+        if (btnForm) btnForm.classList.remove('active');
+        if (viewList) viewList.style.display = 'block';
+        if (viewForm) viewForm.style.display = 'none';
+        if (btnSubmit) btnSubmit.style.display = 'none';
+      } else {
+        if (btnList) btnList.classList.remove('active');
+        if (btnForm) btnForm.classList.add('active');
+        if (viewList) viewList.style.display = 'none';
+        if (viewForm) viewForm.style.display = 'block';
+        if (btnSubmit) btnSubmit.style.display = 'inline-flex';
+      }
+    }
+
+    async function acceptSingleWarehouseOrder(id, prodName) {
+      if (!confirm(`Bạn có chắc chắn muốn TIẾP NHẬN phiếu yêu cầu YCSX-000${id} (${prodName}) từ kho thành phẩm vào kế hoạch sản xuất?`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/Productions/Home/AcceptWarehouseRequest', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ requestId: id })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          window.location.reload();
+        } else {
+          alert('❌ ' + (data.message || 'Không thể tiếp nhận phiếu.'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối: ' + err.message);
+      }
+    }
+
+    async function acceptAllWarehouseOrders() {
+      if (!confirm('Bạn có chắc chắn muốn TIẾP NHẬN TOÀN BỘ các phiếu yêu cầu sản xuất từ kho vào phân xưởng?')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/Productions/Home/AcceptAllWarehouseRequests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          window.location.reload();
+        } else {
+          alert('❌ ' + (data.message || 'Không thể tiếp nhận.'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối: ' + err.message);
+      }
+    }
+
+    function closeCreateModal() {
+      document.getElementById('modalCreateBackdrop').classList.remove('show');
+    }
+
+    async function submitCreateOrder() {
+      const btn = document.getElementById('btnSubmitCreateOrder');
+      const prodId = parseInt(document.getElementById('newOrderProductSelect').value);
+      const qty = parseInt(document.getElementById('newOrderQuantity').value || '0');
+      const managerId = parseInt(document.getElementById('newOrderManagerSelect').value);
+      const note = document.getElementById('newOrderNote').value.trim();
+
+      if (qty <= 0) {
+        alert('Vui lòng nhập số lượng sản xuất lớn hơn 0.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Đang tiếp nhận...';
+
+      try {
+        const res = await fetch('/Productions/Home/CreateDrugOrder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            productId: prodId,
+            quantityRequired: qty,
+            managerId: managerId,
+            note: note
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ' + data.message);
+          closeCreateModal();
+          window.location.reload();
+        } else {
+          alert('❌ ' + (data.message || 'Không thể tiếp nhận đơn.'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Xác nhận tiếp nhận đơn';
+      }
+    }
+  </script>
+</body>
+</html>

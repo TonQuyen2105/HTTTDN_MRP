@@ -31,17 +31,17 @@ function initFGRTable() {
       const idx = tableBody.querySelectorAll('tr').length + 1;
       row.innerHTML = `
         <td class="text-center">${idx}</td>
-        <td><input type="text" class="form-input" value="SIRO" style="height:26px; font-size:12px; width:90px;"></td>
-        <td><input type="text" class="form-input" value="Siro ho, bổ phế 100ml" style="height:26px; font-size:12px;"></td>
-        <td>Chai</td>
-        <td>Kho Thành phẩm</td>
-        <td><input type="text" class="form-input" value="LOT20260122" style="height:26px; font-size:12px; width:100px;"></td>
-        <td class="text-right">22/01/2026</td>
-        <td class="text-right">22/01/2028</td>
-        <td class="text-right">2.000</td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="1.965" style="height:26px; font-size:12px; font-weight:600; color:#2ea664;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="35.000" style="height:26px; font-size:12px;"></td>
-        <td class="text-right"><strong>68.775.000</strong></td>
+        <td><input type="text" class="form-input" value="GINKGO120" style="height:26px; font-size:12px; width:90px;"></td>
+        <td><input type="text" class="form-input" value="Ginkgo Biloba 120mg Trunature" style="height:26px; font-size:12px;"></td>
+        <td>Hộp</td>
+        <td>Kho Thành phẩm Dược phẩm GMP</td>
+        <td><input type="text" class="form-input" value="LOT-GMP-2026-01" style="height:26px; font-size:12px; width:100px;"></td>
+        <td class="text-right">25/05/2025</td>
+        <td class="text-right">25/05/2028</td>
+        <td class="text-right">500</td>
+        <td class="text-right"><input type="text" class="form-input text-right" value="495" style="height:26px; font-size:12px; font-weight:600; color:#2ea664;"></td>
+        <td class="text-right"><input type="text" class="form-input text-right" value="5" style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><strong>123.750.000</strong></td>
         <td class="text-center">
           <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,7 +94,7 @@ function initFGRFormActions() {
   const btnSaveAndNew = document.getElementById('btnSaveAndNewFGR');
 
   function returnToList() {
-    window.location.href = 'FinishedGoodsReceiptList.html';
+    window.location.href = '/Productions/Home/FinishedGoodsReceiptList';
   }
 
   if (btnCancel) btnCancel.addEventListener('click', returnToList);

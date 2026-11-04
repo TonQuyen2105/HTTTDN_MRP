@@ -32,13 +32,13 @@ function initStatsDetailTable() {
       row.innerHTML = `
         <td><input type="text" class="form-input" placeholder="Mã NV..." style="height:26px; font-size:12px;"></td>
         <td><input type="text" class="form-input" placeholder="Tên nhân viên..." style="height:26px; font-size:12px;"></td>
-        <td>ml</td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="500,000" style="height:26px; font-size:12px;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="500,000" style="height:26px; font-size:12px;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="0,000" style="height:26px; font-size:12px;"></td>
+        <td>Hộp</td>
+        <td class="text-right"><input type="text" class="form-input text-right" value="500" style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><input type="text" class="form-input text-right" value="498" style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><input type="text" class="form-input text-right" value="2" style="height:26px; font-size:12px;"></td>
         <td><input type="text" class="form-input" placeholder="Lý do lỗi..." style="height:26px; font-size:12px;"></td>
-        <td><span style="font-size:11.5px; color:#64748b;">RNWYS1W5-LSX0096...</span></td>
-        <td>30/01/2026</td>
+        <td><span style="font-size:11.5px; color:#64748b;">LOT-GMP-2026-01</span></td>
+        <td>25/05/2025</td>
         <td class="text-center">
           <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -106,7 +106,7 @@ function initStatsFormActions() {
   const btnSave = document.getElementById('btnSaveStats');
 
   function returnToList() {
-    window.location.href = 'ProductionStatisticsList.html';
+    window.location.href = '/Productions/Home/ProductionStatisticsList';
   }
 
   if (btnCancel) btnCancel.addEventListener('click', returnToList);
@@ -115,7 +115,7 @@ function initStatsFormActions() {
   if (btnSave) {
     btnSave.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Phiếu thống kê sản xuất TKSX00454 thành công!');
+      alert('Đã lưu Phiếu thống kê sản xuất thành công!');
       returnToList();
     });
   }

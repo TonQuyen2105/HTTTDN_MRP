@@ -34,11 +34,8 @@ function initMRTable() {
         <td><input type="text" class="form-input" placeholder="Mã NVL..." style="height:26px; font-size:12px; width:100px;"></td>
         <td><input type="text" class="form-input" placeholder="Tên nguyên vật liệu..." style="height:26px; font-size:12px;"></td>
         <td>kg</td>
-        <td>Kho Nguyên liệu</td>
         <td class="text-right">50,000</td>
-        <td class="text-right"><input type="text" class="form-input text-right val-req" value="50,000" style="height:26px; font-size:12px; font-weight:600;"></td>
-        <td class="text-right"><span style="color:#2ea664; font-weight:600;">120,000</span></td>
-        <td><input type="text" class="form-input" placeholder="Ghi chú cấp phát..." style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><input type="text" class="form-input text-right val-req" value="50,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
         <td class="text-center">
           <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,7 +88,7 @@ function initMRFormActions() {
   const btnSaveAndNew = document.getElementById('btnSaveAndNewMR');
 
   function returnToList() {
-    window.location.href = 'MaterialRequisitionList.html';
+    window.location.href = '/Productions/Home/MaterialRequisitionList';
   }
 
   if (btnCancel) btnCancel.addEventListener('click', returnToList);

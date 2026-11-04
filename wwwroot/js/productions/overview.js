@@ -67,10 +67,15 @@ function renderTopProductsChart() {
   const canvas = document.getElementById('topProductsChart');
   if (!canvas) return;
 
-  const data = {
-    labels: ['Khay c...', 'Sắc nô...', 'Thang...', 'Đỡ cổ...', 'Bộ DIY...'],
-    values: [435, 202, 164, 145, 28]
-  };
+  let labels = ['Paracetamol', 'Ginkgo Biloba', 'Glucosamine', 'Milk Thistle', 'Amoxicillin'];
+  let values = [500, 420, 310, 260, 200];
+
+  if (window.dbTopProducts && window.dbTopProducts.length > 0) {
+    labels = window.dbTopProducts.map(p => p.name.length > 18 ? p.name.substring(0, 16) + '...' : p.name);
+    values = window.dbTopProducts.map(p => p.qty);
+  }
+
+  const data = { labels, values };
 
   // Nếu có Chart.js từ CDN
   if (typeof Chart !== 'undefined') {
@@ -82,8 +87,8 @@ function renderTopProductsChart() {
           data: data.values,
           backgroundColor: '#34a853',
           hoverBackgroundColor: '#2b8a44',
-          borderRadius: 2,
-          barThickness: 48
+          borderRadius: 4,
+          barThickness: 42
         }]
       },
       options: {
@@ -93,7 +98,7 @@ function renderTopProductsChart() {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (context) => `Sản lượng: ${context.parsed.y.toLocaleString()} sp`
+              label: (context) => `Tồn kho thành phẩm: ${context.parsed.y.toLocaleString()} hộp`
             }
           }
         },
@@ -107,9 +112,9 @@ function renderTopProductsChart() {
           },
           y: {
             min: 0,
-            max: 450,
+            max: 550,
             ticks: {
-              stepSize: 50,
+              stepSize: 100,
               color: '#94a3b8',
               font: { size: 11 }
             },
@@ -133,11 +138,24 @@ function renderOrderStatusChart() {
   const canvas = document.getElementById('orderStatusChart');
   if (!canvas) return;
 
-  const chartData = {
-    labels: ['Chưa sản xuất', 'Đang sản xuất', 'Đã hoàn thành', 'Tạm dừng', 'Hủy bỏ'],
-    values: [38, 20, 22, 12, 8],
-    colors: ['#8f9bb3', '#34a853', '#3b82f6', '#f59e0b', '#e54848']
+  let chartData = {
+    labels: ['Chờ duyệt (Pending)', 'Đã duyệt (Approved)', 'Đã hoàn thành (Completed)'],
+    values: [60, 20, 20],
+    colors: ['#f59e0b', '#3b82f6', '#34a853']
   };
+
+  if (window.dbStatusCounts && window.dbStatusCounts.length > 0) {
+    const statusMap = {
+      'Pending': { name: 'Chờ duyệt (Pending)', color: '#f59e0b' },
+      'Approved': { name: 'Đã duyệt (Approved)', color: '#3b82f6' },
+      'In Production': { name: 'Đang sản xuất', color: '#10b981' },
+      'Completed': { name: 'Hoàn thành', color: '#34a853' },
+      'Cancelled': { name: 'Đã hủy', color: '#ef4444' }
+    };
+    chartData.labels = window.dbStatusCounts.map(s => statusMap[s.Status]?.name || s.Status);
+    chartData.values = window.dbStatusCounts.map(s => s.Count);
+    chartData.colors = window.dbStatusCounts.map(s => statusMap[s.Status]?.color || '#6366f1');
+  }
 
   if (typeof Chart !== 'undefined') {
     new Chart(canvas, {

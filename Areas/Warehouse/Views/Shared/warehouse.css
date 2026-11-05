@@ -1347,6 +1347,15 @@ html, body {
     color: #16a34a;
 }
 
+.wh-dg-status-danger {
+    color: #dc2626;
+}
+
+.wh-dg-status-draft {
+    color: #64748b;
+    font-weight: 500;
+}
+
 /* Sticky Pagination Footer */
 .wh-dg-footer {
     height: 42px;
@@ -1428,7 +1437,6 @@ html, body {
     align-items: stretch;
     justify-content: center;
     padding: 8px 10px;
-    animation: wh-fade-in 0.16s ease-out;
 }
 
 .wh-sidebar.collapsed ~ .wh-main .wh-voucher-overlay {

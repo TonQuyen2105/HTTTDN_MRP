@@ -22,24 +22,62 @@ public class ImportReceiptApiController : ControllerBase
     /// GET /api/warehouse/import-receipts : Lấy danh sách phiếu nhập mua hàng
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetImportReceipts()
+    public async Task<IActionResult> GetImportReceipts([FromQuery] string? keyword = null)
     {
+        // Tự động chuẩn hóa các bản ghi cũ sang Approve / Reject (không lưu tiếng Việt vào DB)
+        var nonStandard = await _context.ImportReceipts
+            .Where(r => r.Status != "Approve" && r.Status != "Reject")
+            .ToListAsync();
+        if (nonStandard.Any())
+        {
+            foreach (var r in nonStandard)
+            {
+                r.Status = (r.Status == "Từ chối" || r.Status == "Rejected" || r.Status == "Reject") ? "Reject" : "Approve";
+            }
+            await _context.SaveChangesAsync();
+        }
+
         var receipts = await _context.ImportReceipts.AsNoTracking().OrderByDescending(r => r.CreatedDate).ToListAsync();
         var suppliers = await _context.Suppliers.AsNoTracking().ToDictionaryAsync(s => s.SupplierId, s => s.SupplierName);
 
-        var list = receipts.Select(r => new
+        var list = receipts.Select(r =>
         {
-            voucherNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
-            orderNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
-            ipReceiptId = r.IpReceiptId,
-            voucherDate = r.CreatedDate.HasValue ? r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
-            supplierId = r.SupplierId,
-            supplierName = (r.SupplierId.HasValue && suppliers.ContainsKey(r.SupplierId.Value)) ? suppliers[r.SupplierId.Value] : "N/A",
-            supplierCode = r.SupplierId.HasValue ? $"NCC{r.SupplierId.Value:D4}" : "",
-            status = r.Status ?? "Chờ nhập kho",
-            statusType = (r.Status == "Đã nhập kho" || r.Status == "Approved") ? "success" : "warning",
-            creatorName = "Nguyễn Tiến Huy"
+            suppliers.TryGetValue(r.SupplierId ?? 0, out var supName);
+            string supCode = r.SupplierId.HasValue ? $"NCC{r.SupplierId.Value:D4}" : "NCC0001";
+            string code = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}";
+            string st = (r.Status == "Reject") ? "Reject" : "Approve";
+            string stType = (st == "Reject") ? "danger" : "success";
+
+            return new
+            {
+                id = r.IpReceiptId,
+                ipReceiptId = r.IpReceiptId,
+                voucherNo = code,
+                orderNo = code,
+                voucherDate = r.CreatedDate.HasValue ? r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
+                supplierId = r.SupplierId,
+                supplierName = supName ?? "N/A",
+                supplierCode = supCode,
+                warehouse = "KHO HƯNG YÊN - HÀNG TƯƠNG LAI",
+                status = st,
+                orderStatus = st,
+                statusType = stType,
+                creatorName = "Nguyễn Tiến Huy",
+                employeeCode = "NV0005"
+            };
         }).ToList();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            list = list.Where(r =>
+                r.voucherNo.ToLower().Contains(kw) ||
+                r.supplierName.ToLower().Contains(kw) ||
+                r.supplierCode.ToLower().Contains(kw) ||
+                r.warehouse.ToLower().Contains(kw) ||
+                r.status.ToLower().Contains(kw)
+            ).ToList();
+        }
 
         return Ok(list);
     }
@@ -64,34 +102,57 @@ public class ImportReceiptApiController : ControllerBase
         var ingrIds = rawDetails.Select(d => d.IngrId).Distinct().ToList();
         var ingrs = await _context.Ingredients.Where(i => ingrIds.Contains(i.IngrId)).ToDictionaryAsync(i => i.IngrId);
 
-        var items = rawDetails.Select(d =>
+        var items = rawDetails.Select((d, idx) =>
         {
             ingrs.TryGetValue(d.IngrId, out var ingr);
             var price = d.Cost ?? ingr?.Price ?? 0;
+            string expStr = d.ExpiredDate.HasValue
+                ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
+                : ((ingr != null && ingr.ShelfLifeMonths.HasValue)
+                    ? (receipt.CreatedDate ?? DateTime.UtcNow).AddMonths(ingr.ShelfLifeMonths.Value).ToString("dd/MM/yyyy")
+                    : "31/12/2026");
+
             return new
             {
+                id = idx + 1,
                 ingrId = d.IngrId,
                 itemCode = $"NVL{d.IngrId:D3}",
                 itemName = ingr?.IngrName ?? "N/A",
                 unit = ingr?.Unit ?? "kg",
                 quantity = d.Quantity,
+                reqQty = d.Quantity,
+                actualQty = d.Quantity,
                 price = price,
+                unitCost = price,
                 amount = d.Quantity * price,
-                expiryDate = d.ExpiredDate.HasValue ? d.ExpiredDate.Value.ToString("dd/MM/yyyy") : ""
+                stockQty = ingr?.Quantity ?? 0,
+                expiryDate = expStr
             };
         }).ToList();
 
+        string st = (receipt.Status == "Reject") ? "Reject" : "Approve";
+        string stType = (st == "Reject") ? "danger" : "success";
+
         return Ok(new
         {
+            id = receipt.IpReceiptId,
             ipReceiptId = receipt.IpReceiptId,
             voucherNo = receipt.IpReceiptCode ?? $"PNK{receipt.IpReceiptId:D5}",
+            orderNo = receipt.IpReceiptCode ?? $"PNK{receipt.IpReceiptId:D5}",
+            voucherType = "inbound",
+            docType = "inbound",
             voucherDate = receipt.CreatedDate.HasValue ? receipt.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
             supplierId = receipt.SupplierId,
-            supplierCode = supplier != null ? $"NCC{supplier.SupplierId:D4}" : "",
-            supplierName = supplier?.SupplierName ?? "",
-            status = receipt.Status ?? "Chờ nhập kho",
+            supplierCode = supplier != null ? $"NCC{supplier.SupplierId:D4}" : "NCC0001",
+            supplierName = supplier?.SupplierName ?? "N/A",
+            warehouse = "KHO HƯNG YÊN - HÀNG TƯƠNG LAI",
+            status = st,
+            orderStatus = st,
+            statusType = stType,
             employeeCode = "NV0005",
             employeeName = "Nguyễn Tiến Huy",
+            totalQuantity = items.Sum(i => i.quantity),
+            totalAmount = items.Sum(i => i.amount),
             items
         });
     }
@@ -112,13 +173,23 @@ public class ImportReceiptApiController : ControllerBase
             return BadRequest(new { message = "Phiếu nhập phải có ít nhất 1 dòng nguyên vật liệu." });
         }
 
+        string finalStatus = (dto.Status == "Reject" || dto.IsReject) ? "Reject" : "Approve";
+
+        int? createdBy = dto.CreatedBy;
+        bool isValidUser = createdBy.HasValue && createdBy > 0 && await _context.UserAccounts.AnyAsync(u => u.UserID == createdBy.Value);
+        if (!isValidUser)
+        {
+            createdBy = await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserID).FirstOrDefaultAsync()
+                        ?? await _context.ImportReceipts.AsNoTracking().Where(r => r.CreatedBy.HasValue).Select(r => r.CreatedBy).FirstOrDefaultAsync();
+        }
+
         var receipt = new ImportReceipt
         {
             SupplierId = dto.SupplierId,
-            CreatedBy = dto.CreatedBy ?? 1,
+            CreatedBy = createdBy,
             CreatedDate = DateTime.UtcNow,
             IpReceiptCode = dto.IpReceiptCode,
-            Status = dto.IsDraft ? "Chờ nhập kho" : "Chờ duyệt"
+            Status = finalStatus
         };
 
         _context.ImportReceipts.Add(receipt);
@@ -129,15 +200,29 @@ public class ImportReceiptApiController : ControllerBase
             receipt.IpReceiptCode = $"PNK{receipt.IpReceiptId:D5}";
         }
 
+        var now = DateTime.UtcNow;
         foreach (var it in dto.Items)
         {
+            DateTime? expDate = null;
+            if (finalStatus == "Approve")
+            {
+                var ingr = await _context.Ingredients.FindAsync(it.IngrId);
+                if (ingr != null)
+                {
+                    ingr.Quantity = (ingr.Quantity ?? 0) + it.Quantity;
+                    int months = (ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0) ? ingr.ShelfLifeMonths.Value : 12;
+                    expDate = now.AddMonths(months);
+                }
+            }
+
             var detail = new ImportReceiptDetail
             {
                 IpReceiptId = receipt.IpReceiptId,
                 IngrId = it.IngrId,
                 Quantity = it.Quantity > 0 ? it.Quantity : 1,
                 Cost = it.Cost,
-                CreatedDate = DateTime.UtcNow
+                ExpiredDate = expDate,
+                CreatedDate = now
             };
             _context.ImportReceiptDetails.Add(detail);
         }
@@ -147,14 +232,17 @@ public class ImportReceiptApiController : ControllerBase
         return CreatedAtAction(nameof(GetImportReceiptById), new { id = receipt.IpReceiptId }, new
         {
             success = true,
-            message = "Tạo phiếu nhập thành công.",
+            message = finalStatus == "Approve" 
+                ? "Lập phiếu nhập kho thành công. Đã cập nhật tồn kho và hạn sử dụng (Trạng thái: Approve)."
+                : "Đã lưu phiếu vào CSDL với trạng thái Reject.",
+            status = finalStatus,
             ipReceiptId = receipt.IpReceiptId,
             voucherNo = receipt.IpReceiptCode
         });
     }
 
     /// <summary>
-    /// PUT /api/warehouse/import-receipts/{id}/approve : Duyệt phiếu nhập (Cộng tồn kho NVL & cập nhật hạn dùng)
+    /// PUT /api/warehouse/import-receipts/{id}/approve : Duyệt nhập kho (Cộng tồn kho NVL & cập nhật hạn dùng)
     /// </summary>
     [HttpPut("{id:int}/approve")]
     public async Task<IActionResult> ApproveImportReceipt(int id)
@@ -165,9 +253,9 @@ public class ImportReceiptApiController : ControllerBase
             return NotFound(new { message = $"Không tìm thấy phiếu nhập có ID {id}." });
         }
 
-        if (receipt.Status == "Đã nhập kho" || receipt.Status == "Approved")
+        if (receipt.Status == "Approve")
         {
-            return BadRequest(new { message = "Phiếu nhập này đã được duyệt trước đó." });
+            return BadRequest(new { message = "Phiếu nhập này đã ở trạng thái Approve." });
         }
 
         var details = await _context.ImportReceiptDetails.Where(d => d.IpReceiptId == id).ToListAsync();
@@ -179,18 +267,49 @@ public class ImportReceiptApiController : ControllerBase
             if (ingr != null)
             {
                 ingr.Quantity = (ingr.Quantity ?? 0) + d.Quantity;
-                int months = ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0 ? ingr.ShelfLifeMonths.Value : 12;
+                int months = (ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0) ? ingr.ShelfLifeMonths.Value : 12;
                 d.ExpiredDate = now.AddMonths(months);
             }
         }
 
-        receipt.Status = "Đã nhập kho";
+        string code = receipt.IpReceiptCode ?? $"PNK{receipt.IpReceiptId:D5}";
+        receipt.Status = "Approve";
         await _context.SaveChangesAsync();
 
         return Ok(new
         {
             success = true,
-            message = $"Duyệt phiếu nhập {receipt.IpReceiptCode} thành công. Đã cộng tồn kho và cập nhật hạn sử dụng."
+            status = "Approve",
+            message = $"Nhập kho phiếu {code} thành công. Đã cộng tồn kho và cập nhật hạn sử dụng (Trạng thái: Approve)."
+        });
+    }
+
+    /// <summary>
+    /// PUT /api/warehouse/import-receipts/{id}/reject : Từ chối phiếu nhập kho NVL (Status = Reject)
+    /// </summary>
+    [HttpPut("{id:int}/reject")]
+    public async Task<IActionResult> RejectImportReceipt(int id, [FromBody] RejectDto? dto)
+    {
+        var receipt = await _context.ImportReceipts.FindAsync(id);
+        if (receipt == null)
+        {
+            return NotFound(new { message = $"Không tìm thấy phiếu nhập có ID {id}." });
+        }
+
+        if (receipt.Status == "Reject")
+        {
+            return BadRequest(new { message = "Phiếu nhập này đã ở trạng thái Reject." });
+        }
+
+        string code = receipt.IpReceiptCode ?? $"PNK{receipt.IpReceiptId:D5}";
+        receipt.Status = "Reject";
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            status = "Reject",
+            message = $"Đã từ chối nhập kho cho phiếu {code} (Trạng thái: Reject)."
         });
     }
 }

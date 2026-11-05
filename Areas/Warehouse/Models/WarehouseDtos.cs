@@ -36,6 +36,8 @@ public class CreateImportReceiptDto
     public int? CreatedBy { get; set; }
     public string? IpReceiptCode { get; set; }
     public bool IsDraft { get; set; } = false;
+    public string? Status { get; set; }
+    public bool IsReject { get; set; } = false;
     public List<CreateImportReceiptItemDto> Items { get; set; } = new();
 }
 

@@ -1941,10 +1941,43 @@ const WarehouseComponents = (function () {
                                 </div>
                             </div>
                         ` : `
-                            <div style="flex: 1; color: #64748b; font-size: 12.5px; font-style: italic;">
-                                * Chế độ xem chi tiết phiếu nhập kho (chỉ đọc)
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                <div style="color: #64748b; font-size: 12.5px;">
+                                    ${(voucher.isDraft || voucher.status === 'Lưu nháp')
+                                        ? `<span style="color:#0284c7;font-weight:500;">ℹ️ Phiếu này đang lưu nháp trên giao diện (chưa lưu CSDL). Nhấn "Nhập" để lưu vào CSDL với trạng thái Approve hoặc "Không nhập" để lưu với trạng thái Reject.</span>`
+                                        : (voucher.status === 'Approve' || voucher.status === 'Approved' || voucher.status === 'Đã nhập kho')
+                                            ? `<span style="color:#16a34a;font-weight:600;">✓ Phiếu này đã ở trạng thái Approve và cộng tồn kho nguyên vật liệu.</span>`
+                                            : (voucher.status === 'Reject' || voucher.status === 'Rejected' || voucher.status === 'Từ chối')
+                                                ? `<span style="color:#ef4444;font-weight:600;">✕ Phiếu nhập này đã ở trạng thái Reject (không nhập kho).</span>`
+                                                : `<span style="color:#0284c7;font-weight:500;">ℹ️ Kiểm tra số lượng thực nhận và hạn sử dụng trước khi nhập kho.</span>`
+                                    }
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    ${(voucher.isDraft || voucher.status === 'Lưu nháp' || voucher.status === 'Chờ nhập kho' || voucher.status === 'Pending') ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound"
+                                            style="height:32px;padding:0 14px;font-size:12px;font-weight:600;"
+                                            data-action="approve-import-modal"
+                                            data-receipt-id="${escapeHtml(String(voucher.receiptId || voucher.ipReceiptId || voucher.id || ''))}"
+                                            data-voucher-no="${escapeHtml(voucher.voucherNo || '')}"
+                                        >
+                                            ${Icons.checkBlue || ''} Nhập
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            style="height:32px;padding:0 14px;font-size:12px;font-weight:600;"
+                                            data-action="reject-import-modal"
+                                            data-receipt-id="${escapeHtml(String(voucher.receiptId || voucher.ipReceiptId || voucher.id || ''))}"
+                                            data-voucher-no="${escapeHtml(voucher.voucherNo || '')}"
+                                        >
+                                            ${Icons.closeX || ''} Không nhập
+                                        </button>
+                                    ` : ''}
+                                    <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Đóng</button>
+                                </div>
                             </div>
-                            <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Đóng</button>
                         `) : `
                             <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Hủy</button>
                             <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Lưu và Thêm</button>
@@ -2121,10 +2154,12 @@ const WarehouseComponents = (function () {
                     if (col.isBadge) {
                         let cls = 'wh-dg-status-warning';
                         const currentStatus = val || row.status || row.orderStatus;
-                        if (currentStatus === 'Đã xuất kho' || currentStatus === 'Đã nhập kho' || currentStatus === 'Approved' || currentStatus === 'Completed' || row.orderStatusType === 'success' || row.statusType === 'success') {
+                        if (currentStatus === 'Approve' || currentStatus === 'Approved' || currentStatus === 'Đã xuất kho' || currentStatus === 'Đã nhập kho' || currentStatus === 'Completed' || row.orderStatusType === 'success' || row.statusType === 'success') {
                             cls = 'wh-dg-status-success';
-                        } else if (currentStatus === 'Từ chối' || currentStatus === 'Rejected' || row.orderStatusType === 'danger') {
+                        } else if (currentStatus === 'Reject' || currentStatus === 'Rejected' || currentStatus === 'Từ chối' || row.orderStatusType === 'danger' || row.statusType === 'danger') {
                             cls = 'wh-dg-status-danger';
+                        } else if (currentStatus === 'Lưu nháp' || currentStatus === 'Nháp' || row.isDraft) {
+                            cls = 'wh-dg-status-draft';
                         } else if (currentStatus === 'Chờ xuất kho' || currentStatus === 'Chờ nhập kho' || currentStatus === 'Pending' || row.orderStatusType === 'warning' || row.statusType === 'warning') {
                             cls = 'wh-dg-status-warning';
                         }
@@ -2239,6 +2274,63 @@ const WarehouseComponents = (function () {
                                         data-doc-no="${escapeHtml(orderNo)}"
                                         data-receipt-id="${escapeHtml(String(receiptId))}"
                                         title="Xem chi tiết ${escapeHtml(orderNo)}"
+                                    >
+                                        ${Icons.docFile || Icons.pencil}
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                    }
+                    if (col.isActionImportReceipt) {
+                        const status = row.orderStatus || row.status || '';
+                        const isDraft = Boolean(row.isDraft) || status === 'Lưu nháp' || status === 'Nháp';
+                        const isApproved = status === 'Approve' || status === 'Approved' || status === 'Đã nhập kho';
+                        const isRejected = status === 'Reject' || status === 'Rejected' || status === 'Từ chối';
+                        const isPending = isDraft || (!isApproved && !isRejected);
+                        const voucherNo = row.voucherNo || row.orderNo || '';
+                        const receiptId = row.ipReceiptId || row.id || '';
+
+                        return `
+                            <td class="wh-dg-action-cell" style="text-align:center;">
+                                <div class="wh-dg-action-group">
+                                    ${isPending ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound"
+                                            data-action="approve-import-receipt"
+                                            data-receipt-id="${escapeHtml(String(receiptId))}"
+                                            data-voucher-no="${escapeHtml(voucherNo)}"
+                                            title="Nhập kho phiếu ${escapeHtml(voucherNo)}"
+                                        >
+                                            ${Icons.checkBlue || ''} Nhập
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            data-action="reject-import-receipt"
+                                            data-receipt-id="${escapeHtml(String(receiptId))}"
+                                            data-voucher-no="${escapeHtml(voucherNo)}"
+                                            title="Không nhập phiếu ${escapeHtml(voucherNo)}"
+                                        >
+                                            ${Icons.closeX || ''} Không nhập
+                                        </button>
+                                    ` : isApproved ? `
+                                        <span class="wh-action-status-badge is-approved" title="Đã nhập kho (Approve)">
+                                            ✓ Đã nhập
+                                        </span>
+                                    ` : isRejected ? `
+                                        <span class="wh-action-status-badge is-rejected" title="Không nhập kho (Reject)">
+                                            ✕ Không nhập
+                                        </span>
+                                    ` : ''}
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-view-voucher"
+                                        data-action="open-voucher-modal"
+                                        data-voucher-type="inbound"
+                                        data-doc-no="${escapeHtml(voucherNo)}"
+                                        data-receipt-id="${escapeHtml(String(receiptId))}"
+                                        title="Xem chi tiết ${escapeHtml(voucherNo)}"
                                     >
                                         ${Icons.docFile || Icons.pencil}
                                     </button>

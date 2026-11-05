@@ -132,6 +132,42 @@ const WarehouseController = (function (Model, View) {
         }
     }
 
+    // Cập nhật nội dung Modal phiếu nhập/xuất kho mượt mà, không giật màn hình hoặc reset DOM
+    function updateVoucherModalDom() {
+        const overlay = document.getElementById('wh-voucher-overlay');
+        if (!overlay) {
+            renderMainOnly();
+            return;
+        }
+        const state = Model.getState();
+        const voucherData = Model.getVoucherData(state.activeVoucherModal || 'inbound');
+        if (!voucherData) {
+            renderMainOnly();
+            return;
+        }
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = View.renderStockVoucherModal(voucherData);
+        const newOverlay = tempDiv.firstElementChild;
+        if (!newOverlay) {
+            renderMainOnly();
+            return;
+        }
+
+        const oldBody = overlay.querySelector('.wh-voucher-body');
+        const oldScrollTop = oldBody ? oldBody.scrollTop : 0;
+
+        const oldWindow = overlay.querySelector('.wh-voucher-window');
+        const newWindow = newOverlay.querySelector('.wh-voucher-window');
+        if (oldWindow && newWindow) {
+            oldWindow.innerHTML = newWindow.innerHTML;
+            const newBody = overlay.querySelector('.wh-voucher-body');
+            if (newBody) newBody.scrollTop = oldScrollTop;
+        } else {
+            overlay.replaceWith(newOverlay);
+        }
+    }
+
     function bindEvents() {
         document.addEventListener('click', async function (e) {
             const actionEl = e.target.closest('[data-action]');
@@ -166,6 +202,7 @@ const WarehouseController = (function (Model, View) {
                             renderMainOnly();
                         } else if (menuId === 'nhap-kho') {
                             await Model.fetchProductReceiptsApi();
+                            await Model.fetchImportReceiptsApi();
                             renderMainOnly();
                         }
                     }
@@ -209,8 +246,12 @@ const WarehouseController = (function (Model, View) {
                         } else if (pageType === 'xuat-kho' && tabId === 'lenh-xuat-kho') {
                             await Model.fetchMaterialReceiptsApi();
                             renderMainOnly();
-                        } else if (pageType === 'nhap-kho' && tabId === 'lenh-nhap-kho') {
-                            await Model.fetchProductReceiptsApi();
+                        } else if (pageType === 'nhap-kho') {
+                            if (tabId === 'lenh-nhap-kho') {
+                                await Model.fetchProductReceiptsApi();
+                            } else {
+                                await Model.fetchImportReceiptsApi();
+                            }
                             renderMainOnly();
                         }
                     }
@@ -229,10 +270,16 @@ const WarehouseController = (function (Model, View) {
                         Model.setOperationTab('nhap-kho', 'lenh-nhap-kho');
                     } else if (vType === 'outbound-command') {
                         Model.setOperationTab('xuat-kho', 'lenh-xuat-kho');
+                    } else if (vType === 'inbound') {
+                        Model.setOperationTab('nhap-kho', 'nhap-kho-tab');
                     }
                     const mode = (docNo || receiptId) ? 'view' : 'create';
                     Model.openVoucherModal(vType, receiptId || docNo, mode);
                     renderMainOnly();
+                    if (vType === 'inbound' && mode === 'view' && (receiptId || docNo)) {
+                        await Model.fetchImportReceiptDetailApi(receiptId || docNo);
+                        renderMainOnly();
+                    }
                     break;
                 }
 
@@ -248,7 +295,7 @@ const WarehouseController = (function (Model, View) {
                 case 'add-inbound-item-row': {
                     e.preventDefault();
                     Model.addInboundNewItemRow();
-                    renderMainOnly();
+                    updateVoucherModalDom();
                     break;
                 }
 
@@ -262,7 +309,7 @@ const WarehouseController = (function (Model, View) {
                     });
                     if (confirmed) {
                         Model.clearInboundNewItemRows();
-                        renderMainOnly();
+                        updateVoucherModalDom();
                         WhNotification.toast('Đã làm trống danh sách vật tư', 'info');
                     }
                     break;
@@ -273,31 +320,47 @@ const WarehouseController = (function (Model, View) {
                     const rowId = actionEl.getAttribute('data-row-id');
                     if (rowId) {
                         Model.deleteInboundNewItemRow(rowId);
-                        renderMainOnly();
+                        updateVoucherModalDom();
                     }
                     break;
                 }
 
                 case 'save-inbound-voucher': {
                     e.preventDefault();
-                    const res = Model.saveInboundReceipt(false);
-                    if (!res.success) {
-                        WhNotification.alert(res.message, { type: 'warning', title: 'Thông tin chưa hợp lệ' });
-                    } else {
-                        WhNotification.toast('Lập phiếu nhập kho ' + res.voucherNo + ' thành công!', 'success');
-                        renderMainOnly();
+                    const origHtml = actionEl.innerHTML;
+                    try {
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = '<span>Đang lưu...</span>';
+                        const res = await Model.saveInboundReceipt(false);
+                        if (!res.success) {
+                            WhNotification.alert(res.message, { type: 'warning', title: 'Thông tin chưa hợp lệ' });
+                        } else {
+                            WhNotification.toast('Lập phiếu và nhập kho ' + res.voucherNo + ' thành công! (Trạng thái: Approve)', 'success');
+                            renderMainOnly();
+                        }
+                    } finally {
+                        actionEl.disabled = false;
+                        actionEl.innerHTML = origHtml;
                     }
                     break;
                 }
 
                 case 'save-draft-inbound-voucher': {
                     e.preventDefault();
-                    const res = Model.saveInboundReceipt(true);
-                    if (!res.success) {
-                        WhNotification.alert(res.message, { type: 'warning', title: 'Thông tin chưa hợp lệ' });
-                    } else {
-                        WhNotification.toast('Đã lưu nháp phiếu nhập kho ' + res.voucherNo + ' thành công!', 'info');
-                        renderMainOnly();
+                    const origHtml = actionEl.innerHTML;
+                    try {
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = '<span>Đang lưu nháp...</span>';
+                        const res = await Model.saveInboundReceipt(true);
+                        if (!res.success) {
+                            WhNotification.alert(res.message, { type: 'warning', title: 'Thông tin chưa hợp lệ' });
+                        } else {
+                            WhNotification.toast('Đã lưu nháp phiếu nhập kho ' + res.voucherNo + ' trên giao diện (chưa lưu CSDL)!', 'info');
+                            renderMainOnly();
+                        }
+                    } finally {
+                        actionEl.disabled = false;
+                        actionEl.innerHTML = origHtml;
                     }
                     break;
                 }
@@ -527,6 +590,94 @@ const WarehouseController = (function (Model, View) {
                             renderMainOnly();
                         } catch (err) {
                             await WhNotification.alert(err.message || 'Lỗi khi từ chối nhận thành phẩm!', {
+                                type: 'error',
+                                title: 'Lỗi xử lý'
+                            });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                // Xử lý nút Nhập / Không nhập kho nguyên vật liệu (Import Receipt)
+                case 'approve-import-receipt':
+                case 'approve-import-modal': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const voucherNo = actionEl.getAttribute('data-voucher-no') || receiptId;
+                    if (!receiptId) return;
+
+                    const confirmed = await WhNotification.confirm(
+                        `Bạn có chắc chắn muốn nhập kho nguyên vật liệu cho phiếu <strong>"${voucherNo}"</strong> không?<br/><br/>Hệ thống sẽ lưu phiếu vào CSDL với trạng thái <strong>Approve</strong>, tự động cộng tồn kho nguyên vật liệu và cập nhật hạn sử dụng.`,
+                        {
+                            title: 'Xác nhận nhập kho nguyên vật liệu',
+                            confirmText: 'Nhập',
+                            cancelText: 'Hủy bỏ',
+                            type: 'info'
+                        }
+                    );
+
+                    if (confirmed) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang xử lý...';
+                        try {
+                            const res = await Model.approveImportReceiptApi(receiptId);
+                            WhNotification.toast(res.message || `Nhập kho phiếu ${voucherNo} thành công (Trạng thái: Approve)!`, 'success');
+                            if (action === 'approve-import-modal') {
+                                Model.closeVoucherModal();
+                            }
+                            await Model.fetchImportReceiptsApi();
+                            renderMainOnly();
+                        } catch (err) {
+                            await WhNotification.alert(err.message || 'Lỗi khi nhập kho nguyên vật liệu!', {
+                                type: 'error',
+                                title: 'Không thể nhập kho'
+                            });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                case 'reject-import-receipt':
+                case 'reject-import-modal': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const voucherNo = actionEl.getAttribute('data-voucher-no') || receiptId;
+                    if (!receiptId) return;
+
+                    const reason = await WhNotification.prompt(
+                        `Nhập lý do không nhập nguyên vật liệu cho phiếu <strong>"${voucherNo}"</strong>:<br/><span style="font-size:12px;color:#64748b;">(Hệ thống sẽ lưu phiếu vào CSDL với trạng thái <strong>Reject</strong>)</span>`,
+                        'Hàng không đạt kiểm nghiệm QC hoặc sai quy cách giao nhận',
+                        {
+                            title: 'Xác nhận không nhập nguyên vật liệu',
+                            confirmText: 'Không nhập',
+                            cancelText: 'Hủy bỏ',
+                            type: 'warning'
+                        }
+                    );
+
+                    if (reason !== null && reason.trim()) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang xử lý...';
+                        try {
+                            const res = await Model.rejectImportReceiptApi(receiptId, reason.trim());
+                            WhNotification.toast(res.message || `Đã từ chối nhập kho phiếu ${voucherNo} (Trạng thái: Reject)!`, 'info');
+                            if (action === 'reject-import-modal') {
+                                Model.closeVoucherModal();
+                            }
+                            await Model.fetchImportReceiptsApi();
+                            renderMainOnly();
+                        } catch (err) {
+                            await WhNotification.alert(err.message || 'Lỗi khi xử lý không nhập kho!', {
                                 type: 'error',
                                 title: 'Lỗi xử lý'
                             });
@@ -816,7 +967,7 @@ const WarehouseController = (function (Model, View) {
                         }
                     } else if (curMenu === 'nhap-kho') {
                         try {
-                            await Model.fetchProductReceiptsApi();
+                            await Promise.all([Model.fetchProductReceiptsApi(), Model.fetchImportReceiptsApi()]);
                         } catch (err) {
                             console.error('Lỗi làm mới nhập kho:', err);
                         }
@@ -871,21 +1022,24 @@ const WarehouseController = (function (Model, View) {
             const action = target.getAttribute('data-action');
             if (action === 'change-inbound-supplier') {
                 Model.setInboundNewSupplier(target.value);
-                renderMainOnly();
+                const codeInput = document.getElementById('wh-inbound-supplier-code');
+                const draft = Model.getVoucherData('inbound');
+                if (codeInput) {
+                    codeInput.value = draft ? (draft.supplierCode || '') : '';
+                }
                 return;
             }
 
             if (action === 'change-inbound-item') {
                 const rowId = target.getAttribute('data-row-id');
                 Model.changeInboundNewItem(rowId, target.value);
-                renderMainOnly();
+                updateVoucherModalDom();
                 return;
             }
 
             if (action === 'change-inbound-item-qty') {
                 const rowId = target.getAttribute('data-row-id');
                 Model.changeInboundNewItemQty(rowId, target.value);
-                renderMainOnly();
                 return;
             }
 

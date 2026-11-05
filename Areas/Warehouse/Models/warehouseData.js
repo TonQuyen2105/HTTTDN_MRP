@@ -439,6 +439,14 @@ const WarehouseModel = (function () {
             timeFilter: 'Tháng này',
             statusFilter: 'Tất cả'
         },
+        inboundLocalDrafts: (() => {
+            try {
+                const saved = localStorage.getItem('wh_inbound_drafts');
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                return [];
+            }
+        })(),
         outbound: {
             activeTab: 'lenh-xuat-kho',
             searchKeyword: '',
@@ -573,6 +581,20 @@ const WarehouseModel = (function () {
         }
     }
 
+    async function fetchImportReceiptsApi(keyword = '') {
+        try {
+            const url = '/api/warehouse/import-receipts' + (keyword ? `?keyword=${encodeURIComponent(keyword)}` : '');
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            const data = await res.json();
+            inboundDatasets.inboundReceipts = data;
+            return data;
+        } catch (err) {
+            console.error('Lỗi khi tải danh sách phiếu nhập kho nguyên vật liệu:', err);
+            return inboundDatasets.inboundReceipts;
+        }
+    }
+
     function filterByKeyword(list, kw, keys) {
         const cleanKw = (kw || '').trim().toLowerCase();
         if (!cleanKw) return list;
@@ -619,6 +641,11 @@ const WarehouseModel = (function () {
                 await fetchProductReceiptsApi();
             } catch (e) {
                 console.warn('Lỗi tải Lệnh nhập kho thành phẩm:', e);
+            }
+            try {
+                await fetchImportReceiptsApi();
+            } catch (e) {
+                console.warn('Lỗi tải Phiếu nhập kho NVL:', e);
             }
         },
 
@@ -1060,21 +1087,56 @@ const WarehouseModel = (function () {
                     if (state.activeVoucherMode === 'create' && state.inboundNewDraft) {
                         return state.inboundNewDraft;
                     }
-                    const activeDocNo = state.activeVoucherDocNo || 'PNK00005';
-                    const receiptRow = inboundDatasets.inboundReceipts.find(r => r.voucherNo === activeDocNo || r.orderNo === activeDocNo);
+                    const activeDocNo = state.activeVoucherDocNo || 'PNK00018';
+                    const draftRow = (state.inboundLocalDrafts || []).find(d =>
+                        d.voucherNo === activeDocNo || d.orderNo === activeDocNo || String(d.id) === String(activeDocNo) || String(d.ipReceiptId) === String(activeDocNo)
+                    );
+                    if (draftRow) {
+                        return {
+                            voucherType: 'inbound',
+                            mode: 'view',
+                            isDraft: true,
+                            receiptId: draftRow.id,
+                            ipReceiptId: draftRow.id,
+                            voucherNo: draftRow.voucherNo,
+                            orderNo: draftRow.voucherNo,
+                            employeeCode: draftRow.employeeCode || 'NV0005',
+                            employeeName: draftRow.creatorName || 'Nguyễn Tiến Huy',
+                            supplierCode: draftRow.supplierCode || '',
+                            supplierName: draftRow.supplierName || 'Chưa chọn nhà cung cấp',
+                            voucherDate: draftRow.voucherDate,
+                            warehouse: draftRow.warehouse || 'KHO HƯNG YÊN - HÀNG TƯƠNG LAI',
+                            status: 'Lưu nháp',
+                            orderStatus: 'Lưu nháp',
+                            statusType: 'secondary',
+                            items: draftRow.items || []
+                        };
+                    }
+
+                    const receiptRow = inboundDatasets.inboundReceipts.find(r =>
+                        r.voucherNo === activeDocNo || r.orderNo === activeDocNo || String(r.id) === String(activeDocNo) || String(r.ipReceiptId) === String(activeDocNo)
+                    );
                     if (receiptRow) {
                         vouchersData.inbound.mode = 'view';
+                        vouchersData.inbound.isDraft = false;
+                        vouchersData.inbound.receiptId = receiptRow.ipReceiptId || receiptRow.id;
+                        vouchersData.inbound.ipReceiptId = receiptRow.ipReceiptId || receiptRow.id;
                         vouchersData.inbound.voucherNo = receiptRow.voucherNo;
                         vouchersData.inbound.employeeCode = receiptRow.employeeCode || 'NV0005';
                         vouchersData.inbound.employeeName = receiptRow.creatorName || 'Nguyễn Tiến Huy';
-                        vouchersData.inbound.supplierCode = receiptRow.supplierCode || 'NCC0006';
-                        vouchersData.inbound.supplierName = receiptRow.supplierName || 'CÔNG TY CỔ PHẦN CÔNG NGHỆ IAT VIỆT NAM';
+                        vouchersData.inbound.supplierCode = receiptRow.supplierCode || 'NCC0046';
+                        vouchersData.inbound.supplierName = receiptRow.supplierName || 'Công ty Cổ phần Dược phẩm Trung ương CPC1';
                         vouchersData.inbound.voucherDate = receiptRow.voucherDate;
+                        vouchersData.inbound.warehouse = receiptRow.warehouse || 'KHO HƯNG YÊN - HÀNG TƯƠNG LAI';
+                        vouchersData.inbound.status = receiptRow.status;
+                        vouchersData.inbound.orderStatus = receiptRow.status;
+                        vouchersData.inbound.statusType = receiptRow.statusType;
                         if (receiptRow.items && receiptRow.items.length > 0) {
                             vouchersData.inbound.items = receiptRow.items;
                         }
                     } else {
                         vouchersData.inbound.mode = 'view';
+                        vouchersData.inbound.isDraft = false;
                     }
                     return vouchersData.inbound;
                 }
@@ -1141,28 +1203,33 @@ const WarehouseModel = (function () {
             }
         },
 
+        isDraftReceipt(receiptId) {
+            const sid = String(receiptId);
+            return sid.startsWith('draft_') || (state.inboundLocalDrafts || []).some(d => String(d.id) === sid || d.voucherNo === sid);
+        },
+
         openVoucherModal(voucherType, docNo, mode = 'view') {
             state.activeVoucherModal = voucherType;
             state.activeVoucherDocNo = docNo;
             state.activeVoucherMode = mode || 'view';
 
             if (voucherType === 'inbound' && mode === 'create') {
-                const suppliers = this.getSuppliersList();
-                const firstSupplier = suppliers[0] || { code: 'NCC0046', name: 'Công ty Cổ phần Dược phẩm Trung ương CPC1' };
+                const totalExisting = (inboundDatasets.inboundReceipts || []).length + (state.inboundLocalDrafts || []).length + 10;
                 state.inboundNewDraft = {
                     voucherType: 'inbound',
                     mode: 'create',
-                    voucherNo: `PNK${String(inboundDatasets.inboundReceipts.length + 6).padStart(5, '0')}`,
+                    voucherNo: `PNK${String(totalExisting).padStart(5, '0')}`,
                     selectedSubType: 'Nhập kho mua hàng',
                     employeeCode: 'NV0005',
                     employeeName: 'Nguyễn Tiến Huy',
-                    supplierCode: firstSupplier.code,
-                    supplierName: firstSupplier.name,
+                    supplierCode: '',
+                    supplierName: '',
+                    supplierId: null,
                     voucherDate: getCurrentVnDateTime(),
                     quantityColumnLabel: 'SL nhập',
                     items: []
                 };
-                this.addInboundNewItemRow();
+                // Tuyệt đối không tự động tạo dòng nguyên vật liệu khi mở modal (bảng trống)
             }
         },
 
@@ -1173,11 +1240,18 @@ const WarehouseModel = (function () {
             state.inboundNewDraft = null;
         },
 
-        setInboundNewSupplier(supplierCode) {
+        setInboundNewSupplier(supplierVal) {
             if (!state.inboundNewDraft) return;
+            if (!supplierVal) {
+                state.inboundNewDraft.supplierId = null;
+                state.inboundNewDraft.supplierCode = '';
+                state.inboundNewDraft.supplierName = '';
+                return;
+            }
             const suppliers = this.getSuppliersList();
-            const sup = suppliers.find(s => s.code === supplierCode);
+            const sup = suppliers.find(s => s.code === supplierVal || s.name === supplierVal);
             if (sup) {
+                state.inboundNewDraft.supplierId = sup.id || sup.supplierId;
                 state.inboundNewDraft.supplierCode = sup.code;
                 state.inboundNewDraft.supplierName = sup.name;
             }
@@ -1185,20 +1259,16 @@ const WarehouseModel = (function () {
 
         addInboundNewItemRow() {
             if (!state.inboundNewDraft) return;
-            const ingrList = this.getIngredientsList();
-            const firstIngr = ingrList[0] || { ingrCode: 'NVL041', ingrName: 'Hoạt chất Paracetamol', unit: 'kg', price: 185000, expiredDate: '31/12/2028' };
             const nextId = (state.inboundNewDraft.items.length > 0 ? Math.max(...state.inboundNewDraft.items.map(i => i.id)) : 0) + 1;
-            const qty = 100;
-            const price = firstIngr.price || 0;
             state.inboundNewDraft.items.push({
                 id: nextId,
-                itemCode: firstIngr.ingrCode,
-                itemName: firstIngr.ingrName,
-                unit: firstIngr.unit,
-                quantity: qty,
-                price: price,
-                amount: qty * price,
-                expiryDate: firstIngr.expiredDate || '31/12/2028'
+                itemCode: '',
+                itemName: '',
+                unit: '-',
+                quantity: '',
+                price: 0,
+                amount: 0,
+                expiryDate: '-'
             });
         },
 
@@ -1217,15 +1287,26 @@ const WarehouseModel = (function () {
             if (!state.inboundNewDraft) return;
             const row = state.inboundNewDraft.items.find(i => i.id === Number(rowId));
             if (!row) return;
+            if (!ingrCode) {
+                row.itemCode = '';
+                row.itemName = '';
+                row.unit = '-';
+                row.price = 0;
+                row.expiryDate = '-';
+                row.amount = 0;
+                return;
+            }
             const ingrList = this.getIngredientsList();
             const ingr = ingrList.find(i => i.ingrCode === ingrCode);
             if (ingr) {
                 row.itemCode = ingr.ingrCode;
                 row.itemName = ingr.ingrName;
-                row.unit = ingr.unit;
-                row.price = ingr.price;
-                row.expiryDate = ingr.expiredDate;
-                row.amount = (row.quantity || 0) * (row.price || 0);
+                row.unit = ingr.unit || 'kg';
+                row.price = ingr.price || 0;
+                row.expiryDate = ingr.expiredDate || '31/12/2026';
+                row.ingrId = ingr.id || ingr.ingrId;
+                const qty = parseFloat(row.quantity) || 0;
+                row.amount = qty * (row.price || 0);
             }
         },
 
@@ -1239,34 +1320,91 @@ const WarehouseModel = (function () {
             return row;
         },
 
-        saveInboundReceipt(isDraft = false) {
+        async saveInboundReceipt(isDraft = false) {
             if (!state.inboundNewDraft) return { success: false, message: 'Không có dữ liệu phiếu!' };
             const draft = state.inboundNewDraft;
-            if (!draft.items || draft.items.length === 0) {
-                return { success: false, message: 'Vui lòng thêm ít nhất 1 dòng nguyên vật liệu!' };
+
+            if (isDraft) {
+                // Lưu nháp: CHƯA LƯU VÀO DATABASE mà chỉ nằm trên giao diện (local state)
+                const draftId = `draft_${Date.now()}`;
+                const newDraft = {
+                    id: draftId,
+                    receiptId: draftId,
+                    ipReceiptId: draftId,
+                    isDraft: true,
+                    voucherNo: draft.voucherNo,
+                    orderNo: draft.voucherNo,
+                    voucherDate: draft.voucherDate || getCurrentVnDateTime(),
+                    supplierId: draft.supplierId || null,
+                    supplierCode: draft.supplierCode || '',
+                    supplierName: draft.supplierName || 'Chưa chọn nhà cung cấp',
+                    warehouse: 'KHO HƯNG YÊN - HÀNG TƯƠNG LAI',
+                    status: 'Lưu nháp',
+                    orderStatus: 'Lưu nháp',
+                    statusType: 'secondary',
+                    creatorName: draft.employeeName || 'Nguyễn Tiến Huy',
+                    employeeCode: draft.employeeCode || 'NV0005',
+                    items: JSON.parse(JSON.stringify(draft.items || []))
+                };
+
+                state.inboundLocalDrafts.unshift(newDraft);
+                try {
+                    localStorage.setItem('wh_inbound_drafts', JSON.stringify(state.inboundLocalDrafts));
+                } catch (e) {}
+
+                this.closeVoucherModal();
+                return { success: true, isDraft: true, voucherNo: draft.voucherNo };
             }
-            const statusText = isDraft ? 'Lưu nháp' : 'Chờ nhập kho';
-            const statusType = isDraft ? 'neutral' : 'warning';
-            const newReceipt = {
-                voucherNo: draft.voucherNo,
-                orderNo: draft.voucherNo,
-                voucherDate: draft.voucherDate,
-                creatorName: draft.employeeName,
-                employeeCode: draft.employeeCode,
-                supplierName: draft.supplierName,
-                supplierCode: draft.supplierCode,
-                warehouse: 'KHO HƯNG YÊN- HÀNG TƯƠNG LAI',
-                partnerName: draft.employeeName,
-                deliverer: '',
-                description: draft.supplierName,
-                status: statusText,
-                statusType: statusType,
-                subType: draft.selectedSubType || 'Nhập kho mua hàng',
-                items: JSON.parse(JSON.stringify(draft.items))
-            };
-            inboundDatasets.inboundReceipts.unshift(newReceipt);
-            this.closeVoucherModal();
-            return { success: true, voucherNo: newReceipt.voucherNo };
+
+            // Nhấn Lưu: Bắt buộc chọn NCC và có ít nhất 1 NVL hợp lệ, lưu vào DB với status = "Approve"
+            if (!draft.supplierCode && !draft.supplierName) {
+                return { success: false, message: 'Vui lòng chọn nhà cung cấp!' };
+            }
+            const validItems = (draft.items || []).filter(it => it.itemCode && Number(it.quantity) > 0);
+            if (validItems.length === 0) {
+                return { success: false, message: 'Phiếu nhập phải có ít nhất 1 dòng nguyên vật liệu với số lượng nhập lớn hơn 0!' };
+            }
+
+            const suppliers = this.getSuppliersList();
+            const sup = suppliers.find(s => s.code === draft.supplierCode || s.name === draft.supplierName) || suppliers[0];
+            const supplierId = draft.supplierId || (sup ? (sup.id || sup.supplierId) : 46);
+
+            const ingrList = this.getIngredientsList();
+            const apiItems = validItems.map(it => {
+                const found = ingrList.find(i => i.ingrCode === it.itemCode);
+                const ingrId = it.ingrId || (found ? (found.id || found.ingrId) : 41);
+                return {
+                    ingrId: Number(ingrId),
+                    quantity: Number(it.quantity) || 1,
+                    cost: Number(it.price) || 0
+                };
+            });
+
+            try {
+                const payload = {
+                    supplierId: Number(supplierId),
+                    ipReceiptCode: draft.voucherNo,
+                    status: 'Approve',
+                    isDraft: false,
+                    items: apiItems
+                };
+                const res = await fetch('/api/warehouse/import-receipts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resText = await res.text();
+                let resData = {};
+                try { resData = JSON.parse(resText); } catch (_) { resData = { message: resText }; }
+                if (!res.ok) throw new Error(resData.message || `Lỗi máy chủ (${res.status})`);
+
+                await fetchImportReceiptsApi();
+                this.closeVoucherModal();
+                return { success: true, isDraft: false, voucherNo: resData.voucherNo || draft.voucherNo };
+            } catch (err) {
+                console.error('Lỗi khi lưu phiếu nhập kho NVL:', err);
+                return { success: false, message: err.message || 'Lỗi khi lưu phiếu nhập kho!' };
+            }
         },
 
         addVoucherItemRow(voucherType) {
@@ -1453,7 +1591,10 @@ const WarehouseModel = (function () {
             let sourceRows = [];
 
             if (isVoucherTab) {
-                sourceRows = inboundDatasets.inboundReceipts;
+                sourceRows = [
+                    ...(state.inboundLocalDrafts || []),
+                    ...(inboundDatasets.inboundReceipts || [])
+                ];
             } else if (isCommandTab) {
                 sourceRows = inboundDatasets.inboundCommands;
             } else {
@@ -1479,11 +1620,12 @@ const WarehouseModel = (function () {
                 columns = [
                     { key: 'voucherDate', label: 'Ngày chứng từ', width: '150px' },
                     { key: 'voucherNo', label: 'Số chứng từ', isLink: true, width: '130px' },
-                    { key: 'creatorName', label: 'Người lập phiếu', width: '160px' },
-                    { key: 'supplierCode', label: 'Mã nhà cung cấp', width: '140px' },
-                    { key: 'supplierName', label: 'Nhà cung cấp', width: '260px' },
-                    { key: 'warehouse', label: 'Kho nhập', width: '220px' },
-                    { key: 'status', label: 'Trạng thái', isBadge: true, width: '140px' }
+                    { key: 'creatorName', label: 'Người lập phiếu', width: '150px' },
+                    { key: 'supplierCode', label: 'Mã nhà cung cấp', width: '130px' },
+                    { key: 'supplierName', label: 'Nhà cung cấp', width: '250px' },
+                    { key: 'warehouse', label: 'Kho nhập', width: '210px' },
+                    { key: 'status', label: 'Trạng thái', isBadge: true, width: '130px' },
+                    { key: 'action', label: 'Thao tác', isActionImportReceipt: true, width: '190px' }
                 ];
             } else if (isCommandTab) {
                 columns = [
@@ -1514,14 +1656,18 @@ const WarehouseModel = (function () {
                 activeTab: state.inbound.activeTab,
                 tabs: [
                     { id: 'lenh-nhap-kho', label: 'Nhập kho thành phẩm' },
-                    { id: 'nhap-kho-tab', label: 'Nhập kho' }
+                    { id: 'nhap-kho-tab', label: 'Nhập kho nguyên vật liệu' }
                 ],
                 searchValue: state.inbound.searchKeyword,
-                filters: isCommandTab ? [
-                    { id: 'inbound-status-filter', prefix: 'Trạng thái:', value: state.inbound.statusFilter || 'Tất cả', options: ['Tất cả', 'Chờ nhập kho', 'Đã nhập kho', 'Từ chối'] }
-                ] : [
-                    { id: 'inbound-time-filter', value: state.inbound.timeFilter, options: ['Hôm nay', 'Tuần này', 'Tháng này', 'Quý này', 'Năm nay'] },
-                    { id: 'inbound-status-filter', value: state.inbound.statusFilter, options: ['Tất cả', 'Chưa thực hiện', 'Đang thực hiện', 'Chờ nhập kho', 'Đã nhập kho', 'Hoàn thành'] }
+                filters: [
+                    {
+                        id: 'inbound-status-filter',
+                        prefix: 'Trạng thái:',
+                        value: state.inbound.statusFilter || 'Tất cả',
+                        options: isVoucherTab
+                            ? ['Tất cả', 'Lưu nháp', 'Approve', 'Reject']
+                            : ['Tất cả', 'Chờ nhập kho', 'Đã nhập kho', 'Từ chối']
+                    }
                 ],
                 showAddButton: isVoucherTab,
                 addButtonLabel: 'Lập phiếu nhập nvl',
@@ -1702,6 +1848,193 @@ const WarehouseModel = (function () {
             if (existing) {
                 existing.status = 'Rejected';
                 existing.orderStatus = 'Từ chối';
+                existing.statusType = 'danger';
+            }
+            return data;
+        },
+
+        async fetchImportReceiptsApi(keyword = '') {
+            return fetchImportReceiptsApi(keyword);
+        },
+
+        async fetchImportReceiptDetailApi(receiptId) {
+            const numId = parseInt(String(receiptId).replace(/\D/g, ''), 10) || receiptId;
+            try {
+                const res = await fetch(`/api/warehouse/import-receipts/${numId}`);
+                if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                const data = await res.json();
+                const existing = inboundDatasets.inboundReceipts.find(r => r.ipReceiptId === numId || r.voucherNo === data.voucherNo || r.id === numId);
+                if (existing) {
+                    existing.items = data.items;
+                    existing.status = data.status;
+                    existing.orderStatus = data.status;
+                    existing.statusType = data.statusType;
+                }
+                if (vouchersData.inbound && (vouchersData.inbound.voucherNo === data.voucherNo || vouchersData.inbound.receiptId === numId)) {
+                    vouchersData.inbound.items = data.items;
+                    vouchersData.inbound.status = data.status;
+                    vouchersData.inbound.orderStatus = data.status;
+                    vouchersData.inbound.statusType = data.statusType;
+                    vouchersData.inbound.supplierName = data.supplierName;
+                    vouchersData.inbound.supplierCode = data.supplierCode;
+                }
+                return data;
+            } catch (err) {
+                console.error('Lỗi khi tải chi tiết phiếu nhập kho NVL:', err);
+                return null;
+            }
+        },
+
+        async approveImportReceiptApi(receiptId) {
+            const isDraft = this.isDraftReceipt(receiptId);
+            if (isDraft) {
+                const draft = (state.inboundLocalDrafts || []).find(d => String(d.id) === String(receiptId) || d.voucherNo === receiptId);
+                if (!draft) {
+                    throw new Error('Không tìm thấy phiếu nháp!');
+                }
+                if (!draft.supplierCode && !draft.supplierName) {
+                    throw new Error('Phiếu nháp chưa chọn nhà cung cấp hợp lệ. Vui lòng kiểm tra lại!');
+                }
+                const validItems = (draft.items || []).filter(it => it.itemCode && Number(it.quantity) > 0);
+                if (validItems.length === 0) {
+                    throw new Error('Phiếu nháp phải có ít nhất 1 dòng nguyên vật liệu với số lượng nhập lớn hơn 0!');
+                }
+
+                const suppliers = this.getSuppliersList();
+                const sup = suppliers.find(s => s.code === draft.supplierCode || s.name === draft.supplierName) || suppliers[0];
+                const supplierId = draft.supplierId || (sup ? (sup.id || sup.supplierId) : 46);
+
+                const ingrList = this.getIngredientsList();
+                const apiItems = validItems.map(it => {
+                    const found = ingrList.find(i => i.ingrCode === it.itemCode);
+                    const ingrId = it.ingrId || (found ? (found.id || found.ingrId) : 41);
+                    return {
+                        ingrId: Number(ingrId),
+                        quantity: Number(it.quantity) || 1,
+                        cost: Number(it.price) || 0
+                    };
+                });
+
+                const payload = {
+                    supplierId: Number(supplierId),
+                    ipReceiptCode: draft.voucherNo,
+                    status: 'Approve',
+                    isDraft: false,
+                    items: apiItems
+                };
+                const res = await fetch('/api/warehouse/import-receipts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resText = await res.text();
+                let resData = {};
+                try { resData = JSON.parse(resText); } catch (_) { resData = { message: resText }; }
+                if (!res.ok) throw new Error(resData.message || `Lỗi máy chủ (${res.status})`);
+
+                // Xóa khỏi danh sách nháp local
+                state.inboundLocalDrafts = state.inboundLocalDrafts.filter(d => String(d.id) !== String(receiptId) && d.voucherNo !== receiptId);
+                try {
+                    localStorage.setItem('wh_inbound_drafts', JSON.stringify(state.inboundLocalDrafts));
+                } catch (e) {}
+
+                await fetchImportReceiptsApi();
+                return {
+                    success: true,
+                    status: 'Approve',
+                    message: `Nhập kho phiếu ${draft.voucherNo} thành công (Trạng thái: Approve)!`
+                };
+            }
+
+            const numId = parseInt(String(receiptId).replace(/\D/g, ''), 10) || receiptId;
+            const res = await fetch(`/api/warehouse/import-receipts/${numId}/approve`, {
+                method: 'PUT'
+            });
+            const resText = await res.text();
+            let data = {};
+            try { data = JSON.parse(resText); } catch (_) { data = { message: resText }; }
+            if (!res.ok) {
+                throw new Error(data.message || `Nhập kho thất bại (${res.status}).`);
+            }
+            const existing = inboundDatasets.inboundReceipts.find(r => r.id === numId || r.ipReceiptId === numId);
+            if (existing) {
+                existing.status = 'Approve';
+                existing.orderStatus = 'Approve';
+                existing.statusType = 'success';
+            }
+            return data;
+        },
+
+        async rejectImportReceiptApi(receiptId, reason = '') {
+            const isDraft = this.isDraftReceipt(receiptId);
+            if (isDraft) {
+                const draft = (state.inboundLocalDrafts || []).find(d => String(d.id) === String(receiptId) || d.voucherNo === receiptId);
+                if (!draft) {
+                    throw new Error('Không tìm thấy phiếu nháp!');
+                }
+                const suppliers = this.getSuppliersList();
+                const sup = suppliers.find(s => s.code === draft.supplierCode || s.name === draft.supplierName) || suppliers[0];
+                const supplierId = draft.supplierId || (sup ? (sup.id || sup.supplierId) : 46);
+
+                const ingrList = this.getIngredientsList();
+                const itemsToSave = (draft.items && draft.items.length > 0) ? draft.items : [{ itemCode: 'NVL041', quantity: 1, price: 0 }];
+                const apiItems = itemsToSave.map(it => {
+                    const found = ingrList.find(i => i.ingrCode === it.itemCode);
+                    const ingrId = it.ingrId || (found ? (found.id || found.ingrId) : 41);
+                    return {
+                        ingrId: Number(ingrId),
+                        quantity: Number(it.quantity) || 1,
+                        cost: Number(it.price) || 0
+                    };
+                });
+
+                const payload = {
+                    supplierId: Number(supplierId),
+                    ipReceiptCode: draft.voucherNo,
+                    status: 'Reject',
+                    isReject: true,
+                    items: apiItems
+                };
+                const res = await fetch('/api/warehouse/import-receipts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const resText = await res.text();
+                let resData = {};
+                try { resData = JSON.parse(resText); } catch (_) { resData = { message: resText }; }
+                if (!res.ok) throw new Error(resData.message || `Lỗi máy chủ (${res.status})`);
+
+                // Xóa khỏi danh sách nháp local
+                state.inboundLocalDrafts = state.inboundLocalDrafts.filter(d => String(d.id) !== String(receiptId) && d.voucherNo !== receiptId);
+                try {
+                    localStorage.setItem('wh_inbound_drafts', JSON.stringify(state.inboundLocalDrafts));
+                } catch (e) {}
+
+                await fetchImportReceiptsApi();
+                return {
+                    success: true,
+                    status: 'Reject',
+                    message: `Đã từ chối nhập kho phiếu ${draft.voucherNo} (Trạng thái: Reject)!`
+                };
+            }
+
+            const numId = parseInt(String(receiptId).replace(/\D/g, ''), 10) || receiptId;
+            const res = await fetch(`/api/warehouse/import-receipts/${numId}/reject`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: reason || 'Không nhập kho NVL.' })
+            });
+            const resText = await res.text();
+            let data = {};
+            try { data = JSON.parse(resText); } catch (_) { data = { message: resText }; }
+            if (!res.ok) {
+                throw new Error(data.message || `Từ chối nhập kho thất bại (${res.status}).`);
+            }
+            const existing = inboundDatasets.inboundReceipts.find(r => r.id === numId || r.ipReceiptId === numId);
+            if (existing) {
+                existing.status = 'Reject';
+                existing.orderStatus = 'Reject';
                 existing.statusType = 'danger';
             }
             return data;

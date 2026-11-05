@@ -50,7 +50,18 @@
           <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
           <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
         </div>
-        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;" title="Tài khoản cá nhân">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
       </div>
     </header>
 
@@ -119,7 +130,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
             <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
@@ -220,19 +231,19 @@
                     {
                         <tr>
                           <td class="text-center">@stt</td>
-                          <td><strong>@item.BomName</strong></td>
-                          <td>Định mức sản xuất @(item.Product?.ProductName ?? "Thành phẩm thuốc")</td>
+                          <td><strong>@(item.BomCode ?? item.BomName)</strong></td>
+                          <td>@item.BomName</td>
                           <td>@(item.Product?.ProductName ?? $"Mã SP: {item.ProductId}")</td>
-                          <td>Ver 1.0</td>
-                          <td>BOM sản xuất GMP</td>
+                          <td>—</td>
+                          <td>—</td>
                           <td>@(item.Product?.Unit ?? "Hộp")</td>
-                          <td class="text-right">1 @(item.Product?.Unit ?? "đơn vị")</td>
+                          <td class="text-right">@($"{item.ItemQuantity} {item.Product?.Unit ?? "đơn vị"}")</td>
                           <td>@item.Ingredient?.IngrName</td>
-                          <td class="text-right">@(item.ItemQuantity is > 0 && item.MaterialQuantity is > 0
-                              ? ((decimal)item.MaterialQuantity.Value / item.ItemQuantity.Value).ToString("0.############") + " " + item.Ingredient?.Unit
+                          <td class="text-right">@(item.ItemQuantity > 0 && item.MaterialQuantity > 0
+                              ? (item.MaterialQuantity / item.ItemQuantity).ToString("0.############") + " " + item.Ingredient?.Unit
                               : "BOM chưa hợp lệ")</td>
-                          <td>01/01/2026</td>
-                          <td class="text-center"><span class="badge-status-active">Đang áp dụng</span></td>
+                          <td>—</td>
+                          <td class="text-center">—</td>
                           <td class="text-center">
                             <a asp-action="BomEdit" asp-route-id="@item.BomId" class="btn-edit-action" title="Sửa định mức BOM">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>

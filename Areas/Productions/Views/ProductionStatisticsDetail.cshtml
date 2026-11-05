@@ -1,12 +1,18 @@
-@model httt.Models.ProductionRequest
+@model httt.Models.ProductionRequest?
 @{
     Layout = null;
-    var requestId = Model?.RequestId ?? 1;
-    var reqCode = "TKSX00" + requestId.ToString("D3");
-    var prodName = Model?.Product?.ProductName ?? "Ginkgo Biloba 120mg Trunature";
-    var dateStr = Model?.CreatedDate?.ToString("dd/MM/yyyy") ?? "22/01/2026";
-    var managerName = Model?.Manager?.FullName ?? "DS. Nguyễn Minh Tài";
-    var qtyReq = Model?.QuantityRequired ?? 2000;
+    var isNotFound = Model == null;
+    var requestId = Model?.RequestId ?? 0;
+    var reqCode = Model != null ? "TKSX00" + requestId.ToString("D3") : "—";
+    var prodName = Model?.Product?.ProductName ?? "—";
+    var unit = Model?.Product?.Unit ?? "Hộp";
+    var dateStr = Model?.CreatedDate?.ToString("dd/MM/yyyy") ?? "—";
+    var managerName = Model?.Manager?.FullName ?? "Chưa cập nhật";
+    var qtyReq = Model?.QuantityRequired ?? 0;
+    var receipt = ViewBag.ProductReceipt as httt.Models.ProductReceipt;
+    var actualProduced = receipt?.Details?.Sum(d => d.Quantity) ?? 0;
+    var hasRecordedOutput = actualProduced > 0;
+    var orderCode = !string.IsNullOrWhiteSpace(Model?.RequestCode) ? Model.RequestCode : (Model?.RequestId > 0 ? $"YCSX-{Model.RequestId}" : (Model?.DisplayCode ?? "—"));
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -64,7 +70,18 @@
           <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
           <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
         </div>
-        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
       </div>
     </header>
 
@@ -133,7 +150,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link active">Thống kê sản xuất</a>
             <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
@@ -190,22 +207,35 @@
     <main class="app-main">
       <div class="main-container page-fade-in">
 
+        @if (isNotFound)
+        {
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 24px; margin-bottom: 24px; color: #991b1b;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                <line x1="12" y1="12" x2="12" y2="16"></line>
+              </svg>
+              <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Không tìm thấy Phiếu thống kê sản xuất</h2>
+            </div>
+            <p style="margin: 0 0 16px 0; font-size: 14px; color: #7f1d1d;">Bản ghi thống kê sản xuất không tồn tại hoặc đã bị xóa khỏi hệ thống.</p>
+            <a href="/Productions/Home/ProductionStatisticsList" class="btn-cancel" style="display: inline-block; text-decoration: none; padding: 8px 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; color: #1e293b; font-weight: 500;">&larr; Về danh sách thống kê</a>
+          </div>
+        }
+        else
+        {
         <div class="stats-form-card">
           <div class="stats-form-header">
             <div style="display: flex; align-items: center; gap: 12px;">
-              <h1 class="stats-form-title">Chi tiết Phiếu thống kê sản xuất</h1>
+              <h1 class="stats-form-title">Chi tiết Phiếu thống kê sản xuất @reqCode</h1>
               <span class="badge-confirmed" style="font-size: 12.5px; padding: 4px 10px;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                Đã ghi nhận
+                @(hasRecordedOutput ? "Đã ghi nhận sản lượng" : "Kế hoạch sản xuất")
               </span>
             </div>
             <div style="display: flex; align-items: center; gap: 16px;">
-              <div class="misa-header-logo" title="MISA AMIS">
-                MISA<sup>®</sup>
-                <span class="misa-sub-text">TIN CẬY - TIỆN ÍCH - TẬN TÌNH</span>
-              </div>
               <div class="order-header-actions">
                 <a href="/Productions/Home/ProductionStatisticsList" class="btn-header-tool" id="btnCloseStats" title="Đóng">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -232,9 +262,9 @@
                   </div>
 
                   <div class="stats-field-row">
-                    <label class="stats-field-label">Lệnh sản xuất</label>
+                    <label class="stats-field-label">Mã đơn / Phiếu kho</label>
                     <div style="display: flex; align-items: center;">
-                      <a href="/Productions/Home/ProductionOrder" class="ref-link" style="font-weight: 600; font-size: 13.5px; color: var(--color-primary);">LSX-GMP-0@(requestId)</a>
+                      <a href="/Productions/Home/DrugOrder" class="ref-link" style="font-weight: 600; font-size: 13.5px; color: var(--color-primary);">@orderCode</a>
                     </div>
                   </div>
 
@@ -254,15 +284,13 @@
                   </div>
 
                   <div class="stats-field-row">
-                    <label class="stats-field-label">Số lượng yêu cầu</label>
-                    <input type="text" class="form-input text-right" value="@qtyReq Hộp" readonly style="background-color: #f8fafc; font-weight: 600;">
+                    <label class="stats-field-label">Số lượng kế hoạch</label>
+                    <input type="text" class="form-input text-right" value="@qtyReq.ToString("N0") @unit" readonly style="background-color: #f8fafc; font-weight: 600;">
                   </div>
 
                   <div class="stats-field-row">
                     <label class="stats-field-label">Ca làm việc</label>
-                    <div class="form-control-wrap" style="border: 1px solid #dcdfe6; border-radius: 4px; padding: 2px 8px; display: flex; align-items: center; background:#f8fafc; height:32px;">
-                      <span class="tag-pill-sm">MOI</span>
-                    </div>
+                    <input type="text" class="form-input" value="—" readonly style="background-color: #f8fafc;">
                   </div>
 
                   <div class="stats-field-row">
@@ -272,7 +300,7 @@
 
                   <div class="stats-field-row" style="grid-column: 1 / -1;">
                     <label class="stats-field-label">Diễn giải</label>
-                    <input type="text" class="form-input" value="Thống kê sản lượng thực tế ca sản xuất theo tiêu chuẩn GMP" readonly style="background-color: #f8fafc;">
+                    <input type="text" class="form-input" value="Thống kê sản lượng kế hoạch và thực tế theo tiến độ sản xuất" readonly style="background-color: #f8fafc;">
                   </div>
                 </div>
               </div>
@@ -294,19 +322,26 @@
                   <div class="status-meta-item">
                     <label class="status-meta-label">Trạng thái phiếu</label>
                     <div>
-                      <span class="badge-confirmed">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Đã xác nhận
-                      </span>
+                      @if (hasRecordedOutput)
+                      {
+                        <span class="badge-confirmed">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          Đã có sản lượng
+                        </span>
+                      }
+                      else
+                      {
+                        <span class="badge-waiting" style="background:#fef3c7; color:#d97706; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600;">Chưa ghi nhận</span>
+                      }
                     </div>
                   </div>
 
                   <div class="status-meta-item">
                     <label class="status-meta-label">Tham chiếu Lệnh SX</label>
                     <div>
-                      <a href="/Productions/Home/ProductionOrder" class="ref-link" style="font-weight: 600;">LSX-GMP-0@(requestId)</a>
+                      <a href="/Productions/Home/DrugOrder" class="ref-link" style="font-weight: 600;">@orderCode</a>
                     </div>
                   </div>
                 </div>
@@ -320,28 +355,28 @@
                 <div class="form-group">
                   <label class="form-label" style="min-width: 120px;">Thời gian bắt đầu</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input" value="@dateStr 07:30" readonly style="background-color: #f8fafc;">
+                    <input type="text" class="form-input" value="—" readonly style="background-color: #f8fafc;">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label" style="min-width: 120px;">Thời gian kết thúc</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input" value="@dateStr 17:00" readonly style="background-color: #f8fafc;">
+                    <input type="text" class="form-input" value="—" readonly style="background-color: #f8fafc;">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label" style="min-width: 140px;">Thời lượng dừng SX</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input text-right" value="30,000 Phút" readonly style="background-color: #f8fafc;">
+                    <input type="text" class="form-input text-right" value="—" readonly style="background-color: #f8fafc;">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label" style="min-width: 120px;">Thời lượng SX</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input text-right" value="540,000 Phút" readonly style="background-color: #f8fafc; font-weight: 600;">
+                    <input type="text" class="form-input text-right" value="—" readonly style="background-color: #f8fafc; font-weight: 600;">
                   </div>
                 </div>
               </div>
@@ -351,7 +386,7 @@
             <div class="bom-section-box">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                 <h2 class="bom-section-title" style="margin-bottom: 0;">Chi tiết thống kê sản lượng thực tế</h2>
-                <span style="font-size: 13px; color: #64748b;">Tổng số: <strong>3</strong> nhân sự thực hiện</span>
+                <span style="font-size: 13px; color: #64748b;">Tổng số: <strong>@(hasRecordedOutput ? 1 : 0)</strong> bản ghi</span>
               </div>
 
               <div class="table-responsive">
@@ -359,7 +394,7 @@
                   <thead>
                     <tr>
                       <th>Mã NV</th>
-                      <th>Họ và tên người thực hiện</th>
+                      <th>Người thực hiện</th>
                       <th>ĐVT</th>
                       <th class="text-right">SL đã sản xuất</th>
                       <th class="text-right">SL đạt</th>
@@ -370,53 +405,45 @@
                     </tr>
                   </thead>
                   <tbody id="statsDetailBody">
-                    <tr>
-                      <td><strong>NV0018</strong></td>
-                      <td>DS. Nguyễn Minh Tài</td>
-                      <td>Hộp</td>
-                      <td class="text-right font-weight-bold">@(qtyReq / 3)</td>
-                      <td class="text-right" style="color: #2ea664; font-weight: 700;">@(qtyReq / 3 - 2)</td>
-                      <td class="text-right" style="color: #e54848; font-weight: 700;">2</td>
-                      <td>Lệch khối lượng nén</td>
-                      <td><span style="font-size: 11.5px; color: #64748b;">LOT-GMP-2026-01</span></td>
-                      <td>@dateStr</td>
-                    </tr>
-
-                    <tr>
-                      <td><strong>NV0022</strong></td>
-                      <td>DS. Phan Thanh Hà</td>
-                      <td>Hộp</td>
-                      <td class="text-right font-weight-bold">@(qtyReq / 3)</td>
-                      <td class="text-right" style="color: #2ea664; font-weight: 700;">@(qtyReq / 3 - 5)</td>
-                      <td class="text-right" style="color: #e54848; font-weight: 700;">5</td>
-                      <td>Mép vỉ alu chưa đạt nhiệt độ hàn</td>
-                      <td><span style="font-size: 11.5px; color: #64748b;">LOT-GMP-2026-01</span></td>
-                      <td>@dateStr</td>
-                    </tr>
-
-                    <tr>
-                      <td><strong>NV0025</strong></td>
-                      <td>DS. Nguyễn Văn Nguyên</td>
-                      <td>Hộp</td>
-                      <td class="text-right font-weight-bold">@(qtyReq - (qtyReq / 3) * 2)</td>
-                      <td class="text-right" style="color: #2ea664; font-weight: 700;">@(qtyReq - (qtyReq / 3) * 2 - 3)</td>
-                      <td class="text-right" style="color: #e54848; font-weight: 700;">3</td>
-                      <td>Mẫu ngẫu nhiên kiểm nghiệm độ rã</td>
-                      <td><span style="font-size: 11.5px; color: #64748b;">LOT-GMP-2026-01</span></td>
-                      <td>@dateStr</td>
-                    </tr>
+                    @if (hasRecordedOutput)
+                    {
+                      <tr>
+                        <td><strong>—</strong></td>
+                        <td>@managerName</td>
+                        <td>@unit</td>
+                        <td class="text-right font-weight-bold" style="color: #059669;">@actualProduced.ToString("N0")</td>
+                        <td class="text-right" style="color: #2ea664; font-weight: 700;">@actualProduced.ToString("N0")</td>
+                        <td class="text-right" style="color: #64748b;">—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>@dateStr</td>
+                      </tr>
+                    }
+                    else
+                    {
+                      <tr>
+                        <td colspan="9" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
+                          Chưa có bản ghi kết quả sản lượng sản xuất thực tế cho lệnh này
+                        </td>
+                      </tr>
+                    }
                   </tbody>
                 </table>
               </div>
 
               <div class="table-footer-bar">
                 <div class="table-footer-left">
-                  <span>Tổng cộng SL sản xuất: <strong>@qtyReq Hộp</strong></span>
+                  <span>Số lượng kế hoạch: <strong>@qtyReq.ToString("N0") @unit</strong></span>
                 </div>
                 <div class="table-footer-right">
-                  <span>Tổng đạt: <strong style="color: #2ea664;">@(qtyReq - 10) Hộp</strong></span>
-                  <span style="margin: 0 10px;">|</span>
-                  <span>Tổng lỗi: <strong style="color: #e54848;">10 Hộp</strong></span>
+                  @if (hasRecordedOutput)
+                  {
+                    <span>Tổng đã ghi nhận: <strong style="color: #059669;">@actualProduced.ToString("N0") @unit</strong></span>
+                  }
+                  else
+                  {
+                    <span>Sản lượng thực tế: <strong style="color: #64748b;">Chưa ghi nhận</strong></span>
+                  }
                 </div>
               </div>
             </div>
@@ -439,13 +466,9 @@
                   </thead>
                   <tbody id="statsSubBody">
                     <tr>
-                      <td>Bột thuốc vụn thu hồi từ máy dập viên</td>
-                      <td>kg</td>
-                      <td class="text-right">0,450</td>
-                      <td>QC-GMP-REC</td>
-                      <td>LOT-GMP-2026-01</td>
-                      <td>@dateStr</td>
-                      <td>25/11/2026</td>
+                      <td colspan="7" style="text-align: center; color: #64748b; font-style: italic; padding: 20px;">
+                        Chưa có dữ liệu phụ phẩm ghi nhận cho lô sản xuất này
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -469,6 +492,7 @@
             In phiếu thống kê
           </button>
         </div>
+        }
 
       </div>
     </main>

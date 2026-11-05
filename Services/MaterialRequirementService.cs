@@ -13,10 +13,7 @@ public class MaterialRequirementService
     private readonly ApplicationDbContext _context;
 
     // Danh sách các đơn vị tính rời rạc / đếm được cần làm tròn lên (Ceiling)
-    private static readonly HashSet<string> DiscreteUnits = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "cái", "cai", "hộp", "hop", "thùng", "thung", "tờ", "to", "chai", "lọ", "lo", "vỉ", "vi", "ống", "ong", "bao", "viên", "vien", "bọc", "boc", "gói", "goi", "cuộn", "cuon"
-    };
+    private static readonly HashSet<string> DiscreteUnits = BomUnitQuantity.DiscreteUnits;
 
     public MaterialRequirementService(ApplicationDbContext context)
     {
@@ -40,12 +37,15 @@ public class MaterialRequirementService
         vm.ProductionRequests = requests.Select(r => new ProductionRequestItemDto
         {
             RequestId = r.RequestId,
-            ProductId = r.ProductId ?? 0,
+            DbRequestCode = r.RequestCode,
+            ProductId = r.ProductId,
             ProductName = r.Product?.ProductName ?? $"Sản phẩm #{r.ProductId}",
             QuantityRequired = r.QuantityRequired,
             Unit = r.Product?.Unit ?? "Hộp",
             Status = r.Status,
-            RelatedOrderCode = (r.Status == "Approved" || r.Status == "In Production") ? $"LSX-GMP-0{r.RequestId}" : null
+            RelatedOrderCode = (r.Status == "Approved" || r.Status == "In Production")
+                ? (!string.IsNullOrWhiteSpace(r.RequestCode) ? r.RequestCode : $"LSX-{r.RequestId}")
+                : null
         }).ToList();
 
         // 2. Lấy danh sách Lệnh sản xuất (các yêu cầu đã được phê duyệt)
@@ -54,8 +54,8 @@ public class MaterialRequirementService
             .Select(r => new ProductionOrderItemDto
             {
                 RequestId = r.RequestId,
-                OrderCode = $"LSX-GMP-0{r.RequestId}",
-                ProductId = r.ProductId ?? 0,
+                OrderCode = !string.IsNullOrWhiteSpace(r.RequestCode) ? r.RequestCode : $"LSX-{r.RequestId}",
+                ProductId = r.ProductId,
                 ProductName = r.Product?.ProductName ?? $"Sản phẩm #{r.ProductId}",
                 QuantityRequired = r.QuantityRequired,
                 Unit = r.Product?.Unit ?? "Hộp",
@@ -85,7 +85,7 @@ public class MaterialRequirementService
         var groupedBoms = allBoms
             .GroupBy(b => new {
                 Code = !string.IsNullOrWhiteSpace(b.BomCode) ? b.BomCode : b.BomName,
-                ProductId = b.ProductId ?? 0
+                ProductId = b.ProductId
             })
             .Select(g => {
                 var first = g.First();
@@ -132,7 +132,7 @@ public class MaterialRequirementService
 
             if (selectedReq.Status == "Approved" || selectedReq.Status == "In Production")
             {
-                vm.ProductionOrderCode = $"LSX-GMP-0{selectedReq.RequestId}";
+                vm.ProductionOrderCode = !string.IsNullOrWhiteSpace(selectedReq.RequestCode) ? selectedReq.RequestCode : $"LSX-{selectedReq.RequestId}";
                 vm.IsLinkedToOrder = true;
             }
             else
@@ -153,7 +153,7 @@ public class MaterialRequirementService
 
             if (selectedReq.Status == "Approved" || selectedReq.Status == "In Production")
             {
-                vm.ProductionOrderCode = $"LSX-GMP-0{selectedReq.RequestId}";
+                vm.ProductionOrderCode = !string.IsNullOrWhiteSpace(selectedReq.RequestCode) ? selectedReq.RequestCode : $"LSX-{selectedReq.RequestId}";
                 vm.IsLinkedToOrder = true;
             }
             else
@@ -204,8 +204,14 @@ public class MaterialRequirementService
             {
                 vm.HasExistingSlip = true;
                 vm.ExistingReceiptId = existingSlip.ExpReceiptId;
-                vm.ExistingReceiptCode = $"XK-DPH-{existingSlip.ExpReceiptId:D4}";
-                vm.ExistingReceiptStatus = existingSlip.Status;
+                vm.ExistingReceiptCode = existingSlip.DisplayCode;
+                vm.ExistingReceiptStatus = existingSlip.Status switch
+                {
+                    "Completed" => "Được cấp",
+                    "Approved" => "Được cấp",
+                    "Pending" => "Chờ cấp",
+                    _ => existingSlip.Status
+                };
             }
         }
 
@@ -279,8 +285,14 @@ public class MaterialRequirementService
             {
                 vm.HasExistingSlip = true;
                 vm.ExistingReceiptId = existingSlip.ExpReceiptId;
-                vm.ExistingReceiptCode = $"XK-DPH-{existingSlip.ExpReceiptId:D4}";
-                vm.ExistingReceiptStatus = existingSlip.Status;
+                vm.ExistingReceiptCode = existingSlip.DisplayCode;
+                vm.ExistingReceiptStatus = existingSlip.Status switch
+                {
+                    "Completed" => "Được cấp",
+                    "Approved" => "Được cấp",
+                    "Pending" => "Chờ cấp",
+                    _ => existingSlip.Status
+                };
             }
         }
 
@@ -324,9 +336,24 @@ public class MaterialRequirementService
         var firstBom = bomItems.First();
         vm.BomName = firstBom.BomName;
         vm.BomStandardOutput = 1m;
-        // Không tự đoán sản lượng gốc của BOM cũ: thiếu dữ liệu phải chặn phép tính.
-        if (bomItems.Any(b => b.ItemQuantity is null or <= 0 ||
-                              b.MaterialQuantity is null or <= 0 || b.Ingredient == null))
+
+        // Lấy tồn kho sản xuất (WIP) cho Lệnh sản xuất đang chọn (lọc theo requestid)
+        var wipDict = new Dictionary<int, decimal>();
+        if (vm.RequestId.HasValue && vm.RequestId.Value > 0)
+        {
+            var reqId = vm.RequestId.Value;
+            var wipRows = await _context.WipInventories
+                .AsNoTracking()
+                .Where(w => w.RequestId == reqId && w.IngrId.HasValue)
+                .ToListAsync();
+
+            wipDict = wipRows
+                .GroupBy(w => w.IngrId!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(w => w.Quantity ?? 0m));
+        }
+
+        // Kiểm tra tính hợp lệ của định mức BOM
+        if (bomItems.Any(b => b.ItemQuantity <= 0 || b.MaterialQuantity <= 0 || b.Ingredient == null))
         {
             vm.IsCalculated = false;
             vm.ErrorMessage = "BOM thiếu nguyên vật liệu hoặc định mức/sản lượng gốc không hợp lệ. Hãy sửa BOM trước khi tính.";
@@ -351,33 +378,41 @@ public class MaterialRequirementService
             decimal totalRequired = BomUnitQuantity.Required(
                 item.MaterialQuantity, item.ItemQuantity, vm.TargetQuantity, isDiscrete);
 
-            // Số tồn thực tế từ cơ sở dữ liệu
-            decimal availableStock = Convert.ToDecimal(ingr.Quantity);
+            // Tồn kho thực tế tại kho nguyên vật liệu chính (Kho tổng)
+            decimal? availableStock = ingr.Quantity;
+            bool hasStock = availableStock.HasValue;
+
+            // Tồn kho tại phân xưởng sản xuất (WIP Inventory) theo đúng Lệnh sản xuất đang chọn
+            decimal wipStock = wipDict.TryGetValue(ingr.IngrId, out var ws) ? ws : 0m;
 
             // Kiểm tra cùng đơn vị tính
             bool isUnitMismatch = !string.Equals(ingrUnit, stockUnit, StringComparison.OrdinalIgnoreCase);
 
-            // Lượng còn thiếu = max(0, Lượng cần - Tồn khả dụng)
-            decimal shortage = isUnitMismatch ? totalRequired : Math.Max(0m, totalRequired - availableStock);
-
+            decimal shortage;
             string statusText;
             string noteText;
 
             if (isUnitMismatch)
             {
+                shortage = totalRequired;
                 statusText = "Lệch ĐVT";
                 noteText = $"Đơn vị tính BOM ({ingrUnit}) khác kho ({stockUnit}), chưa hỗ trợ quy đổi tự động";
             }
-            else if (shortage == 0)
+            else if (wipStock >= totalRequired)
             {
-                statusText = "Đủ tồn kho";
-                decimal surplus = availableStock - totalRequired;
-                noteText = surplus > 0 ? $"Đủ cấp (Tồn dư sau cấp: {surplus:N2} {ingrUnit})" : "Vừa đủ tồn kho";
+                shortage = 0m;
+                statusText = "Đủ tồn SX";
+                decimal surplus = wipStock - totalRequired;
+                noteText = surplus > 0
+                    ? $"Đủ cấp cho lệnh (Dư tại xưởng: {surplus:N2} {ingrUnit})"
+                    : "Vừa đủ tồn kho sản xuất cho lệnh này";
             }
             else
             {
-                statusText = "Thiếu tồn kho";
-                noteText = $"Thiếu hụt {shortage:N2} {ingrUnit} so với tồn sổ sách hiện tại";
+                shortage = totalRequired - wipStock;
+                statusText = "Thiếu tồn SX";
+                var mainStockDesc = hasStock ? $"Kho tổng hiện có: {availableStock!.Value:N2} {stockUnit}" : "Kho tổng chưa có số liệu";
+                noteText = $"Thiếu hụt {shortage:N2} {ingrUnit} tại kho sản xuất ({mainStockDesc})";
             }
 
             lines.Add(new MaterialRequirementLineDto
@@ -392,6 +427,7 @@ public class MaterialRequirementService
                 BomStandardOutput = 1m,
                 TotalRequired = totalRequired,
                 AvailableStock = availableStock,
+                WipStock = wipStock,
                 Shortage = shortage,
                 IsDiscrete = isDiscrete,
                 StatusText = statusText,
@@ -404,15 +440,20 @@ public class MaterialRequirementService
         vm.CheckedAt = DateTime.Now;
         vm.TotalMaterialTypes = lines.Count;
         vm.SufficientCount = lines.Count(l => l.IsSufficient);
-        vm.ShortageCount = lines.Count(l => !l.IsSufficient);
+        vm.ShortageCount = lines.Count(l => l.Shortage > 0);
+        vm.UnknownStockCount = lines.Count(l => !l.HasStockData);
 
-        if (vm.ShortageCount == 0 && vm.TotalMaterialTypes > 0)
+        if (lines.Any(l => l.IsUnitMismatch))
         {
-            vm.Conclusion = "Đủ nguyên vật liệu theo số tồn đang kiểm tra";
+            vm.Conclusion = "Có nguyên vật liệu bị lệch đơn vị tính";
+        }
+        else if (vm.ShortageCount == 0 && vm.TotalMaterialTypes > 0)
+        {
+            vm.Conclusion = "Đủ nguyên vật liệu tại kho sản xuất";
         }
         else
         {
-            vm.Conclusion = "Cần bổ sung nguyên vật liệu";
+            vm.Conclusion = $"Cần cấp thêm NVL cho xưởng ({vm.ShortageCount} loại thiếu)";
         }
     }
 
@@ -421,7 +462,10 @@ public class MaterialRequirementService
     /// </summary>
     public async Task<(bool Success, string Message, int ReceiptId, string ReceiptCode)> CreateRequisitionSlipAsync(CreateRequisitionApiRequest req, int requestedByUserId)
     {
-        // 1. Kiểm tra tính hợp lệ cơ bản
+        // 1. Kiểm tra tính hợp lệ cơ bản & danh tính người dùng
+        if (requestedByUserId <= 0)
+            return (false, "Chưa xác định được danh tính người dùng hợp lệ (chưa đăng nhập). Thao tác tạo phiếu yêu cầu cấp nguyên vật liệu bị từ chối.", 0, "");
+
         if (req.ProductId <= 0)
             return (false, "Sản phẩm không hợp lệ.", 0, "");
 
@@ -442,7 +486,8 @@ public class MaterialRequirementService
 
         if (existingSlip != null)
         {
-            return (false, $"Lệnh sản xuất '{req.ProductionOrderCode}' đã có phiếu yêu cầu cấp vật tư đang xử lý: XK-DPH-{existingSlip.ExpReceiptId:D4} (Trạng thái: {existingSlip.Status}).", existingSlip.ExpReceiptId, $"XK-DPH-{existingSlip.ExpReceiptId:D4}");
+            var existingCode = existingSlip.DisplayCode;
+            return (false, $"Lệnh sản xuất '{req.ProductionOrderCode}' đã có phiếu yêu cầu cấp vật tư đang xử lý: {existingCode} (Trạng thái: {existingSlip.Status}).", existingSlip.ExpReceiptId, existingCode);
         }
 
         // 4. Tính toán lại nhu cầu ở máy chủ để bảo đảm dữ liệu tin cậy
@@ -474,7 +519,7 @@ public class MaterialRequirementService
         {
             var receipt = new MaterialReceipt
             {
-                RequestedBy = requestedByUserId > 0 ? requestedByUserId : 11, // DS. Nguyễn Minh Tài
+                RequestedBy = requestedByUserId > 0 ? requestedByUserId : (int?)null,
                 ApprovedBy = null, // Chờ thủ kho hoặc quản lý phân xưởng duyệt
                 CreatedDate = DateTime.UtcNow,
                 Status = "Pending", // Khởi tạo ở trạng thái chờ duyệt xuất
@@ -486,7 +531,7 @@ public class MaterialRequirementService
                     ? DateTime.SpecifyKind(req.RequiredDate.Value, DateTimeKind.Utc)
                     : DateTime.UtcNow.AddDays(1),
                 Note = !string.IsNullOrWhiteSpace(req.Note)
-                    ? req.Note
+                    ? (req.Note.Length > 255 ? req.Note.Substring(0, 255) : req.Note)
                     : $"Yêu cầu cấp nguyên vật liệu phục vụ {req.ProductionOrderCode} ({calcVm.ProductName})"
             };
 
@@ -494,23 +539,37 @@ public class MaterialRequirementService
             await _context.SaveChangesAsync();
 
             // Thêm chi tiết từng dòng nguyên vật liệu
-            // LƯU TOÀN BỘ LƯỢNG NGUYÊN VẬT LIỆU CẦN CẤP (TotalRequired), không chỉ phần thiếu
+            // Yêu cầu cấp lượng còn thiếu cho kho sản xuất (hoặc toàn bộ nếu xưởng chưa có)
             foreach (var line in calcVm.Lines)
             {
+                decimal neededQty = (line.Shortage.HasValue && line.Shortage.Value > 0) ? line.Shortage.Value : line.TotalRequired;
+                string detailNote;
+                if (line.Shortage > 0)
+                {
+                    detailNote = $"Yêu cầu cấp {neededQty:N2} {line.Unit} (Tồn xưởng: {line.WipStock:N2} {line.Unit}, Thiếu: {line.Shortage:N2} {line.Unit})";
+                }
+                else
+                {
+                    detailNote = $"Xưởng đã đủ tồn kho sản xuất ({line.WipStock:N2} {line.Unit}) cho Lô SX {req.ProductionOrderCode}";
+                }
+
+                if (detailNote.Length > 255)
+                {
+                    detailNote = detailNote.Substring(0, 255);
+                }
+
                 var detail = new MaterialReceiptDetail
                 {
                     ExpReceiptId = receipt.ExpReceiptId,
                     IngrId = line.IngrId,
-                    Quantity = line.TotalRequired, // Toàn bộ lượng cần cấp!
+                    Quantity = neededQty,
                     BomNorm = line.BomNorm,
                     Unit = line.Unit,
                     RequiredQuantity = line.TotalRequired,
                     AvailableQuantity = line.AvailableStock,
                     ShortageQuantity = line.Shortage,
                     Status = "Pending",
-                    Note = line.Shortage > 0
-                        ? $"Yêu cầu cấp {line.TotalRequired:N2} {line.Unit} (Tồn hiện có: {line.AvailableStock:N2} {line.Unit}, thiếu: {line.Shortage:N2} {line.Unit})"
-                        : $"Đủ tồn kho cấp phát cho Lô SX {req.ProductionOrderCode}",
+                    Note = detailNote,
                     CreatedDate = DateTime.UtcNow
                 };
 
@@ -520,7 +579,7 @@ public class MaterialRequirementService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            string receiptCode = $"XK-DPH-{receipt.ExpReceiptId:D4}";
+            string receiptCode = receipt.DisplayCode;
             return (true, $"Tạo phiếu yêu cầu cấp nguyên vật liệu thành công: {receiptCode}", receipt.ExpReceiptId, receiptCode);
         }
         catch (Exception ex)

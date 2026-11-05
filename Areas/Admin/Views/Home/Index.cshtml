@@ -1,0 +1,239 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "AMIS Quản trị hệ thống - Admin";
+    var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Quản trị viên";
+    var username = User.Identity?.Name ?? "admin";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@ViewData["Title"]</title>
+  <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    .top-nav {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #ecfdf5;
+      color: #059669;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-switcher {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .nav-pill {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #64748b;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+    .nav-pill:hover {
+      color: #0f172a;
+    }
+    .nav-pill.active {
+      background: #ffffff;
+      color: #059669;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+    }
+    .user-avatar-small {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #059669;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #dc2626;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-logout:hover {
+      background: #fee2e2;
+    }
+    .content-container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .card-dashboard {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .badge-dev {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fef3c7;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .grid-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 28px;
+    }
+    .area-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      background: #f8fafc;
+      transition: all 0.15s ease;
+    }
+    .area-box:hover {
+      border-color: #059669;
+      background: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .area-box-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 6px;
+      color: #0f172a;
+    }
+    .area-box-desc {
+      font-size: 13px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-nav">
+    <div class="brand-wrap">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </div>
+      <span>AMIS Quản trị (Admin)</span>
+    </div>
+
+    <!-- Admin được chuyển giữa 4 phân hệ -->
+    <nav class="nav-switcher">
+      <a href="/Admin/Home/Index" class="nav-pill active">Quản trị Admin</a>
+      <a href="/Productions/Home/Index" class="nav-pill">Sản xuất (MRP)</a>
+      <a href="/Warehouse/Home/Index" class="nav-pill">Kho dược phẩm</a>
+      <a href="/Sales/Home/Index" class="nav-pill">Bán hàng</a>
+    </nav>
+
+    <div class="user-actions">
+      <div class="user-badge">
+        <div class="user-avatar-small">@(username.Length >= 2 ? username.Substring(0, 2).ToUpper() : "AD")</div>
+        <div>
+          <div style="font-weight:600; line-height:1.2;">@fullName</div>
+          <div style="font-size:11.5px; color:#059669;">Quản trị viên (Admin)</div>
+        </div>
+      </div>
+      <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin:0;">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-logout" title="Đăng xuất">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Đăng xuất
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <main class="content-container">
+    <div class="card-dashboard">
+      <span class="badge-dev">Phân hệ đang được phát triển</span>
+      <h1 style="margin: 0 0 8px; font-size: 22px; color: #0f172a;">Trung tâm Quản trị Hệ thống AMIS Dược phẩm</h1>
+      <p style="margin: 0; color: #64748b; font-size: 14px;">
+        Tài khoản Quản trị viên (Admin) được cấp quyền truy cập toàn diện 4 phân hệ. Bấm chọn phân hệ bên dưới để điều hướng làm việc:
+      </p>
+
+      <div class="grid-links">
+        <a href="/Productions/Home/Index" class="area-box">
+          <div class="area-box-title" style="color: #059669;">Phân hệ Sản xuất (MRP) &rarr;</div>
+          <div class="area-box-desc">Đơn đặt hàng thuốc, tính MRP nhu cầu nguyên vật liệu, lệnh sản xuất và bàn giao thành phẩm.</div>
+        </a>
+
+        <a href="/Warehouse/Home/Index" class="area-box">
+          <div class="area-box-title" style="color: #0284c7;">Phân hệ Kho dược phẩm &rarr;</div>
+          <div class="area-box-desc">Quản lý tồn kho hoạt chất, kho biệt dược và phiếu xuất/nhập vật tư sản xuất.</div>
+        </a>
+
+        <a href="/Sales/Home/Index" class="area-box">
+          <div class="area-box-title" style="color: #7c3aed;">Phân hệ Bán hàng & Phân phối &rarr;</div>
+          <div class="area-box-desc">Tiếp nhận đơn hàng thương mại, kế hoạch phân phối và giao nhận thuốc nhà thuốc/bệnh viện.</div>
+        </a>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

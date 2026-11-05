@@ -457,6 +457,15 @@
   transition: opacity 0.25s ease, visibility 0.25s ease;
   backdrop-filter: blur(4px);
 }
+#modalCreateBackdrop {
+  z-index: 1000;
+}
+#modalMarkBackdrop {
+  z-index: 1100;
+}
+#modalDetailBackdrop {
+  z-index: 1200;
+}
 .order-modal-backdrop.show {
   opacity: 1; visibility: visible;
 }
@@ -476,7 +485,8 @@
   transform: translateY(0) scale(1);
 }
 .order-modal-dialog.wide-modal {
-  max-width: 1040px;
+  max-width: 1260px;
+  width: 96%;
 }
 .order-modal-header {
   padding: 16px 22px;
@@ -670,11 +680,11 @@
 .pending-table th {
   background: #f8fafc; color: #475569; font-size: 11.5px;
   font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-  padding: 10px 12px; border-bottom: 1.5px solid #e2e8f0;
+  padding: 8px 10px; border-bottom: 1.5px solid #e2e8f0;
   white-space: nowrap;
 }
 .pending-table td {
-  padding: 11px 12px; border-bottom: 1px solid #f1f5f9;
+  padding: 9px 10px; border-bottom: 1px solid #f1f5f9;
   vertical-align: middle; color: #1e293b;
 }
 .pending-table tbody tr:hover td {
@@ -725,6 +735,40 @@
   padding: 9px 12px; border-bottom: 1px solid #f1f5f9; color: #334155;
 }
 .modal-bom-table tr:last-child td { border-bottom: none; }
+
+/* WIP Material Preview in Production Modal */
+.modal-wip-check-card {
+  margin-top: 14px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.modal-wip-check-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.modal-wip-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.modal-wip-table th {
+  background-color: #edf2f7;
+  padding: 7px 10px;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #cbd5e1;
+}
+.modal-wip-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.modal-wip-table tr:last-child td {
+  border-bottom: none;
+}
 
 /* Responsive Adjustments */
 @media (max-width: 1100px) {

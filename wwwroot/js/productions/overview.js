@@ -36,18 +36,7 @@ function initRefreshButtons() {
   refreshBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       btn.classList.add('spinning');
-
-      // Giả lập cập nhật thời gian thực
-      setTimeout(() => {
-        btn.classList.remove('spinning');
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const footerTime = btn.parentElement.querySelector('.stat-time-val');
-        if (footerTime) {
-          footerTime.textContent = `${hours}:${minutes}`;
-        }
-      }, 600);
+      window.location.reload();
     });
   });
 }
@@ -67,14 +56,16 @@ function renderTopProductsChart() {
   const canvas = document.getElementById('topProductsChart');
   if (!canvas) return;
 
-  let labels = ['Paracetamol', 'Ginkgo Biloba', 'Glucosamine', 'Milk Thistle', 'Amoxicillin'];
-  let values = [500, 420, 310, 260, 200];
-
-  if (window.dbTopProducts && window.dbTopProducts.length > 0) {
-    labels = window.dbTopProducts.map(p => p.name.length > 18 ? p.name.substring(0, 16) + '...' : p.name);
-    values = window.dbTopProducts.map(p => p.qty);
+  if (!window.dbTopProducts || window.dbTopProducts.length === 0) {
+    const parent = canvas.parentElement;
+    if (parent) {
+      parent.innerHTML = '<div style="display:flex; height:240px; align-items:center; justify-content:center; color:#94a3b8; font-size:14px; font-weight:500;">Chưa có dữ liệu tồn kho sản phẩm</div>';
+    }
+    return;
   }
 
+  const labels = window.dbTopProducts.map(p => p.name.length > 18 ? p.name.substring(0, 16) + '...' : p.name);
+  const values = window.dbTopProducts.map(p => p.qty);
   const data = { labels, values };
 
   // Nếu có Chart.js từ CDN
@@ -112,9 +103,7 @@ function renderTopProductsChart() {
           },
           y: {
             min: 0,
-            max: 550,
             ticks: {
-              stepSize: 100,
               color: '#94a3b8',
               font: { size: 11 }
             },
@@ -138,24 +127,27 @@ function renderOrderStatusChart() {
   const canvas = document.getElementById('orderStatusChart');
   if (!canvas) return;
 
-  let chartData = {
-    labels: ['Chờ duyệt (Pending)', 'Đã duyệt (Approved)', 'Đã hoàn thành (Completed)'],
-    values: [60, 20, 20],
-    colors: ['#f59e0b', '#3b82f6', '#34a853']
+  if (!window.dbStatusCounts || window.dbStatusCounts.length === 0) {
+    const parent = canvas.closest('.donut-chart-container') || canvas.parentElement;
+    if (parent) {
+      parent.innerHTML = '<div style="display:flex; height:240px; align-items:center; justify-content:center; color:#94a3b8; font-size:14px; font-weight:500;">Chưa có dữ liệu lệnh sản xuất</div>';
+    }
+    return;
+  }
+
+  const statusMap = {
+    'Pending': { name: 'Chờ duyệt (Pending)', color: '#f59e0b' },
+    'Approved': { name: 'Đã duyệt (Approved)', color: '#3b82f6' },
+    'In Production': { name: 'Đang sản xuất', color: '#10b981' },
+    'Completed': { name: 'Hoàn thành', color: '#34a853' },
+    'Cancelled': { name: 'Đã hủy', color: '#ef4444' }
   };
 
-  if (window.dbStatusCounts && window.dbStatusCounts.length > 0) {
-    const statusMap = {
-      'Pending': { name: 'Chờ duyệt (Pending)', color: '#f59e0b' },
-      'Approved': { name: 'Đã duyệt (Approved)', color: '#3b82f6' },
-      'In Production': { name: 'Đang sản xuất', color: '#10b981' },
-      'Completed': { name: 'Hoàn thành', color: '#34a853' },
-      'Cancelled': { name: 'Đã hủy', color: '#ef4444' }
-    };
-    chartData.labels = window.dbStatusCounts.map(s => statusMap[s.Status]?.name || s.Status);
-    chartData.values = window.dbStatusCounts.map(s => s.Count);
-    chartData.colors = window.dbStatusCounts.map(s => statusMap[s.Status]?.color || '#6366f1');
-  }
+  const chartData = {
+    labels: window.dbStatusCounts.map(s => statusMap[s.Status]?.name || s.Status),
+    values: window.dbStatusCounts.map(s => s.Count),
+    colors: window.dbStatusCounts.map(s => statusMap[s.Status]?.color || '#6366f1')
+  };
 
   if (typeof Chart !== 'undefined') {
     new Chart(canvas, {
@@ -178,7 +170,7 @@ function renderOrderStatusChart() {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (context) => ` ${context.label}: ${context.parsed}%`
+              label: (context) => ` ${context.label}: ${context.parsed.toLocaleString()} lệnh`
             }
           }
         }
@@ -194,6 +186,7 @@ function renderOrderStatusChart() {
    ========================================================================== */
 
 function drawFallbackBarChart(canvas, data) {
+  if (!data || !data.values || data.values.length === 0) return;
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -250,6 +243,10 @@ function drawFallbackBarChart(canvas, data) {
 }
 
 function drawFallbackDonutChart(canvas, chartData) {
+  if (!chartData || !chartData.values || chartData.values.length === 0) return;
+  const total = chartData.values.reduce((acc, v) => acc + v, 0);
+  if (total === 0) return;
+
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -262,8 +259,6 @@ function drawFallbackDonutChart(canvas, chartData) {
   const cy = (canvas.height / dpr) / 2;
   const radius = Math.min(cx, cy) - 10;
   const innerRadius = radius * 0.66;
-
-  const total = chartData.values.reduce((acc, v) => acc + v, 0);
   let startAngle = -Math.PI / 2;
 
   chartData.values.forEach((val, idx) => {

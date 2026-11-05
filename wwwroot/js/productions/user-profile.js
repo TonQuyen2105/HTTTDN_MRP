@@ -44,7 +44,7 @@ function initProfileForm() {
 
   if (btnSave) {
     btnSave.addEventListener('click', () => {
-      showProfileToast('✓ Cập nhật thông tin cá nhân thành công!');
+      showProfileToast('Chức năng lưu thông tin cá nhân chưa được triển khai kết nối backend.');
     });
   }
 
@@ -88,7 +88,7 @@ function initPasswordForm() {
         return;
       }
 
-      showProfileToast('✓ Đổi mật khẩu thành công! Vui lòng sử dụng mật khẩu mới cho lần đăng nhập sau.');
+      showProfileToast('Chức năng đổi mật khẩu chưa được triển khai kết nối backend.');
       currentPass.value = '';
       newPass.value = '';
       confirmPass.value = '';
@@ -97,7 +97,7 @@ function initPasswordForm() {
 }
 
 /**
- * Xử lý mô phỏng tải ảnh đại diện
+ * Xử lý xem trước ảnh đại diện tại máy
  */
 function initAvatarChange() {
   const btnChangeAvatar = document.getElementById('btnChangeAvatar');
@@ -120,7 +120,7 @@ function initAvatarChange() {
             avatarEl.style.backgroundPosition = 'center';
             avatarEl.textContent = '';
           }
-          showProfileToast('✓ Đã cập nhật ảnh đại diện mới!');
+          showProfileToast('Đã xem trước ảnh đại diện (Chức năng lưu ảnh đại diện lên máy chủ chưa được triển khai).');
         };
         reader.readAsDataURL(file);
       }

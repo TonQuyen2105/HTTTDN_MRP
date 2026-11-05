@@ -33,12 +33,12 @@ function initStatsDetailTable() {
         <td><input type="text" class="form-input" placeholder="Mã NV..." style="height:26px; font-size:12px;"></td>
         <td><input type="text" class="form-input" placeholder="Tên nhân viên..." style="height:26px; font-size:12px;"></td>
         <td>Hộp</td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="500" style="height:26px; font-size:12px;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="498" style="height:26px; font-size:12px;"></td>
-        <td class="text-right"><input type="text" class="form-input text-right" value="2" style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><input type="number" class="form-input text-right" placeholder="0" style="height:26px; font-size:12px;"></td>
+        <td class="text-right"><input type="number" class="form-input text-right" placeholder="0" style="height:26px; font-size:12px; color:#2ea664;"></td>
+        <td class="text-right"><input type="number" class="form-input text-right" placeholder="0" style="height:26px; font-size:12px; color:#e54848;"></td>
         <td><input type="text" class="form-input" placeholder="Lý do lỗi..." style="height:26px; font-size:12px;"></td>
-        <td><span style="font-size:11.5px; color:#64748b;">LOT-GMP-2026-01</span></td>
-        <td>25/05/2025</td>
+        <td><input type="text" class="form-input" placeholder="Số lô..." style="height:26px; font-size:12px;"></td>
+        <td><input type="text" class="form-input" placeholder="dd/mm/yyyy" style="height:26px; font-size:12px;"></td>
         <td class="text-center">
           <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -115,8 +115,7 @@ function initStatsFormActions() {
   if (btnSave) {
     btnSave.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Phiếu thống kê sản xuất thành công!');
-      returnToList();
+      alert('Chức năng lập phiếu thống kê sản xuất thủ công chưa được triển khai backend.\nSản lượng thực tế được ghi nhận thông qua nút "Đánh dấu" thành phẩm từ màn hình Đơn đặt hàng thuốc.');
     });
   }
 

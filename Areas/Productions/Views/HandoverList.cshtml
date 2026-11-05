@@ -60,7 +60,18 @@
           <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
           <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
         </div>
-        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
       </div>
     </header>
 
@@ -129,7 +140,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
             <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
@@ -207,7 +218,7 @@
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="handoverSearchInput" class="search-input" placeholder="Tìm theo số phiếu, lệnh SX, người bàn giao...">
+            <input type="text" id="handoverSearchInput" class="search-input" placeholder="Tìm theo số phiếu, mã đơn/phiếu kho, người bàn giao...">
           </div>
 
           <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
@@ -231,7 +242,7 @@
                   <th class="text-center" style="width: 50px;">STT</th>
                   <th>Số phiếu</th>
                   <th>Ngày bàn giao</th>
-                  <th>Lệnh sản xuất</th>
+                  <th>Mã đơn / Phiếu kho</th>
                   <th>Sản phẩm</th>
                   <th>Người giao</th>
                   <th>Người nhận</th>
@@ -247,18 +258,38 @@
                     foreach (var item in Model)
                     {
                         var firstDetail = item.Details.FirstOrDefault();
-                        var prodName = firstDetail?.Product?.ProductName ?? "Thành phẩm dược dụng";
-                        var qty = firstDetail?.Quantity ?? 200;
+                        var prodName = firstDetail?.Product?.ProductName ?? "—";
+                        var unit = firstDetail?.Product?.Unit ?? "Hộp";
                         var isDone = item.Status == "Completed";
+                        var reqCode = item.RequestId.HasValue ? (!string.IsNullOrWhiteSpace(item.ProductionRequest?.RequestCode) ? item.ProductionRequest.RequestCode : $"YCSX-{item.RequestId}") : "—";
+                        var receiptCode = item.DisplayCode;
                         <tr>
                           <td class="text-center">@stt</td>
-                          <td><a href="/Productions/Home/HandoverDetail/@item.ProductReceiptId" style="color:var(--color-primary); font-weight:700;">BG-DPH-@item.ProductReceiptId.ToString("D4")</a></td>
-                          <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "26/05/2025")</td>
-                          <td><a href="/Productions/Home/ProductionOrder" style="color:#2563eb; font-weight:600;">LSX-GMP-0@(item.ProductReceiptId)</a></td>
+                          <td><a href="/Productions/Home/HandoverDetail/@item.ProductReceiptId" style="color:var(--color-primary); font-weight:700;">@receiptCode</a></td>
+                          <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")</td>
+                          <td>
+                            @if (item.RequestId.HasValue)
+                            {
+                              <a href="/Productions/Home/DrugOrder" style="color:#2563eb; font-weight:600;">@reqCode</a>
+                            }
+                            else
+                            {
+                              <span style="color:#64748b;">—</span>
+                            }
+                          </td>
                           <td>@prodName</td>
-                          <td>@(item.Requester?.FullName ?? "DS. Trần Vương")</td>
-                          <td>@(item.Approver?.FullName ?? "DS. Phan Thanh Hà")</td>
-                          <td class="text-right" style="font-weight:600;">@qty Hộp</td>
+                          <td>@(item.Requester?.FullName ?? "Chưa cập nhật")</td>
+                          <td>@(item.Approver?.FullName ?? (isDone ? "Chưa cập nhật" : "Chờ nhận"))</td>
+                          <td class="text-right" style="font-weight:600;">
+                            @if (firstDetail != null)
+                            {
+                              <span>@firstDetail.Quantity.ToString("N0") @unit</span>
+                            }
+                            else
+                            {
+                              <span style="color:#64748b; font-style:italic; font-weight:normal;">Chưa ghi nhận</span>
+                            }
+                          </td>
                           <td class="text-center">
                             @if (isDone)
                             {
@@ -283,12 +314,20 @@
                         stt++;
                     }
                 }
+                else
+                {
+                    <tr>
+                      <td colspan="10" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
+                        Chưa có biên bản bàn giao thành phẩm nào trong cơ sở dữ liệu
+                      </td>
+                    </tr>
+                }
               </tbody>
             </table>
           </div>
 
           <div class="table-footer-bar">
-            <span>Tổng số: <strong>1</strong> phiếu</span>
+            <span>Tổng số: <strong>@(Model?.Count() ?? 0)</strong> phiếu</span>
             <div class="table-footer-right">
               <span>Số dòng/trang</span>
               <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">

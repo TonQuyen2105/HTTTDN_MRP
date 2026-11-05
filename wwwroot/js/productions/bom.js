@@ -157,8 +157,7 @@ function initBomFormActions() {
   if (btnSave) {
     btnSave.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Định mức nguyên vật liệu (BOM) thành công!');
-      returnToList();
+      alert('Chức năng cập nhật Định mức nguyên vật liệu (BOM) chưa được triển khai trên hệ thống backend.');
     });
   }
 }

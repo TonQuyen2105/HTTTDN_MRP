@@ -131,7 +131,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
             <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link active">Nhập kho thành phẩm</a>
@@ -209,7 +209,7 @@
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="fgrSearchInput" class="search-input" placeholder="Tìm theo số phiếu, lệnh SX, thành phẩm...">
+            <input type="text" id="fgrSearchInput" class="search-input" placeholder="Tìm theo số phiếu, mã đơn/phiếu kho, thành phẩm...">
           </div>
 
           <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
@@ -242,7 +242,7 @@
                   <th class="text-center" style="width: 50px;">STT</th>
                   <th>Số phiếu</th>
                   <th>Ngày nhập</th>
-                  <th>Lệnh sản xuất</th>
+                  <th>Mã đơn / Phiếu kho</th>
                   <th>Thành phẩm</th>
                   <th>Số lô SX</th>
                   <th>Kho nhập</th>
@@ -266,16 +266,18 @@
                         var qty = firstDetail?.Quantity ?? 200;
                         var note = firstDetail?.Note ?? "Nhập kho thành phẩm đạt chuẩn QC";
                         var isDone = item.Status == "Completed";
+                        var receiptLabel = !string.IsNullOrWhiteSpace(item.ReceiptCode) ? item.ReceiptCode : $"NK-TP-{item.ProductReceiptId:D4}";
+                        var orderLabel = item.RequestId.HasValue ? (!string.IsNullOrWhiteSpace(item.ProductionRequest?.RequestCode) ? item.ProductionRequest.RequestCode : $"YCSX-{item.RequestId}") : (item.ProductReceiptId > 0 ? $"YCSX-{item.ProductReceiptId}" : "—");
                         <tr>
                           <td class="text-center">@stt</td>
-                          <td><a href="/Productions/Home/FinishedGoodsReceiptCreate" style="color:var(--color-primary); font-weight:700;">NK-TP-@item.ProductReceiptId.ToString("D4")</a></td>
-                          <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "26/05/2025")</td>
-                          <td><a href="/Productions/Home/ProductionOrder" style="color:#2563eb; font-weight:600;">LSX-GMP-0@(item.ProductReceiptId)</a></td>
+                          <td><a href="/Productions/Home/FinishedGoodsReceiptCreate" style="color:var(--color-primary); font-weight:700;">@receiptLabel</a></td>
+                          <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")</td>
+                          <td><a href="/Productions/Home/DrugOrder" style="color:#2563eb; font-weight:600;">@orderLabel</a></td>
                           <td>@prodName</td>
                           <td>LOT-@item.ProductReceiptId</td>
                           <td>Kho Thành phẩm Dược phẩm GMP</td>
-                          <td>@(item.Requester?.FullName ?? "DS. Trần Vương")</td>
-                          <td>@(item.Approver?.FullName ?? "DS. Phan Thanh Hà")</td>
+                          <td>@(item.Requester?.FullName ?? "Chưa cập nhật")</td>
+                          <td>@(item.Approver?.FullName ?? (isDone ? "Chưa cập nhật" : "Chờ nhập kho"))</td>
                           <td class="text-right">@qty Hộp</td>
                           <td class="text-right" style="color:#2ea664; font-weight:700;">@qty Hộp</td>
                           <td class="text-right" style="color:#ef4444; font-weight:600;">0</td>

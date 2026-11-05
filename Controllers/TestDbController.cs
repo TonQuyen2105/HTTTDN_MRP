@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using httt.Constants;
 using httt.Data;
 
 namespace httt.Controllers
 {
+    [Authorize(Roles = AppRoles.Admin)]
     public class TestDbController : Controller
     {
         private readonly ApplicationDbContext _context;

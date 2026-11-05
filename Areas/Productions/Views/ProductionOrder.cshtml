@@ -13,6 +13,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0; url=/Productions/Home/DrugOrder">
   <title>@ViewData["Title"]</title>
   
   <!-- CSS dùng chung -->
@@ -82,8 +83,16 @@
         </div>
 
         <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;" title="Tài khoản cá nhân">
-          <div class="user-avatar">MT</div>
-          <span class="user-name">DS. Nguyễn Minh Tài</span>
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -156,7 +165,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link active">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link active">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
             <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
@@ -346,8 +355,8 @@
                       {
                           var prodName = order.Product?.ProductName ?? "Sản phẩm thuốc dược dụng";
                           var unit = order.Product?.Unit ?? "Hộp";
-                          var managerName = order.Manager?.FullName ?? "DS. Nguyễn Minh Tài";
-                          var dateStr = order.CreatedDate?.ToString("dd/MM/yyyy") ?? "22/01/2026";
+                          var managerName = order.Manager?.FullName ?? "—";
+                          var dateStr = order.CreatedDate?.ToString("dd/MM/yyyy") ?? "—";
                           var costStr = order.Product?.Cost.HasValue == true ? order.Product.Cost.Value.ToString("N0") + " đ" : "—";
                           var statusClass = order.Status switch {
                               "Pending" => "badge-status-pending",
@@ -364,13 +373,14 @@
                               _ => order.Status
                           };
 
-                          <tr data-status="@order.Status" data-name="@prodName.ToLower()" data-code="lsx-gmp-0@(order.RequestId)">
+                          var orderCode = order.DisplayCode;
+                          <tr data-status="@order.Status" data-name="@prodName.ToLower()" data-code="@orderCode.ToLower()">
                             <td class="text-center">@stt</td>
-                            <td><strong style="color: var(--color-primary);">LSX-GMP-0@(order.RequestId)</strong></td>
+                            <td><strong style="color: var(--color-primary);">@orderCode</strong></td>
                             <td>@dateStr</td>
                             <td>
                               <strong>@prodName</strong>
-                              <div style="font-size: 11.5px; color: #64748b;">Mã SP: SP@(order.ProductId?.ToString("D4") ?? "0000")</div>
+                              <div style="font-size: 11.5px; color: #64748b;">Mã SP: SP@order.ProductId.ToString("D4")</div>
                             </td>
                             <td class="text-right"><strong>@order.QuantityRequired.ToString("N0")</strong> @unit</td>
                             <td class="text-right" style="color: #64748b;">@costStr</td>
@@ -455,9 +465,8 @@
                   <label class="form-label">LSX theo <span class="required-mark">*</span></label>
                   <div class="form-control-wrap">
                     <select class="form-select">
-                      <option selected>Đơn đặt hàng</option>
+                      <option selected>Đơn đặt hàng thuốc từ Kho</option>
                       <option>Kế hoạch sản xuất</option>
-                      <option>Dự báo nhu cầu</option>
                     </select>
                   </div>
                 </div>
@@ -466,9 +475,14 @@
                   <label class="form-label">Số đơn hàng <span class="required-mark">*</span></label>
                   <div class="form-control-wrap">
                     <select class="form-select">
-                      <option selected>DH00082</option>
-                      <option>DH00083</option>
-                      <option>DH00084</option>
+                      <option value="">— Chọn đơn đặt hàng —</option>
+                      @if (Model != null && Model.Any())
+                      {
+                        foreach (var ord in Model)
+                        {
+                          <option value="@ord.RequestId">@ord.RequestDisplayCode (@(ord.Product?.ProductName ?? "Thuốc"))</option>
+                        }
+                      }
                     </select>
                   </div>
                 </div>
@@ -477,20 +491,13 @@
                   <label class="form-label">Sản phẩm thuốc <span class="required-mark">*</span></label>
                   <div class="form-control-wrap">
                     <select class="form-select">
+                      <option value="">— Chọn sản phẩm thuốc —</option>
                       @if (ViewBag.Products != null && ((IEnumerable<httt.Models.Product>)ViewBag.Products).Any())
                       {
                           foreach (var prod in (IEnumerable<httt.Models.Product>)ViewBag.Products)
                           {
                               <option value="@prod.ProductId">@prod.ProductName (@prod.Unit)</option>
                           }
-                      }
-                      else
-                      {
-                          <option selected>Ginkgo Biloba 120mg Trunature (Hộp 6 vỉ x 10 viên)</option>
-                          <option>Glucosamine HCL 1500mg (Chai 180 viên nén)</option>
-                          <option>Milk Thistle Extract 1000mg (Hộp 60 viên)</option>
-                          <option>Viên nén Paracetamol 500mg (Hộp 10 vỉ x 10 viên)</option>
-                          <option>Amoxicillin Trihydrate 500mg (Hộp 10 vỉ x 10 viên)</option>
                       }
                     </select>
                   </div>
@@ -499,14 +506,14 @@
                 <div class="form-group">
                   <label class="form-label">Số lượng sản xuất <span class="required-mark">*</span></label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input text-right" value="500 Hộp">
+                    <input type="number" class="form-input text-right" placeholder="Nhập số lượng..." min="1">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">Hạn sử dụng</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input has-calendar" value="28/10/2028">
+                    <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy">
                     <span class="calendar-icon-btn">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -522,17 +529,13 @@
                   <label class="form-label">BOM công thức</label>
                   <div class="form-control-wrap">
                     <select class="form-select">
+                      <option value="">— Chọn công thức định mức (BOM) —</option>
                       @if (ViewBag.Boms != null && ((IEnumerable<httt.Models.Bom>)ViewBag.Boms).Any())
                       {
                           foreach (var bom in (IEnumerable<httt.Models.Bom>)ViewBag.Boms)
                           {
-                              <option value="@bom.BomId">@bom.BomName - Định mức @(bom.Product?.ProductName ?? "Thành phẩm thuốc")</option>
+                              <option value="@bom.BomId">@(bom.BomCode ?? $"BOM-{bom.BomId}") - @(bom.BomName ?? bom.Product?.ProductName ?? "BOM")</option>
                           }
-                      }
-                      else
-                      {
-                          <option selected>BOM-GINKGO120-API - Định mức chiết xuất Ginkgo Biloba</option>
-                          <option>BOM-GLUCO1500-API - Định mức Glucosamine HCL</option>
                       }
                     </select>
                   </div>
@@ -541,7 +544,7 @@
                 <div class="form-group">
                   <label class="form-label">Dược sĩ phụ trách</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input" value="DS. Nguyễn Minh Tài">
+                    <input type="text" class="form-input" placeholder="Chưa cập nhật">
                   </div>
                 </div>
                 
@@ -549,7 +552,7 @@
                 <div class="form-group full-width">
                   <label class="form-label">Diễn giải</label>
                   <div class="form-control-wrap">
-                    <textarea class="form-textarea" placeholder="Nhập diễn giải cho lệnh sản xuất...">Lô sản xuất viên nang cứng Ginkgo Biloba 120mg theo tiêu chuẩn GMP-WHO đợt 1 năm 2026.</textarea>
+                    <textarea class="form-textarea" placeholder="Nhập diễn giải cho lệnh sản xuất (nếu có)..."></textarea>
                   </div>
                 </div>
 
@@ -563,13 +566,13 @@
                 <div class="status-meta-row">
                   <div class="status-meta-item">
                     <label class="status-meta-label">Số lệnh sản xuất <span class="required-mark">*</span></label>
-                    <input type="text" class="form-input" value="LSX-GMP-0001">
+                    <input type="text" class="form-input" placeholder="Tự sinh (LSX-GMP-...)" readonly>
                   </div>
 
                   <div class="status-meta-item">
                     <label class="status-meta-label">Ngày lập <span class="required-mark">*</span></label>
                     <div class="form-control-wrap">
-                      <input type="text" class="form-input has-calendar" value="22/01/2026">
+                      <input type="text" class="form-input has-calendar" value="@DateTime.Now.ToString("dd/MM/yyyy")">
                       <span class="calendar-icon-btn">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -586,7 +589,7 @@
                   <div class="status-meta-item">
                     <span class="status-meta-label">Ưu tiên</span>
                     <div class="priority-tag">
-                      <span>Vừa</span>
+                      <span>Tiêu chuẩn</span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="6 9 12 15 18 9"></polyline>
                       </svg>
@@ -595,7 +598,7 @@
 
                   <div class="status-meta-item">
                     <span class="status-meta-label">Trạng thái sản xuất</span>
-                    <span class="status-pill-gray">Chưa sản xuất</span>
+                    <span class="status-pill-gray">Chờ tiếp nhận</span>
                   </div>
                 </div>
 
@@ -603,12 +606,7 @@
                   <div class="status-meta-item">
                     <span class="status-meta-label">Tham chiếu</span>
                     <div class="ref-link-box">
-                      <span>DH00082</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="19" cy="12" r="1"></circle>
-                        <circle cx="5" cy="12" r="1"></circle>
-                      </svg>
+                      <span>—</span>
                     </div>
                   </div>
                 </div>
@@ -647,7 +645,7 @@
               <div class="form-group">
                 <label class="form-label">Hạn sản xuất <span class="required-mark">*</span></label>
                 <div class="form-control-wrap">
-                  <input type="text" class="form-input has-calendar" value="30/01/2026">
+                  <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy">
                   <span class="calendar-icon-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -662,7 +660,7 @@
               <div class="form-group">
                 <label class="form-label">Bắt đầu <span class="required-mark">*</span></label>
                 <div class="form-control-wrap">
-                  <input type="text" class="form-input has-calendar" value="22/01/2026 23:59">
+                  <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy hh:mm">
                   <span class="calendar-icon-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -677,7 +675,7 @@
               <div class="form-group">
                 <label class="form-label">Kết thúc <span class="required-mark">*</span></label>
                 <div class="form-control-wrap">
-                  <input type="text" class="form-input has-calendar" value="30/01/2026 23:59">
+                  <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy hh:mm">
                   <span class="calendar-icon-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -731,82 +729,8 @@
                 </thead>
                 <tbody id="bomTableBody">
                   <tr>
-                    <td class="text-center col-stt">1</td>
-                    <td><strong>GINKGO_API</strong></td>
-                    <td>Cao khô lá Bạch Quả (Ginkgo Biloba Extract)</td>
-                    <td>kg</td>
-                    <td class="text-center"><input type="checkbox" checked></td>
-                    <td class="text-right">0,1200</td>
-                    <td class="text-right"><strong>60,000</strong></td>
-                    <td class="text-center">
-                      <div class="row-actions-cell">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td class="text-center col-stt">2</td>
-                    <td><strong>LACTOSE_TD</strong></td>
-                    <td>Tá dược độn Lactose Monohydrate dược dụng</td>
-                    <td>kg</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td class="text-right">0,0800</td>
-                    <td class="text-right"><strong>40,000</strong></td>
-                    <td class="text-center">
-                      <div class="row-actions-cell">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td class="text-center col-stt">3</td>
-                    <td><strong>GLY</strong></td>
-                    <td>Glycerin/sorbitol</td>
-                    <td>ml</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td class="text-right">45,0000</td>
-                    <td class="text-right"><strong>90,000</strong></td>
-                    <td class="text-center">
-                      <div class="row-actions-cell">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td class="text-center col-stt">4</td>
-                    <td><strong>AXIT</strong></td>
-                    <td>Acid citric</td>
-                    <td>g</td>
-                    <td class="text-center"><input type="checkbox"></td>
-                    <td class="text-right">3,0000</td>
-                    <td class="text-right"><strong>6,000</strong></td>
-                    <td class="text-center">
-                      <div class="row-actions-cell">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
+                    <td colspan="8" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
+                      Chưa có dữ liệu nguyên vật liệu. Vui lòng chọn BOM hoặc bấm "Thêm dòng" để khai báo.
                     </td>
                   </tr>
                 </tbody>
@@ -815,7 +739,7 @@
 
             <div class="table-footer-bar">
               <div class="table-footer-left">
-                <span>Tổng số: <strong id="totalRowsCount">4</strong></span>
+                <span>Tổng số: <strong id="totalRowsCount">0</strong></span>
                 <button type="button" class="btn-table-action btn-add-row" id="btnAddRow">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -839,7 +763,7 @@
                   <option>50</option>
                   <option>20</option>
                 </select>
-                <span>1 - 4</span>
+                <span>0 - 0</span>
                 <button type="button" class="pagination-btn" title="Trang trước">&lt;</button>
                 <button type="button" class="pagination-btn" title="Trang sau">&gt;</button>
               </div>
@@ -849,9 +773,13 @@
 
         </div>
 
+        <div style="margin: 16px 0; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 12px 16px; font-size: 13px; color: #92400e;">
+          <strong>Lưu ý:</strong> Chức năng tạo lệnh sản xuất thủ công chưa được triển khai.
+        </div>
+
         <div class="order-bottom-actions">
           <button type="button" class="btn-cancel" id="btnCancelOrder">Quay lại danh sách</button>
-          <button type="button" class="btn-save-draft">Lưu nháp</button>
+          <button type="button" class="btn-save-draft" disabled title="Chức năng chưa triển khai" style="opacity: 0.6; cursor: not-allowed;">Lưu nháp</button>
           <button type="button" class="btn-save-submit" id="btnSubmitOrder">Lưu Lệnh sản xuất</button>
         </div>
 

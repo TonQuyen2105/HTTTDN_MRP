@@ -102,16 +102,14 @@ function initHandoverFormActions() {
   if (btnSave) {
     btnSave.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Biên bản bàn giao thành phẩm thành công!');
-      returnToList();
+      alert('Chức năng lập và cập nhật phiếu bàn giao thủ công chưa được triển khai trên backend.\nPhiếu bàn giao được tạo tự động khi hoàn thành sản xuất từ đơn đặt hàng.');
     });
   }
 
   if (btnSaveAndNew) {
     btnSaveAndNew.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu thành công! Đang mở phiếu bàn giao mới...');
-      location.reload();
+      alert('Chức năng lập phiếu bàn giao mới chưa được triển khai trên backend.');
     });
   }
 }

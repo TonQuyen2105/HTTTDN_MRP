@@ -1,5 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using httt.Constants;
 using httt.Data;
 using httt.Models;
 using httt.Services;
@@ -7,22 +10,41 @@ using httt.Services;
 namespace httt.Areas.Productions.Controllers
 {
     [Area("Productions")]
+    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Production}")]
     public class HomeController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly MaterialRequirementService _mrpService;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController(ApplicationDbContext context, MaterialRequirementService mrpService)
+        public HomeController(
+            ApplicationDbContext context, 
+            MaterialRequirementService mrpService,
+            ILogger<HomeController> logger)
         {
             _context = context;
             _mrpService = mrpService;
+            _logger = logger;
         }
 
-        private async Task<UserAccount> GetCurrentUserAsync()
+        private async Task<UserAccount?> GetCurrentUserAsync()
         {
-            return await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.Username == "minhtai")
-                ?? await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync()
-                ?? new UserAccount { UserID = 11, FullName = "DS. Nguyễn Minh Tài", Role = "Admin" };
+            if (User?.Identity?.IsAuthenticated != true)
+            {
+                return null;
+            }
+
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idClaim, out int userId))
+            {
+                var user = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == userId);
+                if (user != null && (string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase) || string.Equals(user.Status, "true", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return user;
+                }
+            }
+
+            return null;
         }
 
         public async Task<IActionResult> Index()
@@ -33,23 +55,29 @@ namespace httt.Areas.Productions.Controllers
                 var ingredients = await _context.Ingredients.AsNoTracking().ToListAsync();
                 var products = await _context.Products.AsNoTracking().OrderByDescending(p => p.Quantity).Take(5).ToListAsync();
 
+                ViewBag.HasError = false;
                 ViewBag.TotalRequests = requests.Count;
                 ViewBag.PendingRequests = requests.Count(r => r.Status != "Completed");
                 ViewBag.TotalQuantityRequired = requests.Sum(r => (long)r.QuantityRequired);
                 ViewBag.TotalIngredients = ingredients.Count;
-                ViewBag.TotalStock = ingredients.Sum(i => (long)i.Quantity);
+                ViewBag.TotalStock = ingredients.Sum(i => i.Quantity ?? 0m);
                 ViewBag.TopProducts = products;
                 ViewBag.StatusCounts = requests.GroupBy(r => r.Status ?? "Pending")
                     .Select(g => new { Status = g.Key, Count = g.Count() })
                     .ToList();
             }
-            catch
+            catch (Exception ex)
             {
-                ViewBag.TotalRequests = 5;
-                ViewBag.PendingRequests = 4;
-                ViewBag.TotalQuantityRequired = 1000;
-                ViewBag.TotalIngredients = 8;
-                ViewBag.TotalStock = 890;
+                _logger.LogError(ex, "Lỗi truy vấn dữ liệu trang Tổng quan (Dashboard AMIS Sản xuất)");
+                ViewBag.HasError = true;
+                ViewBag.ErrorMessage = "Không tải được dữ liệu từ cơ sở dữ liệu. Vui lòng thử lại sau.";
+                ViewBag.TotalRequests = null;
+                ViewBag.PendingRequests = null;
+                ViewBag.TotalQuantityRequired = null;
+                ViewBag.TotalIngredients = null;
+                ViewBag.TotalStock = null;
+                ViewBag.TopProducts = new List<Product>();
+                ViewBag.StatusCounts = new List<object>();
             }
 
             return View("~/Areas/Productions/Views/Overview.cshtml");
@@ -92,40 +120,32 @@ namespace httt.Areas.Productions.Controllers
             {
                 ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
                 ViewBag.Ingredients = await _context.Ingredients.AsNoTracking().ToListAsync();
-            }
-            catch {}
-            return View("~/Areas/Productions/Views/BomEdit.cshtml");
-        }
 
-        public async Task<IActionResult> ProductionOrder()
-        {
-            try
-            {
-                var orders = await _context.ProductionRequests
+                if (!id.HasValue || id.Value <= 0)
+                {
+                    return View("~/Areas/Productions/Views/BomEdit.cshtml", (Bom?)null);
+                }
+
+                var bom = await _context.Boms
                     .AsNoTracking()
-                    .Include(p => p.Product)
-                    .Include(p => p.Manager)
-                    .OrderByDescending(p => p.RequestId)
-                    .ToListAsync();
+                    .Include(b => b.Product)
+                    .Include(b => b.Ingredient)
+                    .FirstOrDefaultAsync(b => b.BomId == id.Value);
 
-                try
-                {
-                    ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
-                    ViewBag.Boms = await _context.Boms.AsNoTracking().Include(b => b.Product).ToListAsync();
-                }
-                catch
-                {
-                    ViewBag.Products = new List<Product>();
-                    ViewBag.Boms = new List<Bom>();
-                }
-
-                return View("~/Areas/Productions/Views/ProductionOrder.cshtml", orders);
+                return View("~/Areas/Productions/Views/BomEdit.cshtml", bom);
             }
             catch
             {
-                ViewBag.Products = new List<Product>();
-                return View("~/Areas/Productions/Views/ProductionOrder.cshtml", new List<ProductionRequest>());
+                return View("~/Areas/Productions/Views/BomEdit.cshtml", (Bom?)null);
             }
+        }
+
+        /// <summary>
+        /// Trang Lệnh sản xuất đã được gộp/bỏ theo yêu cầu, chuyển hướng toàn bộ sang Đơn đặt hàng thuốc
+        /// </summary>
+        public IActionResult ProductionOrder()
+        {
+            return RedirectToAction("DrugOrder", "Home", new { area = "Productions" });
         }
 
         public async Task<IActionResult> MaterialRequisitionList()
@@ -136,8 +156,10 @@ namespace httt.Areas.Productions.Controllers
                     .AsNoTracking()
                     .Include(m => m.Requester)
                     .Include(m => m.Approver)
+                    .Include(m => m.ProductionRequest)
+                        .ThenInclude(r => r!.Product)
                     .Include(m => m.Details)
-                    .ThenInclude(d => d.Ingredient)
+                        .ThenInclude(d => d.Ingredient)
                     .OrderByDescending(m => m.ExpReceiptId)
                     .ToListAsync();
 
@@ -175,12 +197,315 @@ namespace httt.Areas.Productions.Controllers
 
                     if (receipt != null)
                     {
+                        // Lấy tồn kho sản xuất (WIP) từ bảng wip_inventory theo Lệnh sản xuất tương ứng
+                        if (receipt.RequestId.HasValue && receipt.RequestId.Value > 0)
+                        {
+                            var wipItems = await _context.WipInventories
+                                .AsNoTracking()
+                                .Where(w => w.RequestId == receipt.RequestId.Value && w.IngrId.HasValue)
+                                .ToListAsync();
+
+                            ViewBag.WipDict = wipItems
+                                .GroupBy(w => w.IngrId!.Value)
+                                .ToDictionary(g => g.Key, g => g.Sum(w => w.Quantity ?? 0m));
+                        }
+                        else
+                        {
+                            ViewBag.WipDict = new Dictionary<int, decimal>();
+                        }
+
                         return View("~/Areas/Productions/Views/MaterialRequisitionCreate.cshtml", receipt);
                     }
                 }
             }
             catch {}
             return View("~/Areas/Productions/Views/MaterialRequisitionCreate.cshtml", (MaterialReceipt?)null);
+        }
+
+        /// <summary>
+        /// API xuất kho nguyên vật liệu từ kho tổng chuyển về kho sản xuất (WIP) cho Lệnh sản xuất
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ExportMaterialsToWip([FromBody] ExportToWipRequest req)
+        {
+            if (req == null || req.ExpReceiptId <= 0)
+                return BadRequest(new { success = false, message = "Mã phiếu yêu cầu xuất kho không hợp lệ." });
+
+            try
+            {
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể thực hiện xuất kho."
+                    });
+                }
+
+                var receipt = await _context.MaterialReceipts
+                    .Include(m => m.Details)
+                        .ThenInclude(d => d.Ingredient)
+                    .Include(m => m.ProductionRequest)
+                    .FirstOrDefaultAsync(m => m.ExpReceiptId == req.ExpReceiptId);
+
+                if (receipt == null)
+                    return NotFound(new { success = false, message = "Không tìm thấy phiếu yêu cầu xuất kho trong cơ sở dữ liệu." });
+
+                if (receipt.Status == "Completed")
+                    return BadRequest(new { success = false, message = $"Phiếu {receipt.DisplayCode} đã được xuất kho trước đó." });
+
+                if (!receipt.RequestId.HasValue || receipt.RequestId.Value <= 0)
+                    return BadRequest(new { success = false, message = "Phiếu yêu cầu chưa liên kết với Lệnh sản xuất hợp lệ." });
+
+                if (receipt.Details == null || !receipt.Details.Any())
+                    return BadRequest(new { success = false, message = "Phiếu xuất kho không có nguyên vật liệu chi tiết." });
+
+                // Kiểm tra tồn kho thực tế xem có đủ xuất cho từng dòng không
+                var insufficientLines = new List<string>();
+                foreach (var detail in receipt.Details)
+                {
+                    var ingr = detail.Ingredient;
+                    var actualStock = ingr?.Quantity ?? 0m;
+                    if (actualStock < detail.Quantity)
+                    {
+                        insufficientLines.Add($"'{ingr?.IngrName ?? $"NVL #{detail.IngrId}"}': yêu cầu {detail.Quantity:N2} {detail.Unit}, kho thực tế chỉ có {actualStock:N2} {detail.Unit} (thiếu {detail.Quantity - actualStock:N2} {detail.Unit})");
+                    }
+                }
+
+                if (insufficientLines.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        insufficient = true,
+                        message = "Kho thực tế chưa đủ số lượng để xuất:\n• " + string.Join("\n• ", insufficientLines) + "\n\nVui lòng nhập thêm vào kho thực tế trước khi xuất về xưởng sản xuất."
+                    });
+                }
+
+                // Thực hiện trừ kho thực tế và cộng vào kho sản xuất (WIP) trong Transaction
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    int reqId = receipt.RequestId.Value;
+
+                    foreach (var detail in receipt.Details)
+                    {
+                        var ingr = detail.Ingredient;
+                        if (ingr != null)
+                        {
+                            ingr.Quantity = (ingr.Quantity ?? 0m) - detail.Quantity;
+                        }
+
+                        // Tìm hoặc tạo bản ghi tồn kho sản xuất (wip_inventory)
+                        var wip = await _context.WipInventories
+                            .FirstOrDefaultAsync(w => w.RequestId == reqId && w.IngrId == detail.IngrId);
+
+                        if (wip != null)
+                        {
+                            wip.Quantity = (wip.Quantity ?? 0m) + detail.Quantity;
+                            wip.LastUpdated = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            wip = new WipInventory
+                            {
+                                RequestId = reqId,
+                                IngrId = detail.IngrId,
+                                Quantity = detail.Quantity,
+                                LastUpdated = DateTime.UtcNow
+                            };
+                            _context.WipInventories.Add(wip);
+                        }
+
+                        detail.Status = "Completed";
+                        detail.ExportDate = DateTime.UtcNow;
+                    }
+
+                    receipt.Status = "Completed";
+                    receipt.ApprovedBy = currentUser.UserID;
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    var orderCode = receipt.ProductionRequest?.RequestCode ?? $"LSX-{receipt.RequestId}";
+                    return Ok(new
+                    {
+                        success = true,
+                        message = $"Xuất kho thành công {receipt.DisplayCode}! Đã chuyển toàn bộ nguyên vật liệu về kho sản xuất (WIP) cho {orderCode}.",
+                        receiptCode = receipt.DisplayCode,
+                        requestId = receipt.RequestId
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Lỗi khi xuất kho nguyên vật liệu sang WIP");
+                    return BadRequest(new { success = false, message = "Lỗi khi lưu dữ liệu xuất kho: " + ex.Message });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API nhập bổ sung nguyên vật liệu vào kho thực tế
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReplenishIngredientStock([FromBody] ReplenishIngredientRequest req)
+        {
+            if (req == null || req.IngrId <= 0 || req.Quantity <= 0)
+                return BadRequest(new { success = false, message = "Thông tin nhập kho không hợp lệ." });
+
+            try
+            {
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể thực hiện nhập kho."
+                    });
+                }
+
+                var ingr = await _context.Ingredients.FirstOrDefaultAsync(i => i.IngrId == req.IngrId);
+                if (ingr == null)
+                    return NotFound(new { success = false, message = "Không tìm thấy nguyên vật liệu trong cơ sở dữ liệu." });
+
+                ingr.Quantity = (ingr.Quantity ?? 0m) + req.Quantity;
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Đã nhập bổ sung thành công {req.Quantity:N2} {ingr.Unit} vào kho thực tế. Tồn kho thực tế mới: {ingr.Quantity:N2} {ingr.Unit}.",
+                    ingrId = ingr.IngrId,
+                    newQuantity = ingr.Quantity
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API giả lập nạp nguyên vật liệu trực tiếp vào kho sản xuất (wip_inventory) cho một phiếu yêu cầu xuất
+        /// Tăng số lượng trong wip_inventory thay vì kho tổng; sau khi nạp đầy, trạng thái đổi thành "Completed" (hiển thị là "Được cấp")
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReplenishAllForReceipt([FromBody] ReplenishAllForReceiptRequest req)
+        {
+            if (req == null || req.ExpReceiptId <= 0)
+                return BadRequest(new { success = false, message = "Mã phiếu không hợp lệ." });
+
+            try
+            {
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập)."
+                    });
+                }
+
+                var receipt = await _context.MaterialReceipts
+                    .Include(m => m.Details)
+                        .ThenInclude(d => d.Ingredient)
+                    .Include(m => m.ProductionRequest)
+                    .FirstOrDefaultAsync(m => m.ExpReceiptId == req.ExpReceiptId);
+
+                if (receipt == null)
+                    return NotFound(new { success = false, message = "Không tìm thấy phiếu yêu cầu xuất kho." });
+
+                if (!receipt.RequestId.HasValue || receipt.RequestId.Value <= 0)
+                    return BadRequest(new { success = false, message = "Phiếu yêu cầu chưa liên kết với Lệnh sản xuất hợp lệ." });
+
+                int reqId = receipt.RequestId.Value;
+                var orderCode = receipt.ProductionRequest?.RequestCode ?? $"LSX-{reqId}";
+
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var replenishedList = new List<string>();
+
+                    foreach (var detail in receipt.Details)
+                    {
+                        var ingr = detail.Ingredient;
+                        var ingrName = ingr?.IngrName ?? $"NVL #{detail.IngrId}";
+                        var ingrUnit = detail.Unit ?? ingr?.Unit ?? "kg";
+
+                        // Tìm hoặc tạo bản ghi tồn kho sản xuất (wip_inventory)
+                        var wip = await _context.WipInventories
+                            .FirstOrDefaultAsync(w => w.RequestId == reqId && w.IngrId == detail.IngrId);
+
+                        var currentWip = wip?.Quantity ?? 0m;
+                        if (currentWip < detail.Quantity)
+                        {
+                            var deficit = detail.Quantity - currentWip;
+                            if (wip == null)
+                            {
+                                wip = new WipInventory
+                                {
+                                    RequestId = reqId,
+                                    IngrId = detail.IngrId,
+                                    ProductId = null,
+                                    Quantity = detail.Quantity,
+                                    LastUpdated = DateTime.UtcNow
+                                };
+                                _context.WipInventories.Add(wip);
+                            }
+                            else
+                            {
+                                wip.Quantity = detail.Quantity;
+                                wip.LastUpdated = DateTime.UtcNow;
+                            }
+                            replenishedList.Add($"{ingrName}: +{deficit:N2} {ingrUnit} (Tồn kho SX: {detail.Quantity:N2} {ingrUnit})");
+                        }
+
+                        detail.Status = "Completed";
+                        detail.ExportDate = DateTime.UtcNow;
+                    }
+
+                    // Đổi trạng thái phiếu sang Completed (hiển thị "Được cấp")
+                    receipt.Status = "Completed";
+                    receipt.ApprovedBy = currentUser.UserID;
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    string message = replenishedList.Any()
+                        ? $"Đã giả lập nạp đủ nguyên vật liệu vào Kho sản xuất (WIP) cho {orderCode}!\n• " + string.Join("\n• ", replenishedList) + "\n\nTrạng thái phiếu đã chuyển sang: 'Được cấp'."
+                        : $"Kho sản xuất (WIP) đã có đủ toàn bộ nguyên vật liệu theo yêu cầu của phiếu. Trạng thái phiếu: 'Được cấp'.";
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message,
+                        receiptCode = receipt.DisplayCode,
+                        requestId = reqId,
+                        status = "Được cấp"
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Lỗi khi nạp NVL vào kho sản xuất cho phiếu {ReceiptId}", req.ExpReceiptId);
+                    return BadRequest(new { success = false, message = "Lỗi khi lưu dữ liệu nạp kho sản xuất: " + ex.Message });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         #region Tính nhu cầu nguyên vật liệu (MRP)
@@ -230,7 +555,7 @@ namespace httt.Areas.Productions.Controllers
                     return NotFound(new { message = "Không tìm thấy yêu cầu sản xuất trong hệ thống." });
 
                 string? orderCode = (req.Status == "Approved" || req.Status == "In Production")
-                    ? $"LSX-GMP-0{req.RequestId}"
+                    ? (!string.IsNullOrWhiteSpace(req.RequestCode) ? req.RequestCode : $"LSX-{req.RequestId}")
                     : null;
 
                 var boms = await _context.Boms
@@ -259,7 +584,7 @@ namespace httt.Areas.Productions.Controllers
                 return Json(new
                 {
                     requestId = req.RequestId,
-                    requestCode = $"YCSX-{req.RequestId:D4}",
+                    requestCode = !string.IsNullOrWhiteSpace(req.RequestCode) ? req.RequestCode : $"YCSX-{req.RequestId}",
                     productId = req.ProductId,
                     productName = req.Product?.ProductName ?? "",
                     quantityRequired = req.QuantityRequired,
@@ -271,7 +596,7 @@ namespace httt.Areas.Productions.Controllers
                     boms = groupedBoms,
                     hasExistingSlip = existingSlip != null,
                     existingReceiptId = existingSlip?.ExpReceiptId,
-                    existingReceiptCode = existingSlip != null ? $"XK-DPH-{existingSlip.ExpReceiptId:D4}" : null,
+                    existingReceiptCode = existingSlip?.DisplayCode,
                     existingReceiptStatus = existingSlip?.Status
                 });
             }
@@ -358,7 +683,17 @@ namespace httt.Areas.Productions.Controllers
             try
             {
                 var currentUser = await GetCurrentUserAsync();
-                var (success, message, receiptId, receiptCode) = await _mrpService.CreateRequisitionSlipAsync(req, currentUser.UserID);
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể tạo phiếu yêu cầu cấp nguyên vật liệu."
+                    });
+                }
+
+                int requestedByUserId = currentUser.UserID;
+                var (success, message, receiptId, receiptCode) = await _mrpService.CreateRequisitionSlipAsync(req, requestedByUserId);
 
                 if (!success)
                 {
@@ -382,7 +717,8 @@ namespace httt.Areas.Productions.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Lỗi xử lý: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi khi tạo phiếu yêu cầu cấp nguyên vật liệu từ MRP");
+                return BadRequest(new { success = false, message = "Đã xảy ra lỗi trong quá trình tạo phiếu yêu cầu. Vui lòng thử lại sau." });
             }
         }
 
@@ -426,28 +762,29 @@ namespace httt.Areas.Productions.Controllers
             try
             {
                 ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
-                if (id.HasValue)
+                if (!id.HasValue || id.Value <= 0)
                 {
-                    var req = await _context.ProductionRequests
-                        .AsNoTracking()
-                        .Include(p => p.Product)
-                        .Include(p => p.Manager)
-                        .FirstOrDefaultAsync(p => p.RequestId == id.Value);
-
-                    if (req != null)
-                    {
-                        return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", req);
-                    }
+                    return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", (ProductionRequest?)null);
                 }
 
-                // Nếu không truyền ID, lấy phiếu đầu tiên làm mẫu chi tiết
-                var firstReq = await _context.ProductionRequests
+                var req = await _context.ProductionRequests
                     .AsNoTracking()
                     .Include(p => p.Product)
                     .Include(p => p.Manager)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(p => p.RequestId == id.Value);
 
-                return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", firstReq);
+                if (req != null)
+                {
+                    var receipt = await _context.ProductReceipts
+                        .AsNoTracking()
+                        .Include(r => r.Details)
+                        .FirstOrDefaultAsync(r => r.RequestId == req.RequestId);
+
+                    ViewBag.ProductReceipt = receipt;
+                    return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", req);
+                }
+
+                return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", (ProductionRequest?)null);
             }
             catch
             {
@@ -465,8 +802,9 @@ namespace httt.Areas.Productions.Controllers
                     .AsNoTracking()
                     .Include(p => p.Requester)
                     .Include(p => p.Approver)
+                    .Include(p => p.ProductionRequest)
                     .Include(p => p.Details)
-                    .ThenInclude(d => d.Product)
+                        .ThenInclude(d => d.Product)
                     .OrderByDescending(p => p.ProductReceiptId)
                     .ToListAsync();
 
@@ -497,8 +835,9 @@ namespace httt.Areas.Productions.Controllers
                     .AsNoTracking()
                     .Include(p => p.Requester)
                     .Include(p => p.Approver)
+                    .Include(p => p.ProductionRequest)
                     .Include(p => p.Details)
-                    .ThenInclude(d => d.Product)
+                        .ThenInclude(d => d.Product)
                     .OrderByDescending(p => p.ProductReceiptId)
                     .ToListAsync();
 
@@ -514,14 +853,19 @@ namespace httt.Areas.Productions.Controllers
         {
             try
             {
+                if (!id.HasValue || id.Value <= 0)
+                {
+                    return View("~/Areas/Productions/Views/HandoverDetail.cshtml", (ProductReceipt?)null);
+                }
+
                 var receipt = await _context.ProductReceipts
                     .AsNoTracking()
                     .Include(p => p.Requester)
                     .Include(p => p.Approver)
+                    .Include(p => p.ProductionRequest)
                     .Include(p => p.Details)
-                    .ThenInclude(d => d.Product)
-                    .OrderByDescending(p => p.ProductReceiptId)
-                    .FirstOrDefaultAsync(p => id == null || p.ProductReceiptId == id);
+                        .ThenInclude(d => d.Product)
+                    .FirstOrDefaultAsync(p => p.ProductReceiptId == id.Value);
 
                 return View("~/Areas/Productions/Views/HandoverDetail.cshtml", receipt);
             }
@@ -535,9 +879,7 @@ namespace httt.Areas.Productions.Controllers
         {
             try
             {
-                var user = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.Username == "minhtai")
-                           ?? await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync();
-
+                var user = await GetCurrentUserAsync();
                 return View("~/Areas/Productions/Views/UserProfile.cshtml", user);
             }
             catch
@@ -572,10 +914,6 @@ namespace httt.Areas.Productions.Controllers
                 {
                     var orderReceipts = receipts.Where(r => r.RequestId == order.RequestId).ToList();
                     var produced = orderReceipts.SelectMany(r => r.Details).Sum(d => d.Quantity);
-                    if (produced == 0 && order.Status == "Completed")
-                    {
-                        produced = order.QuantityRequired;
-                    }
                     order.ProducedQuantity = produced;
                 }
 
@@ -621,10 +959,6 @@ namespace httt.Areas.Productions.Controllers
                     .ToListAsync();
 
                 int producedQty = receipts.SelectMany(r => r.Details).Sum(d => d.Quantity);
-                if (producedQty == 0 && order.Status == "Completed")
-                {
-                    producedQty = order.QuantityRequired;
-                }
 
                 var boms = await _context.Boms
                     .AsNoTracking()
@@ -638,21 +972,24 @@ namespace httt.Areas.Productions.Controllers
                         unit = b.Ingredient != null ? b.Ingredient.Unit : "kg",
                         itemQuantity = b.ItemQuantity,
                         materialQuantity = b.MaterialQuantity,
-                        stock = b.Ingredient != null ? b.Ingredient.Quantity : 0
+                        stock = b.Ingredient != null ? b.Ingredient.Quantity : null
                     })
                     .ToListAsync();
+
+                var reqDisplayCode = !string.IsNullOrWhiteSpace(order.RequestCode) ? order.RequestCode : $"YCSX-{order.RequestId}";
+                var lsxDisplayCode = !string.IsNullOrWhiteSpace(order.RequestCode) ? order.RequestCode : $"LSX-{order.RequestId}";
 
                 return Json(new
                 {
                     success = true,
                     orderId = order.RequestId,
-                    orderCode = $"ĐH-KHO-{order.RequestId:D4}",
-                    requestCode = $"YCSX-{order.RequestId:D4}",
-                    productionOrderCode = $"LSX-GMP-0{order.RequestId}",
+                    orderCode = reqDisplayCode,
+                    requestCode = reqDisplayCode,
+                    productionOrderCode = lsxDisplayCode,
                     createdDate = order.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A",
                     status = order.Status,
-                    managerName = order.Manager?.FullName ?? "DS. Quản lý kho",
-                    managerPhone = order.Manager?.Phone ?? "0912 345 678",
+                    managerName = order.Manager?.FullName ?? "Chưa cập nhật",
+                    managerPhone = order.Manager?.Phone ?? "—",
                     productId = order.ProductId,
                     productName = order.Product?.ProductName ?? "Sản phẩm thuốc",
                     productUnit = order.Product?.Unit ?? "Hộp",
@@ -671,107 +1008,462 @@ namespace httt.Areas.Productions.Controllers
         }
 
         /// <summary>
-        /// API đánh dấu thành phẩm sản xuất được của từng đơn
+        /// API kiểm tra dự toán NVL tiêu hao trong kho sản xuất (WIP) khi ghi nhận sản xuất
         /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> MarkProducedGoods([FromBody] MarkProducedGoodsRequest req)
+        [HttpGet]
+        public async Task<IActionResult> PreviewProductionMaterials(int requestId, int quantityToRecord)
         {
-            if (req == null || req.RequestId <= 0)
-                return BadRequest(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
+            if (requestId <= 0)
+                return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ." });
 
             try
             {
-                var order = await _context.ProductionRequests.FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
+                var order = await _context.ProductionRequests
+                    .AsNoTracking()
+                    .Include(p => p.Product)
+                    .FirstOrDefaultAsync(p => p.RequestId == requestId);
+
                 if (order == null)
                     return NotFound(new { success = false, message = "Không tìm thấy đơn hàng." });
 
-                // Cập nhật trạng thái
-                if (req.IsCompleted || req.ProducedQuantity >= order.QuantityRequired)
-                {
-                    order.Status = "Completed";
-                }
-                else if (req.ProducedQuantity > 0)
-                {
-                    order.Status = "In Production";
-                }
-                else
-                {
-                    order.Status = "Pending";
-                }
-
-                // Ghi nhận thành phẩm vào productreceipt & productreceiptdetail
-                var receipt = await _context.ProductReceipts
+                var receipts = await _context.ProductReceipts
+                    .AsNoTracking()
                     .Include(p => p.Details)
-                    .FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
+                    .Where(p => p.RequestId == requestId)
+                    .ToListAsync();
 
-                var currentUser = await GetCurrentUserAsync();
+                int currentProduced = receipts.SelectMany(r => r.Details)
+                    .Where(d => d.ProductId == order.ProductId)
+                    .Sum(d => d.Quantity);
 
-                if (receipt == null)
+                int remainingAllowed = Math.Max(0, order.QuantityRequired - currentProduced);
+                int batchQty = Math.Max(0, quantityToRecord);
+                bool exceedsRequired = (batchQty > remainingAllowed);
+                int newTotalProduced = currentProduced + batchQty;
+                int percent = order.QuantityRequired > 0 ? (int)Math.Min(100, Math.Round((double)newTotalProduced * 100 / order.QuantityRequired)) : 0;
+
+                var bomItems = await _context.Boms
+                    .AsNoTracking()
+                    .Include(b => b.Ingredient)
+                    .Where(b => b.ProductId == order.ProductId)
+                    .ToListAsync();
+
+                var wipRows = await _context.WipInventories
+                    .AsNoTracking()
+                    .Where(w => w.RequestId == requestId && w.IngrId.HasValue)
+                    .ToListAsync();
+
+                var wipDict = wipRows
+                    .GroupBy(w => w.IngrId!.Value)
+                    .ToDictionary(g => g.Key, g => g.Sum(w => w.Quantity ?? 0m));
+
+                var finishedGoodsInWip = await _context.WipInventories
+                    .AsNoTracking()
+                    .Where(w => w.RequestId == requestId && w.ProductId == order.ProductId && w.IngrId == null)
+                    .SumAsync(w => w.Quantity ?? 0m);
+
+                var materials = new List<object>();
+                bool allMaterialsSufficient = true;
+                int missingCount = 0;
+
+                foreach (var b in bomItems)
                 {
-                    receipt = new ProductReceipt
-                    {
-                        RequestId = req.RequestId,
-                        RequestedBy = order.ManagerId ?? currentUser.UserID,
-                        ApprovedBy = currentUser.UserID,
-                        CreatedDate = DateTime.UtcNow,
-                        Status = order.Status
-                    };
-                    _context.ProductReceipts.Add(receipt);
-                    await _context.SaveChangesAsync();
+                    if (b.Ingredient == null) continue;
+                    var ingr = b.Ingredient;
+                    var ingrUnit = ingr.Unit?.Trim() ?? "kg";
+                    bool isDiscrete = BomUnitQuantity.DiscreteUnits.Contains(ingrUnit);
 
-                    var detail = new ProductReceiptDetail
+                    decimal norm = (b.ItemQuantity > 0) ? (b.MaterialQuantity / b.ItemQuantity) : 0m;
+                    decimal requiredForBatch = (batchQty > 0 && b.ItemQuantity > 0 && b.MaterialQuantity > 0)
+                        ? BomUnitQuantity.Required(b.MaterialQuantity, b.ItemQuantity, batchQty, isDiscrete)
+                        : 0m;
+
+                    decimal wipStock = wipDict.TryGetValue(ingr.IngrId, out var ws) ? ws : 0m;
+                    decimal shortage = Math.Max(0m, requiredForBatch - wipStock);
+                    bool isSufficient = (wipStock >= requiredForBatch);
+
+                    if (!isSufficient && batchQty > 0)
                     {
-                        ProductReceiptId = receipt.ProductReceiptId,
-                        ProductId = order.ProductId ?? 1,
-                        Quantity = req.ProducedQuantity,
-                        Status = order.Status,
-                        Note = !string.IsNullOrWhiteSpace(req.Note)
-                            ? req.Note
-                            : $"Ghi nhận thành phẩm sản xuất cho đơn ĐH-KHO-{order.RequestId:D4}",
-                        CreatedDate = DateTime.UtcNow
-                    };
-                    _context.ProductReceiptDetails.Add(detail);
-                }
-                else
-                {
-                    receipt.Status = order.Status;
-                    var detail = receipt.Details.FirstOrDefault();
-                    if (detail != null)
-                    {
-                        detail.Quantity = req.ProducedQuantity;
-                        detail.Status = order.Status;
-                        if (!string.IsNullOrWhiteSpace(req.Note))
-                            detail.Note = req.Note;
+                        allMaterialsSufficient = false;
+                        missingCount++;
                     }
-                    else
+
+                    materials.Add(new
                     {
-                        receipt.Details.Add(new ProductReceiptDetail
-                        {
-                            ProductReceiptId = receipt.ProductReceiptId,
-                            ProductId = order.ProductId ?? 1,
-                            Quantity = req.ProducedQuantity,
-                            Status = order.Status,
-                            Note = !string.IsNullOrWhiteSpace(req.Note)
-                                ? req.Note
-                                : $"Ghi nhận thành phẩm sản xuất cho đơn ĐH-KHO-{order.RequestId:D4}",
-                            CreatedDate = DateTime.UtcNow
-                        });
-                    }
+                        ingrId = ingr.IngrId,
+                        ingrName = ingr.IngrName,
+                        unit = ingrUnit,
+                        norm = norm,
+                        requiredForBatch = requiredForBatch,
+                        wipStock = wipStock,
+                        shortage = shortage,
+                        isSufficient = isSufficient
+                    });
                 }
 
-                await _context.SaveChangesAsync();
+                bool canProduce = !exceedsRequired && allMaterialsSufficient && bomItems.Any() && batchQty > 0;
 
                 return Ok(new
                 {
                     success = true,
-                    message = $"Đã cập nhật thành phẩm sản xuất đơn ĐH-KHO-{order.RequestId:D4} thành công!",
-                    status = order.Status,
-                    producedQuantity = req.ProducedQuantity
+                    requestId = order.RequestId,
+                    orderCode = order.DisplayCode,
+                    productId = order.ProductId,
+                    productName = order.Product?.ProductName ?? "Sản phẩm thuốc",
+                    productUnit = order.Product?.Unit ?? "Hộp",
+                    quantityRequired = order.QuantityRequired,
+                    currentProduced = currentProduced,
+                    remainingAllowed = remainingAllowed,
+                    quantityToRecord = batchQty,
+                    newTotalProduced = newTotalProduced,
+                    percent = percent,
+                    exceedsRequired = exceedsRequired,
+                    finishedGoodsInWip = finishedGoodsInWip,
+                    canProduce = canProduce,
+                    missingCount = missingCount,
+                    hasBom = bomItems.Any(),
+                    materials = materials
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Lỗi xử lý: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi kiểm tra dự toán NVL tiêu hao cho đơn {RequestId}", requestId);
+                return BadRequest(new { success = false, message = "Không thể kiểm tra dự toán NVL." });
+            }
+        }
+
+        /// <summary>
+        /// API ghi nhận sản lượng & sản xuất thành phẩm:
+        /// - Ghi nhận bao nhiêu là sản xuất và trừ NVL bấy nhiêu
+        /// - Không được vượt quá số lượng yêu cầu của đơn
+        /// - Khấu trừ NVL trong kho sản xuất (wip_inventory) theo BOM
+        /// - Đưa thành phẩm sản xuất được vào kho sản xuất chờ ngày bàn giao
+        /// - Cập nhật phiếu bàn giao thành phẩm (productreceipt) và trạng thái đơn hàng
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkProducedGoods([FromBody] MarkProducedGoodsRequest req)
+        {
+            // 1. Kiểm tra tính hợp lệ của Model
+            if (!ModelState.IsValid)
+            {
+                var firstError = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .FirstOrDefault(msg => !string.IsNullOrWhiteSpace(msg));
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = !string.IsNullOrWhiteSpace(firstError)
+                        ? firstError
+                        : "Dữ liệu sản lượng hoặc mã đơn hàng không đúng định dạng hoặc vượt quá giới hạn cho phép."
+                });
+            }
+
+            if (req == null)
+            {
+                return BadRequest(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
+            }
+
+            if (req.RequestId <= 0)
+            {
+                return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ." });
+            }
+
+            try
+            {
+                // 2. Xác thực người dùng
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể ghi nhận sản lượng thành phẩm."
+                    });
+                }
+
+                // 3. Tra cứu đơn hàng
+                var order = await _context.ProductionRequests.FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
+                if (order == null)
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy đơn hàng trong hệ thống." });
+                }
+
+                // 4. Kiểm tra tính toàn vẹn của đơn hàng
+                if (order.QuantityRequired <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Số lượng yêu cầu của đơn hàng không hợp lệ ({order.QuantityRequired}). Không thể ghi nhận sản lượng."
+                    });
+                }
+
+                if (order.ProductId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Đơn hàng chưa có thông tin sản phẩm thuốc hợp lệ. Vui lòng bổ sung hoặc sửa sản phẩm của đơn trước khi ghi nhận thành phẩm."
+                    });
+                }
+
+                var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == order.ProductId);
+                if (product == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Sản phẩm thuốc (Mã ID: {order.ProductId}) của đơn hàng không tồn tại trong hệ thống. Vui lòng kiểm tra lại."
+                    });
+                }
+
+                // 5. Kiểm tra trạng thái đơn: Không cho phép ghi nhận thêm khi đơn đã Completed
+                if (string.Equals(order.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Đơn hàng đã hoàn thành đầy đủ số lượng yêu cầu (Completed). Không thể ghi nhận thêm qua chức năng này."
+                    });
+                }
+
+                // 6. Tra cứu sản lượng đã ghi nhận trước đó
+                var existingReceipts = await _context.ProductReceipts
+                    .Include(p => p.Details)
+                    .Where(p => p.RequestId == req.RequestId)
+                    .ToListAsync();
+
+                var receipt = existingReceipts.FirstOrDefault();
+
+                int oldProduced = existingReceipts.SelectMany(r => r.Details)
+                    .Where(d => d.ProductId == order.ProductId)
+                    .Sum(d => d.Quantity);
+
+                // Số lượng ghi nhận lần này (tui ghi nhận bao nhiêu là nó sản xuất ra bấy nhiêu)
+                int batchQty = req.QuantityToProduce.HasValue && req.QuantityToProduce.Value > 0
+                    ? req.QuantityToProduce.Value
+                    : req.ProducedQuantity;
+
+                if (batchQty <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Số lượng ghi nhận phải lớn hơn 0."
+                    });
+                }
+
+                // 7. QUY TẮC CỐT LÕI: PHẦN GHI NHẬN KHÔNG ĐƯỢC VƯỢT QUÁ SỐ LƯỢNG YÊU CẦU
+                int remainingAllowed = Math.Max(0, order.QuantityRequired - oldProduced);
+                if (batchQty > remainingAllowed)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Số lượng ghi nhận ({batchQty:N0} {product.Unit ?? "Hộp"}) vượt quá số lượng yêu cầu còn lại của đơn hàng! Đơn này chỉ còn thiếu {remainingAllowed:N0} {product.Unit ?? "Hộp"}. Phần ghi nhận không được vượt quá số lượng yêu cầu ({order.QuantityRequired:N0} {product.Unit ?? "Hộp"})."
+                    });
+                }
+
+                int newTotalProduced = oldProduced + batchQty;
+
+                // 8. Tính toán định mức BOM và kiểm tra tồn kho sản xuất (WIP) cho đúng số lượng ghi nhận lần này
+                var bomItems = await _context.Boms
+                    .Include(b => b.Ingredient)
+                    .Where(b => b.ProductId == order.ProductId)
+                    .ToListAsync();
+
+                if (!bomItems.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Sản phẩm '{product.ProductName}' chưa có công thức định mức BOM trong hệ thống. Không thể tính toán tiêu hao NVL để ghi nhận sản xuất."
+                    });
+                }
+
+                if (bomItems.Any(b => b.ItemQuantity <= 0 || b.MaterialQuantity <= 0 || b.Ingredient == null))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Công thức định mức BOM của sản phẩm '{product.ProductName}' không hợp lệ (thiếu nguyên liệu hoặc số lượng <= 0). Vui lòng kiểm tra lại BOM."
+                    });
+                }
+
+                // Lấy tồn kho sản xuất (WIP) cho đơn/lệnh sản xuất này
+                var wipRawMaterials = await _context.WipInventories
+                    .Where(w => w.RequestId == req.RequestId && w.IngrId.HasValue)
+                    .ToListAsync();
+
+                var shortages = new List<string>();
+                var deductions = new List<(WipInventory WipItem, decimal DeductQty, string IngrName, string Unit)>();
+
+                foreach (var bom in bomItems)
+                {
+                    var ingr = bom.Ingredient!;
+                    var ingrUnit = ingr.Unit?.Trim() ?? "kg";
+                    bool isDiscrete = BomUnitQuantity.DiscreteUnits.Contains(ingrUnit);
+                    decimal requiredQty = BomUnitQuantity.Required(bom.MaterialQuantity, bom.ItemQuantity, batchQty, isDiscrete);
+
+                    var wipItem = wipRawMaterials.FirstOrDefault(w => w.IngrId == bom.IngrId);
+                    decimal availableWip = wipItem?.Quantity ?? 0m;
+
+                    if (availableWip < requiredQty)
+                    {
+                        decimal missing = requiredQty - availableWip;
+                        shortages.Add($"• {ingr.IngrName}: Cần {requiredQty:N2} {ingrUnit}, Kho sản xuất có {availableWip:N2} {ingrUnit} (Thiếu {missing:N2} {ingrUnit})");
+                    }
+                    else
+                    {
+                        deductions.Add((wipItem!, requiredQty, ingr.IngrName, ingrUnit));
+                    }
+                }
+
+                if (shortages.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Kho sản xuất không đủ nguyên vật liệu để ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"}!\n" +
+                                  string.Join("\n", shortages) +
+                                  "\n\nVui lòng lập phiếu yêu cầu xuất NVL sang kho sản xuất (MRP) trước khi ghi nhận."
+                    });
+                }
+
+                // 9. Xác định trạng thái nghiệp vụ mới:
+                // Nếu đã đủ số lượng yêu cầu của đơn -> Completed, ngược lại In Production
+                string newStatus = newTotalProduced >= order.QuantityRequired ? "Completed" : "In Production";
+
+                // 10. Lưu đồng bộ toàn bộ lần ghi nhận trong một Transaction duy nhất
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    order.Status = newStatus;
+
+                    // A. Khấu trừ NVL trong kho sản xuất (WIP)
+                    foreach (var item in deductions)
+                    {
+                        item.WipItem.Quantity = (item.WipItem.Quantity ?? 0m) - item.DeductQty;
+                        item.WipItem.LastUpdated = DateTime.UtcNow;
+                    }
+
+                    // B. Đưa đúng số lượng thành phẩm sản xuất được (batchQty) vào kho sản xuất (wip_inventory với ProductId) chờ ngày bàn giao
+                    var wipProduct = await _context.WipInventories
+                        .FirstOrDefaultAsync(w => w.RequestId == req.RequestId && w.ProductId == order.ProductId && w.IngrId == null);
+
+                    if (wipProduct == null)
+                    {
+                        wipProduct = new WipInventory
+                        {
+                            RequestId = req.RequestId,
+                            ProductId = order.ProductId,
+                            IngrId = null,
+                            Quantity = batchQty,
+                            LastUpdated = DateTime.UtcNow
+                        };
+                        _context.WipInventories.Add(wipProduct);
+                    }
+                    else
+                    {
+                        wipProduct.Quantity = (wipProduct.Quantity ?? 0m) + batchQty;
+                        wipProduct.LastUpdated = DateTime.UtcNow;
+                    }
+
+                    // C. Cập nhật phiếu bàn giao thành phẩm (ProductReceipt & Detail)
+                    if (receipt == null)
+                    {
+                        receipt = new ProductReceipt
+                        {
+                            RequestId = req.RequestId,
+                            RequestedBy = currentUser.UserID,
+                            ApprovedBy = null,
+                            CreatedDate = DateTime.UtcNow,
+                            Status = newStatus
+                        };
+
+                        var detail = new ProductReceiptDetail
+                        {
+                            ProductId = order.ProductId,
+                            Quantity = newTotalProduced,
+                            Status = newStatus,
+                            Note = !string.IsNullOrWhiteSpace(req.Note)
+                                ? req.Note
+                                : $"Ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"} cho {order.DisplayCode}",
+                            CreatedDate = DateTime.UtcNow
+                        };
+
+                        receipt.Details.Add(detail);
+                        _context.ProductReceipts.Add(receipt);
+                    }
+                    else
+                    {
+                        receipt.Status = newStatus;
+
+                        var detail = receipt.Details.FirstOrDefault(d => d.ProductId == order.ProductId)
+                                     ?? receipt.Details.FirstOrDefault();
+
+                        if (detail != null)
+                        {
+                            detail.Quantity = newTotalProduced;
+                            detail.Status = newStatus;
+                            if (!string.IsNullOrWhiteSpace(req.Note))
+                            {
+                                detail.Note = req.Note;
+                            }
+                        }
+                        else
+                        {
+                            receipt.Details.Add(new ProductReceiptDetail
+                            {
+                                ProductReceiptId = receipt.ProductReceiptId,
+                                ProductId = order.ProductId,
+                                Quantity = newTotalProduced,
+                                Status = newStatus,
+                                Note = !string.IsNullOrWhiteSpace(req.Note)
+                                    ? req.Note
+                                    : $"Ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"} cho {order.DisplayCode}",
+                                CreatedDate = DateTime.UtcNow
+                            });
+                        }
+                    }
+
+                    // Lưu toàn bộ thay đổi cùng lúc
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    string successMessage = $"Đã ghi nhận sản xuất thành công {batchQty:N0} {product.Unit ?? "Hộp"} cho đơn {order.DisplayCode}! Đã trừ NVL tiêu hao trong kho sản xuất và đưa {batchQty:N0} {product.Unit ?? "Hộp"} vào kho sản xuất chờ ngày bàn giao. (Tổng tiến độ: {newTotalProduced:N0}/{order.QuantityRequired:N0} {product.Unit ?? "Hộp"})";
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = successMessage,
+                        status = order.Status,
+                        recordedQuantity = batchQty,
+                        totalProduced = newTotalProduced
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Lỗi cơ sở dữ liệu khi lưu đồng bộ sản xuất cho đơn {RequestId}", req.RequestId);
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Đã xảy ra lỗi khi lưu kết quả ghi nhận sản lượng vào hệ thống. Vui lòng thử lại sau."
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi hệ thống khi xử lý sản xuất cho đơn {RequestId}", req.RequestId);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Đã xảy ra lỗi khi thực hiện ghi nhận sản lượng thành phẩm. Vui lòng thử lại sau."
+                });
             }
         }
 
@@ -779,6 +1471,7 @@ namespace httt.Areas.Productions.Controllers
         /// API tiếp nhận phiếu sản xuất mới từ kho
         /// </summary>
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateDrugOrder([FromBody] CreateDrugOrderRequest req)
         {
             if (req == null || req.ProductId <= 0 || req.QuantityRequired <= 0)
@@ -787,11 +1480,30 @@ namespace httt.Areas.Productions.Controllers
             try
             {
                 var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể tiếp nhận đơn đặt hàng thuốc."
+                    });
+                }
+
+                var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == req.ProductId);
+                if (product == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Sản phẩm thuốc (ID: {req.ProductId}) không tồn tại trong hệ thống. Vui lòng kiểm tra lại."
+                    });
+                }
+
                 var newOrder = new ProductionRequest
                 {
                     ProductId = req.ProductId,
                     QuantityRequired = req.QuantityRequired,
-                    ManagerId = req.ManagerId ?? currentUser.UserID,
+                    ManagerId = currentUser.UserID,
                     Status = "Pending",
                     CreatedDate = DateTime.UtcNow
                 };
@@ -802,14 +1514,15 @@ namespace httt.Areas.Productions.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = $"Đã tiếp nhận thành công đơn đặt hàng ĐH-KHO-{newOrder.RequestId:D4} từ phiếu sản xuất kho!",
+                    message = $"Đã tiếp nhận thành công đơn đặt hàng #{newOrder.RequestId} từ phiếu sản xuất kho!",
                     orderId = newOrder.RequestId,
-                    orderCode = $"ĐH-KHO-{newOrder.RequestId:D4}"
+                    orderCode = newOrder.DisplayCode
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Lỗi khi lưu: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi khi tiếp nhận đơn đặt hàng thuốc mới");
+                return BadRequest(new { success = false, message = "Đã xảy ra lỗi trong quá trình tiếp nhận đơn hàng. Vui lòng thử lại sau." });
             }
         }
 
@@ -830,17 +1543,17 @@ namespace httt.Areas.Productions.Controllers
                     .Select(p => new
                     {
                         requestId = p.RequestId,
-                        requestCode = $"YCSX-{p.RequestId:D4}",
-                        orderCode = $"ĐH-KHO-{p.RequestId:D4}",
+                        requestCode = !string.IsNullOrWhiteSpace(p.RequestCode) ? p.RequestCode : $"YCSX-{p.RequestId}",
+                        orderCode = !string.IsNullOrWhiteSpace(p.RequestCode) ? p.RequestCode : $"LSX-{p.RequestId}",
                         productId = p.ProductId,
                         productName = p.Product != null ? p.Product.ProductName : "Sản phẩm thuốc dược dụng",
                         productUnit = p.Product != null ? p.Product.Unit : "Hộp",
                         quantityRequired = p.QuantityRequired,
-                        createdDate = p.CreatedDate.HasValue ? p.CreatedDate.Value.ToString("dd/MM/yyyy") : DateTime.Now.ToString("dd/MM/yyyy"),
-                        managerName = p.Manager != null ? p.Manager.FullName : "DS. Nguyễn Minh Tài (Quản lý kho)",
+                        createdDate = p.CreatedDate.HasValue ? p.CreatedDate.Value.ToString("dd/MM/yyyy") : "—",
+                        managerName = p.Manager != null ? p.Manager.FullName : "Chưa cập nhật",
                         status = p.Status,
-                        priority = p.QuantityRequired >= 600 ? "Khẩn cấp" : "Tiêu chuẩn",
-                        note = p.QuantityRequired >= 600 ? "Bổ sung lượng tồn kho gấp cho đơn thầu bệnh viện." : "Sản xuất bổ sung theo hạn mức tồn kho an toàn tháng."
+                        priority = p.QuantityRequired >= 600 ? "Khẩn cấp (Quy tắc số lượng: ≥ 600)" : "Tiêu chuẩn",
+                        note = (string?)null
                     })
                     .ToListAsync();
 
@@ -853,7 +1566,8 @@ namespace httt.Areas.Productions.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                _logger.LogError(ex, "Lỗi khi lấy danh sách phiếu sản xuất từ kho");
+                return BadRequest(new { success = false, message = "Không thể tải danh sách phiếu chờ tiếp nhận." });
             }
         }
 
@@ -861,6 +1575,7 @@ namespace httt.Areas.Productions.Controllers
         /// API duyệt tiếp nhận một phiếu sản xuất từ kho vào kế hoạch sản xuất
         /// </summary>
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> AcceptWarehouseRequest([FromBody] AcceptWarehouseOrderRequest req)
         {
             if (req == null || req.RequestId <= 0)
@@ -868,6 +1583,16 @@ namespace httt.Areas.Productions.Controllers
 
             try
             {
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể tiếp nhận phiếu yêu cầu sản xuất từ kho."
+                    });
+                }
+
                 var order = await _context.ProductionRequests.FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
                 if (order == null)
                     return NotFound(new { success = false, message = "Không tìm thấy phiếu yêu cầu trong cơ sở dữ liệu." });
@@ -879,14 +1604,15 @@ namespace httt.Areas.Productions.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = $"Đã tiếp nhận thành công phiếu YCSX-{order.RequestId:D4} từ kho thành phẩm vào quy trình sản xuất!",
+                    message = $"Đã tiếp nhận thành công phiếu {order.DisplayCode} từ kho thành phẩm vào quy trình sản xuất!",
                     requestId = order.RequestId,
                     newStatus = order.Status
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Lỗi xử lý: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi khi tiếp nhận phiếu yêu cầu sản xuất từ kho {RequestId}", req.RequestId);
+                return BadRequest(new { success = false, message = "Đã xảy ra lỗi khi tiếp nhận phiếu kho. Vui lòng thử lại sau." });
             }
         }
 
@@ -894,10 +1620,21 @@ namespace httt.Areas.Productions.Controllers
         /// API tiếp nhận toàn bộ các phiếu kho đang chờ duyệt
         /// </summary>
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> AcceptAllWarehouseRequests()
         {
             try
             {
+                var currentUser = await GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Chưa xác định được danh tính người dùng (chưa đăng nhập). Không thể tiếp nhận các phiếu yêu cầu từ kho."
+                    });
+                }
+
                 var pendingOrders = await _context.ProductionRequests
                     .Where(p => p.Status == "Pending")
                     .ToListAsync();
@@ -921,7 +1658,8 @@ namespace httt.Areas.Productions.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Lỗi xử lý: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi khi tiếp nhận toàn bộ phiếu kho");
+                return BadRequest(new { success = false, message = "Đã xảy ra lỗi khi tiếp nhận toàn bộ phiếu kho. Vui lòng thử lại sau." });
             }
         }
 

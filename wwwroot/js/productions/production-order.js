@@ -195,10 +195,7 @@ function initFormButtons() {
   if (btnSubmit) {
     btnSubmit.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu Lệnh sản xuất thuốc GMP thành công vào hệ thống!');
-      // Chuyển lại về màn hình danh sách lệnh sản xuất
-      const tabList = document.getElementById('tabOrderList');
-      if (tabList) tabList.click();
+      alert('Chức năng tạo lệnh sản xuất thủ công chưa được triển khai.');
     });
   }
 }

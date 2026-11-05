@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using httt.Constants;
 using httt.Models;
 
 namespace httt.Controllers;
@@ -8,7 +10,14 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        return View();
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var targetUrl = AppRoles.GetDefaultUrlForRole(role);
+            return Redirect(targetUrl);
+        }
+
+        return RedirectToAction("Login", "Account");
     }
 
     public IActionResult Privacy()

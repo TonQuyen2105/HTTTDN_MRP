@@ -97,16 +97,140 @@ function initMRFormActions() {
   if (btnSave) {
     btnSave.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lập Phiếu yêu cầu xuất vật tư thành công!');
-      returnToList();
+      alert('Chức năng lập phiếu xuất vật tư thủ công chưa được triển khai backend.\nPhiếu yêu cầu xuất vật tư được sinh tự động từ chức năng "Tính nhu cầu nguyên vật liệu (MRP)".');
     });
   }
 
   if (btnSaveAndNew) {
     btnSaveAndNew.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('Đã lưu thành công! Đang mở phiếu yêu cầu xuất vật tư mới...');
-      location.reload();
+      alert('Chức năng lập phiếu xuất vật tư thủ công chưa được triển khai backend.');
+    });
+  }
+
+  // --- XỬ LÝ NHẬP KHO BỔ SUNG & XUẤT KHO VỀ KHO SẢN XUẤT (WIP) ---
+  function getVerificationToken() {
+    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    return tokenInput ? tokenInput.value : '';
+  }
+
+  const receiptIdInput = document.getElementById('currentReceiptId');
+  const expReceiptId = receiptIdInput ? parseInt(receiptIdInput.value, 10) : 0;
+
+  // 1. Nút Giả lập nạp NVL vào kho sản xuất (WIP)
+  const btnReplenish = document.getElementById('btnReplenishAllStock');
+  const btnReplenishFooter = document.getElementById('btnReplenishAllStockFooter');
+
+  async function handleReplenish() {
+    if (!expReceiptId || expReceiptId <= 0) return;
+    if (!confirm('Bạn có muốn giả lập nạp đủ nguyên vật liệu trực tiếp vào Kho sản xuất (WIP) cho phiếu yêu cầu này không?')) return;
+
+    if (btnReplenish) {
+      btnReplenish.disabled = true;
+      btnReplenish.innerHTML = 'Đang nạp vào kho sản xuất...';
+    }
+    if (btnReplenishFooter) {
+      btnReplenishFooter.disabled = true;
+      btnReplenishFooter.innerHTML = 'Đang nạp vào kho sản xuất...';
+    }
+
+    try {
+      const response = await fetch('/Productions/Home/ReplenishAllForReceipt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'RequestVerificationToken': getVerificationToken()
+        },
+        body: JSON.stringify({ expReceiptId: expReceiptId })
+      });
+
+      if (response.status === 401) {
+        alert('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.');
+        window.location.href = '/Account/Login';
+        return;
+      }
+
+      const res = await response.json();
+      if (!response.ok || !res.success) {
+        alert(res.message || 'Lỗi khi nạp NVL vào kho sản xuất.');
+        if (btnReplenish) {
+          btnReplenish.disabled = false;
+          btnReplenish.innerHTML = '⚡ Giả lập nạp NVL vào kho sản xuất';
+        }
+        if (btnReplenishFooter) {
+          btnReplenishFooter.disabled = false;
+          btnReplenishFooter.innerHTML = '⚡ Giả lập nạp NVL vào kho sản xuất';
+        }
+        return;
+      }
+
+      alert('✅ ' + res.message);
+      if (res.requestId && confirm('Phiếu đã chuyển sang trạng thái "Được cấp" và NVL đã nạp đủ vào kho sản xuất!\nBạn có muốn chuyển sang trang "Tính nhu cầu NVL (MRP)" để kiểm tra số lượng thiếu đã về 0 không?')) {
+        window.location.href = `/Productions/Home/MaterialRequirement?requestId=${res.requestId}`;
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      alert('Lỗi kết nối: ' + err.message);
+      if (btnReplenish) {
+        btnReplenish.disabled = false;
+        btnReplenish.innerHTML = '⚡ Giả lập nạp NVL vào kho sản xuất';
+      }
+      if (btnReplenishFooter) {
+        btnReplenishFooter.disabled = false;
+        btnReplenishFooter.innerHTML = '⚡ Giả lập nạp NVL vào kho sản xuất';
+      }
+    }
+  }
+
+  if (btnReplenish) btnReplenish.addEventListener('click', handleReplenish);
+  if (btnReplenishFooter) btnReplenishFooter.addEventListener('click', handleReplenish);
+
+  // 2. Nút Xuất kho gửi về kho sản xuất (WIP)
+  const btnExportToWip = document.getElementById('btnExportToWip');
+  if (btnExportToWip) {
+    btnExportToWip.addEventListener('click', async () => {
+      if (!expReceiptId || expReceiptId <= 0) return;
+      if (!confirm('Xác nhận xuất toàn bộ nguyên vật liệu từ kho thực tế và chuyển về kho sản xuất (WIP) cho lệnh sản xuất này?')) return;
+
+      btnExportToWip.disabled = true;
+      btnExportToWip.innerHTML = 'Đang xử lý xuất kho...';
+
+      try {
+        const response = await fetch('/Productions/Home/ExportMaterialsToWip', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getVerificationToken()
+          },
+          body: JSON.stringify({ expReceiptId: expReceiptId })
+        });
+
+        if (response.status === 401) {
+          alert('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.');
+          window.location.href = '/Account/Login';
+          return;
+        }
+
+        const res = await response.json();
+        if (!response.ok || !res.success) {
+          alert(res.message || 'Lỗi khi xuất kho.');
+          btnExportToWip.disabled = false;
+          btnExportToWip.innerHTML = 'Xuất kho gửi về kho sản xuất (WIP)';
+          return;
+        }
+
+        alert('✅ ' + res.message);
+        if (res.requestId && confirm('Bạn có muốn chuyển sang trang Tính nhu cầu NVL (MRP) ngay bây giờ để kiểm tra số lượng thiếu đã về 0 không?')) {
+          window.location.href = `/Productions/Home/MaterialRequirement?requestId=${res.requestId}`;
+        } else {
+          window.location.reload();
+        }
+      } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+        btnExportToWip.disabled = false;
+        btnExportToWip.innerHTML = 'Xuất kho gửi về kho sản xuất (WIP)';
+      }
     });
   }
 }

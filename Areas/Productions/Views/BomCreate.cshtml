@@ -73,8 +73,16 @@
         </div>
 
         <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
-          <div class="user-avatar">MT</div>
-          <span class="user-name">DS. Nguyễn Minh Tài</span>
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -147,7 +155,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
             <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
@@ -237,6 +245,7 @@
                   <select class="form-select">
                     @if (ViewBag.Products != null && ((IEnumerable<httt.Models.Product>)ViewBag.Products).Any())
                     {
+                        <option value="">-- Chọn sản phẩm thuốc --</option>
                         foreach (var prod in (IEnumerable<httt.Models.Product>)ViewBag.Products)
                         {
                             <option value="@prod.ProductId">@prod.ProductName (@prod.Unit)</option>
@@ -244,11 +253,7 @@
                     }
                     else
                     {
-                        <option selected>Ginkgo Biloba 120mg Trunature (Hộp 6 vỉ x 10 viên)</option>
-                        <option>Glucosamine HCL 1500mg (Chai 180 viên nén)</option>
-                        <option>Milk Thistle Extract 1000mg (Hộp 60 viên)</option>
-                        <option>Viên nén Paracetamol 500mg (Hộp 10 vỉ x 10 viên)</option>
-                        <option>Amoxicillin Trihydrate 500mg (Hộp 10 vỉ x 10 viên)</option>
+                        <option value="">-- Chưa có sản phẩm trong cơ sở dữ liệu --</option>
                     }
                   </select>
                 </div>
@@ -262,7 +267,7 @@
                     </label>
                     <label class="radio-item">
                       <input type="radio" name="bomType" value="trial">
-                      BOM thử nghiệm lâm sàng
+                      BOM thử nghiệm
                     </label>
                   </div>
                 </div>
@@ -271,12 +276,12 @@
               <div class="bom-form-row">
                 <div class="bom-field" style="flex: 1;">
                   <label class="bom-field-label">Mã BOM <span class="required-mark">*</span></label>
-                  <input type="text" class="form-input" value="BOM-GINKGO120-API">
+                  <input type="text" class="form-input" placeholder="Ví dụ: BOM-SP001...">
                 </div>
 
                 <div class="bom-field" style="flex: 2;">
                   <label class="bom-field-label">Tên BOM <span class="required-mark">*</span></label>
-                  <input type="text" class="form-input" value="Định mức nguyên vật liệu sản xuất Ginkgo Biloba 120mg Trunature">
+                  <input type="text" class="form-input" placeholder="Ví dụ: Định mức nguyên liệu sản xuất...">
                 </div>
               </div>
 
@@ -293,26 +298,26 @@
                     </span>
                   </label>
                   <select class="form-select">
-                    <option selected>Hộp</option>
-                    <option>Chai</option>
-                    <option>Vỉ</option>
+                    <option value="Hộp">Hộp</option>
+                    <option value="Chai">Chai</option>
+                    <option value="Vỉ">Vỉ</option>
                   </select>
                 </div>
 
                 <div class="bom-field">
                   <label class="bom-field-label">Số lượng</label>
-                  <input type="text" class="form-input text-right" value="1.000,0000">
+                  <input type="text" class="form-input text-right" placeholder="1">
                 </div>
 
                 <div class="bom-field">
                   <label class="bom-field-label">Phiên bản</label>
-                  <input type="text" class="form-input" value="Ver 2">
+                  <input type="text" class="form-input" placeholder="—" readonly style="background-color: #f8fafc;" title="CSDL hiện chưa quản lý phiên bản BOM">
                 </div>
 
                 <div class="bom-field">
                   <label class="bom-field-label">Hiệu lực</label>
                   <div class="form-control-wrap">
-                    <input type="text" class="form-input has-calendar" value="15/01/2026">
+                    <input type="text" class="form-input has-calendar" placeholder="dd/MM/yyyy">
                     <span class="calendar-icon-btn">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -373,93 +378,8 @@
                   </thead>
                   <tbody id="bomMaterialsBody">
                     <tr>
-                      <td class="text-center col-stt">1</td>
-                      <td><strong>INGR0002</strong></td>
-                      <td>Cao khô Ginkgo Biloba chuẩn hóa API</td>
-                      <td>Hoạt chất chính</td>
-                      <td>kg</td>
-                      <td class="text-center"><input type="checkbox" checked></td>
-                      <td class="text-right">60,0000</td>
-                      <td>Tỷ lệ cố định</td>
-                      <td class="text-right">0,0000</td>
-                      <td class="text-right">0,50</td>
-                      <td class="text-center">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td class="text-center col-stt">2</td>
-                      <td><strong>INGR0006</strong></td>
-                      <td>Tá dược Microcrystalline Cellulose (Avicel)</td>
-                      <td>Tá dược độn</td>
-                      <td>kg</td>
-                      <td class="text-center"><input type="checkbox"></td>
-                      <td class="text-right">40,0000</td>
-                      <td>Tỷ lệ cố định</td>
-                      <td class="text-right">0,0000</td>
-                      <td class="text-right">0,20</td>
-                      <td class="text-center">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td class="text-center col-stt">3</td>
-                      <td><strong>INGR0007</strong></td>
-                      <td>Magnesi stearat GMP Dược dụng</td>
-                      <td>Tá dược trơn</td>
-                      <td>kg</td>
-                      <td class="text-center"><input type="checkbox"></td>
-                      <td class="text-right">2,5000</td>
-                      <td>Tỷ lệ cố định</td>
-                      <td class="text-right">0,0000</td>
-                      <td class="text-right">0,10</td>
-                      <td class="text-center">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td class="text-center col-stt">4</td>
-                      <td><strong>INGR0008</strong></td>
-                      <td>Povidone K30 (PVP K30)</td>
-                      <td>Tá dược dính</td>
-                      <td>kg</td>
-                      <td class="text-center"><input type="checkbox"></td>
-                      <td class="text-right">3,0000</td>
-                      <td>Tỷ lệ cố định</td>
-                      <td class="text-right">0,0000</td>
-                      <td class="text-right">0,10</td>
-                      <td class="text-center">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
+                      <td colspan="11" class="text-center" style="padding: 24px; color: #64748b;" id="emptyMaterialsMsg">
+                        Chưa có nguyên vật liệu trong định mức. Nhấn <strong>+ Thêm dòng</strong> để khai báo.
                       </td>
                     </tr>
                   </tbody>
@@ -468,7 +388,7 @@
 
               <div class="table-footer-bar">
                 <div class="table-footer-left">
-                  <span>Tổng số: <strong id="totalMaterialsCount">4</strong></span>
+                  <span>Tổng số: <strong id="totalMaterialsCount">0</strong></span>
                   <button type="button" class="btn-table-action btn-add-row" id="btnAddMaterialRow">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -484,21 +404,7 @@
                     Xóa hết dòng
                   </button>
                 </div>
-
-                <div class="table-footer-right">
-                  <span>Số dòng/trang</span>
-                  <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
-                    <option selected>100</option>
-                    <option>50</option>
-                    <option>20</option>
-                  </select>
-                  <span>1 - 4</span>
-                  <button type="button" class="pagination-btn">&lt;</button>
-                  <button type="button" class="pagination-btn">&gt;</button>
-                </div>
               </div>
-
-              <!-- ĐÃ LOẠI BỎ CON DẤU MỘC THEO YÊU CẦU -->
             </div>
 
             <!-- 3. PHỤ PHẨM -->
@@ -520,19 +426,8 @@
                   </thead>
                   <tbody id="byProductsBody">
                     <tr>
-                      <td class="text-center col-stt">1</td>
-                      <td>PP_BAOBI</td>
-                      <td>Vỏ bao bì carton hỏng</td>
-                      <td>cái</td>
-                      <td class="text-right">5,0000</td>
-                      <td>Công đoạn đóng chai, dán nhãn</td>
-                      <td class="text-center">
-                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
+                      <td colspan="7" class="text-center" style="padding: 20px; color: #64748b;">
+                        Chưa có phụ phẩm phát sinh. Nhấn <strong>+ Thêm dòng</strong> để khai báo nếu có.
                       </td>
                     </tr>
                   </tbody>
@@ -581,8 +476,12 @@
         </div>
 
         <div class="bom-action-footer">
+          <span style="font-size: 13px; color: #d97706; margin-right: auto; display: flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Chức năng lưu Định mức BOM chưa được triển khai trên hệ thống
+          </span>
           <button type="button" class="btn-cancel" id="btnCancelBom">Hủy</button>
-          <button type="button" class="btn-save-draft">Lưu và thêm mới</button>
+          <button type="button" class="btn-save-draft" disabled style="opacity: 0.6; cursor: not-allowed;" title="Chức năng chưa triển khai">Lưu và thêm mới</button>
           <button type="button" class="btn-save-submit" id="btnSaveBom">Lưu định mức</button>
         </div>
 

@@ -2,19 +2,32 @@
 @{
     Layout = null;
     var isViewMode = Model != null;
-    var receiptCode = Model != null ? $"XK-DPH-{Model.ExpReceiptId:D4}" : "YCXVT00188";
-    var orderCode = Model?.ProductionOrderCode ?? (Model?.RequestId.HasValue == true ? $"LSX-GMP-0{Model.RequestId}" : "LSX-GMP-0001 - Ginkgo Biloba 120mg Trunature");
-    var requesterName = Model?.Requester?.FullName ?? "DS. Nguyễn Minh Tài";
+    var receiptCode = Model != null ? Model.DisplayCode : "— Tự sinh khi lập từ MRP —";
+    var reqDisplayCode = !string.IsNullOrWhiteSpace(Model?.ProductionRequest?.RequestCode)
+        ? Model.ProductionRequest.RequestCode
+        : (Model?.RequestId.HasValue == true ? $"YCSX-{Model.RequestId}" : (!string.IsNullOrWhiteSpace(Model?.ProductionOrderCode) ? Model.ProductionOrderCode : "—"));
+    var productName = Model?.ProductionRequest?.Product?.ProductName;
+    var orderWithProduct = reqDisplayCode != "—"
+        ? (!string.IsNullOrWhiteSpace(productName) ? $"{reqDisplayCode} - {productName}" : reqDisplayCode)
+        : "—";
+    var orderCode = orderWithProduct;
+    var requesterName = Model?.Requester?.FullName ?? (User.Identity?.IsAuthenticated == true ? User.Identity.Name : "Chưa cập nhật");
     var createDateStr = Model?.CreatedDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
-    var requireDateStr = Model?.RequiredDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.AddDays(1).ToString("dd/MM/yyyy");
-    var statusText = Model?.Status switch {
-        "Completed" => "Đã xuất kho",
-        "Processing" => "Đang xử lý",
-        _ => "Chờ xuất kho"
-    };
-    var statusBadgeClass = Model?.Status == "Completed" ? "badge-status-done" : "badge-status-waiting";
-    var noteText = Model?.Note ?? "Cấp phát nguyên liệu đợt 1 phục vụ lệnh sản xuất";
-    var bomName = Model?.BomName ?? "Định mức NVL (BOM chuẩn)";
+    var requireDateStr = Model?.RequiredDate?.ToString("dd/MM/yyyy") ?? "—";
+
+    var wipDict = ViewBag.WipDict as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
+
+    // Phiếu được coi là đã cấp (Completed / Approved / Được cấp) hoặc khi toàn bộ dòng đã nạp đủ trong wip_inventory
+    var isFulfilled = Model?.Status == "Completed" || Model?.Status == "Approved" || Model?.Status == "Được cấp";
+    if (!isFulfilled && Model?.Details != null && Model.Details.Any())
+    {
+        isFulfilled = Model.Details.All(d => wipDict.TryGetValue(d.IngrId, out var wQty) && wQty >= d.Quantity);
+    }
+
+    var statusText = isFulfilled ? "Được cấp" : (Model?.Status == "Processing" ? "Đang xử lý" : "Chờ cấp");
+    var statusBadgeClass = isFulfilled ? "badge-status-done" : "badge-status-waiting";
+    var noteText = Model?.Note ?? "";
+    var bomName = Model?.BomName ?? "—";
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -29,6 +42,8 @@
   <link rel="stylesheet" href="/css/productions/material-requisition.css">
 </head>
 <body>
+  @Html.AntiForgeryToken()
+  <input type="hidden" id="currentReceiptId" value="@(Model?.ExpReceiptId ?? 0)" />
   <div class="app-wrapper">
     
     <!-- TOP HEADER -->
@@ -72,7 +87,18 @@
           <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
           <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
         </div>
-        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
       </div>
     </header>
 
@@ -141,7 +167,7 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link active">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
             <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
@@ -248,10 +274,10 @@
             </div>
 
             <div class="mr-field-row row-2col">
-              <label>Lệnh sản xuất<span class="required-star">*</span></label>
+              <label>Mã đơn / Phiếu kho<span class="required-star">*</span></label>
               @if (isViewMode)
               {
-                <input type="text" class="form-input" value="@orderCode" readonly style="background-color: #f8fafc; font-weight: 600; color: #1e40af;">
+                <input type="text" class="form-input" value="@orderWithProduct" title="@orderWithProduct" readonly style="background-color: #f8fafc; font-weight: 600; color: #1e40af;">
               }
               else
               {
@@ -260,15 +286,17 @@
                   {
                       foreach (var req in (IEnumerable<httt.Models.ProductionRequest>)ViewBag.ProductionRequests)
                       {
-                          <option value="@req.RequestId">LSX-GMP-0@(req.RequestId) - @(req.Product?.ProductName ?? "Sản phẩm")</option>
+                          var rCode = !string.IsNullOrWhiteSpace(req.RequestCode) ? req.RequestCode : $"YCSX-{req.RequestId}";
+                          var pName = req.Product?.ProductName ?? "Sản phẩm";
+                          <option value="@req.RequestId">@rCode - @pName</option>
                       }
                   }
                   else
                   {
-                      <option selected>LSX-GMP-0001 - Ginkgo Biloba 120mg Trunature</option>
-                      <option>LSX-GMP-0002 - Glucosamine HCL 1500mg</option>
-                      <option>LSX-GMP-0003 - Milk Thistle Extract 1000mg</option>
-                      <option>LSX-GMP-0004 - Viên nén Paracetamol 500mg</option>
+                      <option selected>YCSX-0001 - Ginkgo Biloba 120mg Trunature</option>
+                      <option>YCSX-0002 - Glucosamine HCL 1500mg</option>
+                      <option>YCSX-0003 - Milk Thistle Extract 1000mg</option>
+                      <option>YCSX-0004 - Viên nén Paracetamol 500mg</option>
                   }
                 </select>
               }
@@ -370,9 +398,9 @@
             </div>
 
             <div class="mr-field-row">
-              <label>Tham chiếu</label>
+              <label>Tham chiếu đơn kho</label>
               <div>
-                <a href="/Productions/Home/ProductionOrder" class="ref-link" title="Xem lệnh sản xuất">@orderCode ...</a>
+                <a href="/Productions/Home/DrugOrder" class="ref-link" title="Xem đơn đặt hàng thuốc: @orderWithProduct" style="word-break: break-word;">@orderWithProduct</a>
               </div>
             </div>
           </div>
@@ -396,7 +424,10 @@
                   <th>ĐVT</th>
                   <th class="text-right">SL định mức (BOM)</th>
                   <th class="text-right">SL yêu cầu xuất</th>
-                  <th class="text-center" style="width: 80px;">Trạng thái</th>
+                  <th class="text-right" style="color: #0284c7; background-color: #f0f9ff; font-weight: 700;">Kho sản xuất</th>
+                  <th class="text-right" style="color: #475569;">Tồn kho thực tế</th>
+                  <th class="text-center">Tình trạng kho SX</th>
+                  <th class="text-center" style="width: 100px;">Trạng thái</th>
                 </tr>
               </thead>
               <tbody id="mrTableBody">
@@ -407,7 +438,15 @@
                   {
                     var ingrName = detail.Ingredient?.IngrName ?? $"Nguyên liệu #{detail.IngrId}";
                     var ingrUnit = detail.Unit ?? detail.Ingredient?.Unit ?? "kg";
-                    var isDone = detail.Status == "Completed" || Model?.Status == "Completed";
+                    var hasWip = wipDict.TryGetValue(detail.IngrId, out var wipStock);
+                    if (!hasWip) wipStock = 0m;
+                    var actualStock = detail.Ingredient?.Quantity;
+                    var hasActualStock = actualStock.HasValue;
+                    var stockVal = actualStock ?? 0m;
+
+                    var isLineFulfilled = isFulfilled || (wipStock >= detail.Quantity && detail.Quantity > 0) || detail.Status == "Completed";
+                    var isDeficitWip = wipStock < detail.Quantity;
+                    var deficitWip = isDeficitWip ? detail.Quantity - wipStock : 0m;
 
                     <tr>
                       <td class="text-center">@dStt</td>
@@ -415,15 +454,47 @@
                       <td>@ingrName</td>
                       <td>@ingrUnit</td>
                       <td class="text-right">@(detail.BomNorm.HasValue ? detail.BomNorm.Value.ToString("N2") : "—")</td>
-                      <td class="text-right"><strong style="color: var(--color-primary); font-size: 13px;">@detail.Quantity.ToString("N2")</strong></td>
+                      <td class="text-right"><strong style="color: var(--color-primary); font-size: 13.5px;">@detail.Quantity.ToString("0.####")</strong></td>
+                      
+                      <!-- CỘT KHO SẢN XUẤT (LẤY TỪ wip_inventory) -->
+                      <td class="text-right" style="background-color: #f0f9ff; font-weight: 700; color: @(wipStock >= detail.Quantity ? "#047857" : "#0284c7");">
+                        @wipStock.ToString("0.####")
+                      </td>
+
+                      <!-- CỘT TỒN KHO THỰC TẾ (KHO TỔNG) -->
+                      <td class="text-right" style="font-weight: 500; color: #64748b;">
+                        @(hasActualStock ? stockVal.ToString("0.####") : "—")
+                      </td>
+
+                      <!-- TÌNH TRẠNG KHO SẢN XUẤT -->
                       <td class="text-center">
-                        @if (isDone)
+                        @if (isLineFulfilled || wipStock >= detail.Quantity)
                         {
-                          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #ecfdf5; color: #047857; font-weight: 600;">Đã xuất</span>
+                          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 600;">
+                            Đủ tồn SX
+                          </span>
                         }
                         else
                         {
-                          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #fff7ed; color: #c2410c; font-weight: 600;">Chờ cấp</span>
+                          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; font-weight: 600;">
+                            Thiếu @deficitWip.ToString("0.####") @ingrUnit
+                          </span>
+                        }
+                      </td>
+
+                      <!-- TRẠNG THÁI -->
+                      <td class="text-center">
+                        @if (isLineFulfilled)
+                        {
+                          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 600;">
+                            Được cấp
+                          </span>
+                        }
+                        else
+                        {
+                          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; font-weight: 600;">
+                            Chờ cấp
+                          </span>
                         }
                       </td>
                     </tr>
@@ -432,122 +503,125 @@
                 }
                 else
                 {
-                <tr>
-                  <td class="text-center">1</td>
-                  <td><strong>INGR0002</strong></td>
-                  <td>Cao khô Ginkgo Biloba chuẩn hóa API</td>
-                  <td>kg</td>
-                  <td class="text-right">60,000</td>
-                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="60,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
-                  <td class="text-center">
-                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-center">2</td>
-                  <td><strong>INGR0006</strong></td>
-                  <td>Tá dược Microcrystalline Cellulose (Avicel PH102)</td>
-                  <td>kg</td>
-                  <td class="text-right">40,000</td>
-                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="40,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
-                  <td class="text-center">
-                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-center">3</td>
-                  <td><strong>INGR0007</strong></td>
-                  <td>Magnesi stearat GMP Dược dụng</td>
-                  <td>kg</td>
-                  <td class="text-right">2,500</td>
-                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="2,500" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
-                  <td class="text-center">
-                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-center">4</td>
-                  <td><strong>INGR0008</strong></td>
-                  <td>Povidone K30 (PVP K30)</td>
-                  <td>kg</td>
-                  <td class="text-right">3,000</td>
-                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="3,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
-                  <td class="text-center">
-                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
+                  <tr>
+                    <td colspan="10" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
+                      Chưa có dòng nguyên vật liệu nào. Phiếu yêu cầu xuất kho được tạo tự động từ chức năng "Tính nhu cầu nguyên vật liệu (MRP)".
+                    </td>
+                  </tr>
                 }
               </tbody>
             </table>
           </div>
 
           <div class="table-footer-bar">
-            <span>Tổng số: <strong id="totalMRCount">4</strong> loại nguyên vật liệu</span>
+            <span>Tổng số: <strong id="totalMRCount">@(Model?.Details?.Count ?? 0)</strong> loại nguyên vật liệu</span>
             <div class="table-footer-right">
               <span>Số dòng/trang</span>
               <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
                 <option selected>20</option>
                 <option>50</option>
               </select>
-              <span>1 - 4</span>
+              <span>1 - @(Model?.Details?.Count ?? 0)</span>
               <button type="button" class="pagination-btn">&lt;</button>
               <button type="button" class="pagination-btn">&gt;</button>
             </div>
           </div>
 
-          <div class="handover-table-actions">
-            <button type="button" class="btn-table-action" id="btnAddMRRow">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Thêm nguyên vật liệu
-            </button>
-            <button type="button" class="btn-table-action danger" id="btnClearMRRows">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              Xóa hết dòng
-            </button>
-          </div>
+          @if (!isViewMode)
+          {
+            <div class="handover-table-actions">
+              <button type="button" class="btn-table-action" id="btnAddMRRow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Thêm nguyên vật liệu
+              </button>
+              <button type="button" class="btn-table-action danger" id="btnClearMRRows">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Xóa hết dòng
+              </button>
+            </div>
+          }
         </div>
 
-        <!-- THANH NÚT CHÂN TRANG -->
-        <div class="mr-action-footer">
-          @if (isViewMode)
+        @if (!isViewMode)
+        {
+          <div style="margin-top: 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 12px 16px; font-size: 13px; color: #92400e;">
+            <strong>Lưu ý:</strong> Chức năng lập phiếu xuất vật tư thủ công chưa được triển khai backend. Phiếu xuất vật tư chuẩn được tạo tự động từ màn hình <strong><a href="/Productions/Home/MaterialRequirement" style="color: #92400e; text-decoration: underline;">Tính nhu cầu nguyên vật liệu (MRP)</a></strong>.
+          </div>
+        }
+
+        <!-- THANH NÚT CHÂN TRANG & KHỐI XỬ LÝ -->
+        @if (isViewMode)
+        {
+          var hasWipDeficit = Model?.Details.Any(d => (wipDict.TryGetValue(d.IngrId, out var ws) ? ws : 0m) < d.Quantity) == true;
+
+          @if (isFulfilled && !hasWipDeficit)
           {
-            <a href="/Productions/Home/MaterialRequisitionList" class="btn-cancel" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Quay lại danh sách</a>
-            <a href="/Productions/Home/MaterialRequirement" class="btn-save-draft" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Về trang Tính nhu cầu NVL</a>
-            <button type="button" class="btn-save-submit" onclick="window.print()">In phiếu yêu cầu</button>
+            <div style="margin-top: 18px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <div>
+                  <div style="font-weight: 700; color: #065f46; font-size: 14.5px;">Phiếu yêu cầu xuất vật tư đã được cấp đầy đủ vào Kho sản xuất (WIP)!</div>
+                  <div style="font-size: 12.5px; color: #047857; margin-top: 2px;">
+                    Toàn bộ nguyên vật liệu đã sẵn sàng trong kho sản xuất cho <strong>@orderCode</strong>. Số lượng thiếu trên trang Tính nhu cầu NVL (MRP) đã về 0 và sẵn sàng để ghi nhận sản xuất.
+                  </div>
+                </div>
+              </div>
+              @if (Model?.RequestId.HasValue == true)
+              {
+                <a href="/Productions/Home/MaterialRequirement?requestId=@Model.RequestId" class="btn-save-submit" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; font-size: 13px; font-weight: 700; white-space: nowrap; background: #059669;">
+                  Kiểm tra lại trang MRP &rarr;
+                </a>
+              }
+            </div>
+
+            <div class="mr-action-footer">
+              <a href="/Productions/Home/MaterialRequisitionList" class="btn-cancel" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Quay lại danh sách</a>
+              @if (Model?.RequestId.HasValue == true)
+              {
+                <a href="/Productions/Home/MaterialRequirement?requestId=@Model.RequestId" class="btn-save-submit" style="background: #059669; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Về trang Tính nhu cầu NVL (MRP)</a>
+                <a href="/Productions/Home/DrugOrder" class="btn-save-submit" style="background: #2563eb; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Sang Đơn đặt hàng thuốc</a>
+              }
+              <button type="button" class="btn-cancel" onclick="window.print()">In phiếu yêu cầu</button>
+            </div>
           }
           else
           {
-            <button type="button" class="btn-cancel" id="btnCancelMR">Hủy</button>
-            <button type="button" class="btn-save-draft" id="btnSaveAndNewMR">Lưu & Thêm mới</button>
-            <button type="button" class="btn-save-submit" id="btnSaveMR">Lập yêu cầu xuất</button>
+            <div style="margin-top: 18px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <div>
+                  <strong style="color: #1e40af; font-size: 14px;">Kho sản xuất hiện chưa có đủ số lượng NVL theo yêu cầu của phiếu:</strong>
+                  <div style="color: #1e3a8a; font-size: 12.5px; margin-top: 2px;">
+                    Nhấn nút bên cạnh để giả lập nạp đủ nguyên vật liệu trực tiếp vào <strong>kho sản xuất (wip_inventory)</strong>.
+                  </div>
+                </div>
+              </div>
+              <button type="button" id="btnReplenishAllStock" class="btn-save-draft" style="background: #2563eb; color: #fff; border: none; font-weight: 700; padding: 8px 18px; border-radius: 6px; cursor: pointer; white-space: nowrap; box-shadow: 0 1px 3px rgba(37,99,235,0.2);">
+                ⚡ Giả lập nạp NVL vào kho sản xuất
+              </button>
+            </div>
+
+            <div class="mr-action-footer">
+              <a href="/Productions/Home/MaterialRequisitionList" class="btn-cancel" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Quay lại danh sách</a>
+              <button type="button" class="btn-save-draft" id="btnReplenishAllStockFooter" style="background: #2563eb; color: #fff; border: none; font-weight: 600;">⚡ Giả lập nạp NVL vào kho sản xuất</button>
+              <button type="button" class="btn-cancel" onclick="window.print()">In phiếu yêu cầu</button>
+            </div>
           }
-        </div>
+        }
+        else
+        {
+          <div class="mr-action-footer">
+            <button type="button" class="btn-cancel" id="btnCancelMR">Hủy</button>
+            <button type="button" class="btn-save-draft" id="btnSaveAndNewMR" disabled title="Chức năng chưa triển khai" style="opacity:0.6; cursor:not-allowed;">Lưu & Thêm mới</button>
+            <button type="button" class="btn-save-submit" id="btnSaveMR">Lập yêu cầu xuất</button>
+          </div>
+        }
 
       </div>
     </main>

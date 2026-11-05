@@ -31,6 +31,10 @@ build_property._RazorSourceGeneratorDebug =
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
+[/Users/apple/Downloads/CNPM_MRP/Areas/Admin/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvQWRtaW4vVmlld3MvSG9tZS9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/apple/Downloads/CNPM_MRP/Areas/Productions/Views/BomCreate.cshtml]
 build_metadata.AdditionalFiles.TargetPath = QXJlYXMvUHJvZHVjdGlvbnMvVmlld3MvQm9tQ3JlYXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -105,6 +109,22 @@ build_metadata.AdditionalFiles.CssScope =
 
 [/Users/apple/Downloads/CNPM_MRP/Areas/Productions/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = QXJlYXMvUHJvZHVjdGlvbnMvVmlld3MvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/apple/Downloads/CNPM_MRP/Areas/Sales/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvU2FsZXMvVmlld3MvSG9tZS9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/apple/Downloads/CNPM_MRP/Areas/Warehouse/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvV2FyZWhvdXNlL1ZpZXdzL0hvbWUvSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/apple/Downloads/CNPM_MRP/Views/Account/AccessDenied.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQWNjb3VudC9BY2Nlc3NEZW5pZWQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/apple/Downloads/CNPM_MRP/Views/Account/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQWNjb3VudC9Mb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/apple/Downloads/CNPM_MRP/Views/Home/Index.cshtml]

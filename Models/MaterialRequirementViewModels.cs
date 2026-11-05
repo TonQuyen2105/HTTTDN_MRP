@@ -39,8 +39,9 @@ public class MaterialRequirementViewModel
     public int TotalMaterialTypes { get; set; }
     public int SufficientCount { get; set; }
     public int ShortageCount { get; set; }
+    public int UnknownStockCount { get; set; }
     public string Conclusion { get; set; } = string.Empty;
-    public bool IsAllSufficient => IsCalculated && ShortageCount == 0 && TotalMaterialTypes > 0;
+    public bool IsAllSufficient => IsCalculated && ShortageCount == 0 && TotalMaterialTypes > 0 && !Lines.Any(l => l.IsUnitMismatch);
 
     public List<MaterialRequirementLineDto> Lines { get; set; } = new();
     public string? ErrorMessage { get; set; }
@@ -49,7 +50,8 @@ public class MaterialRequirementViewModel
 public class ProductionRequestItemDto
 {
     public int RequestId { get; set; }
-    public string RequestCode => $"YCSX-{RequestId:D4}";
+    public string? DbRequestCode { get; set; }
+    public string RequestCode => !string.IsNullOrWhiteSpace(DbRequestCode) ? DbRequestCode : $"YCSX-{RequestId}";
     public int ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public int QuantityRequired { get; set; }
@@ -101,8 +103,10 @@ public class MaterialRequirementLineDto
     public decimal BomNorm { get; set; }
     public decimal BomStandardOutput { get; set; }
     public decimal TotalRequired { get; set; }
-    public decimal AvailableStock { get; set; }
-    public decimal Shortage { get; set; }
+    public decimal? AvailableStock { get; set; }
+    public decimal WipStock { get; set; }
+    public decimal? Shortage { get; set; }
+    public bool HasStockData => AvailableStock.HasValue;
     public bool IsSufficient => Shortage == 0 && !IsUnitMismatch;
     public bool IsDiscrete { get; set; }
     public string StatusText { get; set; } = string.Empty;

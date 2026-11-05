@@ -319,6 +319,16 @@ document.addEventListener('DOMContentLoaded', function () {
         body: JSON.stringify(payload)
       });
 
+      if (response.status === 401) {
+        alert('Phiên làm việc đã hết hạn hoặc bạn chưa đăng nhập. Vui lòng đăng nhập lại.');
+        window.location.href = '/Account/Login';
+        return;
+      }
+      if (response.status === 403) {
+        alert('Bạn không có quyền thực hiện chức năng này.');
+        return;
+      }
+
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.message || 'Lỗi khi tính toán trên máy chủ.');
@@ -391,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!data.lines || data.lines.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="9" class="text-center" style="padding: 24px; color: #64748b;">
+            <td colspan="10" class="text-center" style="padding: 24px; color: #64748b;">
               Không có dữ liệu nguyên vật liệu nào trong định mức đã chọn.
             </td>
           </tr>`;
@@ -399,21 +409,26 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       data.lines.forEach((line) => {
-        const isShortage = line.shortage > 0;
+        const wipStock = Number(line.wipStock || 0);
+        const hasStock = line.availableStock !== null && line.availableStock !== undefined;
+        const isShortage = Number(line.shortage || 0) > 0;
         const isMismatch = line.isUnitMismatch;
 
         let badgeHtml = '';
         if (isMismatch) {
           badgeHtml = `<span class="badge-status-mismatch">Lệch ĐVT</span>`;
         } else if (isShortage) {
-          badgeHtml = `<span class="badge-status-shortage">Thiếu tồn kho</span>`;
+          badgeHtml = `<span class="badge-status-shortage">Thiếu tồn SX</span>`;
         } else {
-          badgeHtml = `<span class="badge-status-sufficient">Đủ tồn kho</span>`;
+          badgeHtml = `<span class="badge-status-sufficient">Đủ tồn SX</span>`;
         }
 
         const tr = document.createElement('tr');
         tr.className = 'mrp-data-row';
         tr.setAttribute('data-shortage', isShortage ? 'true' : 'false');
+
+        const stockDisplay = hasStock ? formatNumber(line.availableStock) : '<span style="color:#64748b; font-style:italic;">Chưa có dữ liệu</span>';
+        const shortageDisplay = `<strong style="color: ${isShortage ? '#dc2626' : '#16a34a'}; font-size: 13.5px;">${formatNumber(line.shortage)}</strong>`;
 
         tr.innerHTML = `
           <td class="text-center">${line.stt}</td>
@@ -425,8 +440,9 @@ document.addEventListener('DOMContentLoaded', function () {
           <td>${line.unit}</td>
           <td class="text-right" style="color: #475569;">${formatNumber(line.bomNorm)} ${line.unit} / 1 ${data.productUnit || 'Hộp'}</td>
           <td class="text-right"><strong style="color: #0f172a; font-size: 13.5px;">${formatNumber(line.totalRequired)}</strong></td>
-          <td class="text-right" style="color: ${isShortage ? '#dc2626' : '#16a34a'}; font-weight: 600;">${formatNumber(line.availableStock)}</td>
-          <td class="text-right"><strong style="color: ${isShortage ? '#dc2626' : '#64748b'}; font-size: 13.5px;">${formatNumber(line.shortage)}</strong></td>
+          <td class="text-right" style="color: ${wipStock > 0 ? '#2563eb' : '#64748b'}; font-weight: 700;">${formatNumber(wipStock)}</td>
+          <td class="text-right" style="color: #475569;">${stockDisplay}</td>
+          <td class="text-right">${shortageDisplay}</td>
           <td class="text-center">${badgeHtml}</td>
         `;
 
@@ -534,6 +550,16 @@ document.addEventListener('DOMContentLoaded', function () {
           },
           body: JSON.stringify(payload)
         });
+
+        if (response.status === 401) {
+          alert('Phiên làm việc đã hết hạn hoặc bạn chưa đăng nhập. Vui lòng đăng nhập lại.');
+          window.location.href = '/Account/Login';
+          return;
+        }
+        if (response.status === 403) {
+          alert('Bạn không có quyền thực hiện chức năng này.');
+          return;
+        }
 
         const resData = await response.json();
 

@@ -3,6 +3,12 @@ namespace httt.Services;
 /// <summary>Quy đổi BOM cũ theo mẻ về định mức cho một đơn vị, không sửa dữ liệu gốc.</summary>
 public static class BomUnitQuantity
 {
+    /// <summary>Danh sách các đơn vị tính rời rạc / đếm được cần làm tròn lên (Ceiling)</summary>
+    public static readonly HashSet<string> DiscreteUnits = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "cái", "cai", "hộp", "hop", "thùng", "thung", "tờ", "to", "chai", "lọ", "lo", "vỉ", "vi", "ống", "ong", "bao", "viên", "vien", "bọc", "boc", "gói", "goi", "cuộn", "cuon"
+    };
+
     public static decimal PerUnit(decimal? materialQuantity, decimal? originalOutput)
     {
         if (!originalOutput.HasValue || originalOutput <= 0)

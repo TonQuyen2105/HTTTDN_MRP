@@ -60,7 +60,56 @@
           <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
         </div>
 
-        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+        @{
+          var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Người dùng";
+          var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+          var displayRole = httt.Constants.AppRoles.GetDisplayName(userRole);
+        }
+
+        @if (User.IsInRole(httt.Constants.AppRoles.Admin))
+        {
+          <div style="display: flex; align-items: center; gap: 6px; margin-right: 12px; padding: 4px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 12px;">
+            <span style="color: #1e40af; font-weight: 600;">Chuyển phân hệ:</span>
+            <a href="/Admin" style="color: #2563eb; text-decoration: none; font-weight: 500;">Admin</a> |
+            <span style="color: #059669; font-weight: 700;">Sản xuất</span> |
+            <a href="/Warehouse" style="color: #2563eb; text-decoration: none; font-weight: 500;">Kho</a> |
+            <a href="/Sales" style="color: #2563eb; text-decoration: none; font-weight: 500;">Bán hàng</a>
+          </div>
+        }
+
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <div style="display: flex; flex-direction: column; text-align: left;">
+              <span class="user-name" style="line-height: 1.2;">@fullName</span>
+              <span style="font-size: 11px; color: #059669; font-weight: 500;">@displayRole</span>
+            </div>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </a>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+          <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin: 0 0 0 10px;">
+            @Html.AntiForgeryToken()
+            <button type="submit" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 12.5px; font-weight: 500; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;" title="Đăng xuất khỏi hệ thống">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Đăng xuất</span>
+            </button>
+          </form>
+        }
       </div>
     </header>
 
@@ -110,7 +159,7 @@
             <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </a>
           <div class="sub-menu">
-            <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất thuốc</a>
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link">Thống kê sản xuất</a>
             <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link">Nhập kho thành phẩm</a> -->
@@ -252,8 +301,8 @@
             </div>
 
             <div class="mrp-field">
-              <label class="mrp-label">Lệnh sản xuất liên quan <span class="required">*</span></label>
-              <input type="text" class="form-input" id="inputOrderCode" value="@(hasActiveOrder ? Model.ProductionOrderCode : (!string.IsNullOrWhiteSpace(Model.ProductionOrderCode) ? Model.ProductionOrderCode : "(Chưa liên kết Lệnh sản xuất)"))" readonly style="background-color: #f8fafc; font-weight: 700; color: @(hasActiveOrder ? "#1e40af" : "#d97706");">
+              <label class="mrp-label">Mã đơn / Phiếu kho liên quan <span class="required">*</span></label>
+              <input type="text" class="form-input" id="inputOrderCode" value="@(hasActiveOrder ? Model.ProductionOrderCode : (!string.IsNullOrWhiteSpace(Model.ProductionOrderCode) ? Model.ProductionOrderCode : "(Chưa liên kết đơn / phiếu kho)"))" readonly style="background-color: #f8fafc; font-weight: 700; color: @(hasActiveOrder ? "#1e40af" : "#d97706");">
             </div>
 
             <div class="mrp-field">
@@ -377,7 +426,7 @@
             </div>
             <div>
               <div class="mrp-kpi-val" id="kpiSufficient" style="color: #059669;">@Model.SufficientCount</div>
-              <div class="mrp-kpi-label">Số loại đủ tồn kho</div>
+              <div class="mrp-kpi-label">Số loại đủ tồn SX</div>
             </div>
           </div>
 
@@ -388,7 +437,7 @@
             </div>
             <div>
               <div class="mrp-kpi-val" id="kpiShortage" style="color: #dc2626;">@Model.ShortageCount</div>
-              <div class="mrp-kpi-label">Số loại thiếu hụt</div>
+              <div class="mrp-kpi-label">Số loại thiếu tồn SX</div>
             </div>
           </div>
 
@@ -434,13 +483,14 @@
               <thead>
                 <tr>
                   <th class="text-center" style="width: 45px;">STT</th>
-                  <th>Mã nguyên vật liệu</th>
+                  <th>Mã NVL</th>
                   <th>Tên nguyên vật liệu</th>
                   <th>ĐVT</th>
-                  <th class="text-right">Định mức / 1 thành phẩm</th>
+                  <th class="text-right">Định mức / 1 TP</th>
                   <th class="text-right">Tổng lượng cần</th>
-                  <th class="text-right">Tồn kho thực tế (sổ sách)*</th>
-                  <th class="text-right">Lượng còn thiếu</th>
+                  <th class="text-right" style="color: #2563eb;">Tồn kho SX (WIP)</th>
+                  <th class="text-right">Tồn kho NVL (Kho tổng)*</th>
+                  <th class="text-right" style="color: #dc2626;">Lượng còn thiếu</th>
                   <th class="text-center" style="width: 110px;">Trạng thái</th>
                 </tr>
               </thead>
@@ -451,6 +501,7 @@
                     {
                         var isShortage = line.Shortage > 0;
                         var isMismatch = line.IsUnitMismatch;
+                        var hasStock = line.HasStockData;
 
                         <tr class="mrp-data-row" data-shortage="@(isShortage ? "true" : "false")">
                           <td class="text-center">@line.Stt</td>
@@ -464,9 +515,16 @@
                           </td>
                           <td>@line.Unit</td>
                           <td class="text-right" style="color: #475569;">@line.BomNorm.ToString("0.############") @line.Unit / 1 @Model.ProductUnit</td>
-                          <td class="text-right"><strong style="color: #0f172a; font-size: 13.5px;">@line.TotalRequired.ToString("N2")</strong></td>
-                          <td class="text-right" style="color: @(isShortage ? "#dc2626" : "#16a34a"); font-weight: 600;">@line.AvailableStock.ToString("N2")</td>
-                          <td class="text-right"><strong style="color: @(isShortage ? "#dc2626" : "#64748b"); font-size: 13.5px;">@line.Shortage.ToString("N2")</strong></td>
+                          <td class="text-right"><strong style="color: #0f172a; font-size: 13.5px;">@line.TotalRequired.ToString("0.####")</strong></td>
+                          <td class="text-right" style="color: @(line.WipStock > 0 ? "#2563eb" : "#64748b"); font-weight: 700;">
+                            @line.WipStock.ToString("0.####")
+                          </td>
+                          <td class="text-right" style="color: #475569;">
+                            @(hasStock ? line.AvailableStock!.Value.ToString("0.####") : "Chưa có dữ liệu")
+                          </td>
+                          <td class="text-right">
+                            <strong style="color: @(isShortage ? "#dc2626" : "#16a34a"); font-size: 13.5px;">@(line.Shortage?.ToString("0.####") ?? "0")</strong>
+                          </td>
                           <td class="text-center">
                             @if (isMismatch)
                             {
@@ -474,11 +532,11 @@
                             }
                             else if (isShortage)
                             {
-                                <span class="badge-status-shortage">Thiếu tồn kho</span>
+                                <span class="badge-status-shortage">Thiếu tồn SX</span>
                             }
                             else
                             {
-                                <span class="badge-status-sufficient">Đủ tồn kho</span>
+                                <span class="badge-status-sufficient">Đủ tồn SX</span>
                             }
                           </td>
                         </tr>
@@ -487,7 +545,7 @@
                 else
                 {
                     <tr>
-                      <td colspan="9" class="text-center" style="padding: 24px; color: #64748b;">
+                      <td colspan="10" class="text-center" style="padding: 24px; color: #64748b;">
                         @(Model.HasBom ? "Nhấn 'Tính nhu cầu' để xem bảng tính định mức nguyên vật liệu." : "Sản phẩm chưa có BOM, vui lòng tạo BOM trước.")
                       </td>
                     </tr>
@@ -498,7 +556,11 @@
 
           <!-- Chú thích giới hạn số tồn -->
           <div class="mrp-table-note">
-            * <strong>Giới hạn đối chiếu tồn kho:</strong> Số lượng tồn kho được lấy trực tiếp theo tồn thực tế trên sổ sách kho (On-hand Quantity). Dự án hiện tại chưa tích hợp phân hệ giữ hàng cho đơn đặt hàng (Reservation), phân lô sản xuất và kiểm định trạng thái chất lượng QC. Tồn kho chỉ được trừ khi kho xác nhận xuất thực tế.
+            * <strong>Đối chiếu tồn kho 2 cấp:</strong>
+            <ul style="margin: 4px 0 0 18px; padding: 0;">
+              <li><strong>Tồn kho SX (WIP):</strong> Tra cứu từ bảng <code>wip_inventory</code> theo đúng Lệnh sản xuất đang chọn. <strong>Lượng còn thiếu</strong> được tính trực tiếp từ tồn kho sản xuất: <code>Lượng thiếu = Tổng lượng cần - Tồn kho SX</code>.</li>
+              <li><strong>Tồn kho NVL (Kho tổng):</strong> Số lượng tồn thực tế trên sổ sách kho chính (bảng <code>ingredient</code>) để đối chiếu khả năng cấp bù khi tạo Phiếu yêu cầu xuất kho.</li>
+            </ul>
           </div>
 
         </div>

@@ -17,7 +17,7 @@ const WarehouseController = (function (Model, View) {
     let sidebarMount = null;
     let mainMount = null;
 
-    function init() {
+    async function init() {
         headerMount = document.getElementById('wh-header-mount');
         sidebarMount = document.getElementById('wh-sidebar-mount');
         mainMount = document.getElementById('wh-main-mount');
@@ -28,6 +28,16 @@ const WarehouseController = (function (Model, View) {
 
         renderAll();
         bindEvents();
+
+        // Nạp dữ liệu thật ban đầu từ Supabase qua API
+        if (Model.initData) {
+            try {
+                await Model.initData();
+                renderMainOnly();
+            } catch (err) {
+                console.error('Lỗi khởi tạo dữ liệu kho:', err);
+            }
+        }
     }
 
     function getViewPayloads() {
@@ -92,11 +102,38 @@ const WarehouseController = (function (Model, View) {
 
     function renderMainOnly() {
         const state = Model.getState();
+
+        // Bảo toàn vị trí cuộn của trang chính, bảng dữ liệu và modal để tránh giật/reset giao diện
+        const mainScrollTop = mainMount ? mainMount.scrollTop : 0;
+        const mainScrollLeft = mainMount ? mainMount.scrollLeft : 0;
+
+        const tableScrollEl = mainMount ? mainMount.querySelector('.wh-dg-table-scroll') : null;
+        const tableScrollTop = tableScrollEl ? tableScrollEl.scrollTop : 0;
+        const tableScrollLeft = tableScrollEl ? tableScrollEl.scrollLeft : 0;
+
+        const modalBodyEl = mainMount ? mainMount.querySelector('.wh-voucher-body') : null;
+        const modalScrollTop = modalBodyEl ? modalBodyEl.scrollTop : 0;
+
         mainMount.innerHTML = View.renderMainContent(state, getViewPayloads());
+
+        // Phục hồi chính xác vị trí cuộn ngay lập tức sau khi gán innerHTML
+        if (mainMount) {
+            mainMount.scrollTop = mainScrollTop;
+            mainMount.scrollLeft = mainScrollLeft;
+        }
+        const newTableScrollEl = mainMount ? mainMount.querySelector('.wh-dg-table-scroll') : null;
+        if (newTableScrollEl) {
+            newTableScrollEl.scrollTop = tableScrollTop;
+            newTableScrollEl.scrollLeft = tableScrollLeft;
+        }
+        const newModalBodyEl = mainMount ? mainMount.querySelector('.wh-voucher-body') : null;
+        if (newModalBodyEl) {
+            newModalBodyEl.scrollTop = modalScrollTop;
+        }
     }
 
     function bindEvents() {
-        document.addEventListener('click', function (e) {
+        document.addEventListener('click', async function (e) {
             const actionEl = e.target.closest('[data-action]');
             if (!actionEl) {
                 return;
@@ -120,6 +157,17 @@ const WarehouseController = (function (Model, View) {
                         Model.setActiveMenu(menuId);
                         syncSidebarDomState();
                         renderMainOnly();
+                        if (menuId === 'danh-muc-vthh') {
+                            await Model.loadProducts();
+                            await Model.loadIngredients();
+                            renderMainOnly();
+                        } else if (menuId === 'xuat-kho') {
+                            await Model.fetchMaterialReceiptsApi();
+                            renderMainOnly();
+                        } else if (menuId === 'nhap-kho') {
+                            await Model.fetchProductReceiptsApi();
+                            renderMainOnly();
+                        }
                     }
                     break;
                 }
@@ -151,6 +199,20 @@ const WarehouseController = (function (Model, View) {
                     if (pageType && tabId) {
                         Model.setOperationTab(pageType, tabId);
                         renderMainOnly();
+                        if (pageType === 'danh-muc-vthh') {
+                            if (tabId === 'san-pham') {
+                                await Model.loadProducts();
+                            } else {
+                                await Model.loadIngredients();
+                            }
+                            renderMainOnly();
+                        } else if (pageType === 'xuat-kho' && tabId === 'lenh-xuat-kho') {
+                            await Model.fetchMaterialReceiptsApi();
+                            renderMainOnly();
+                        } else if (pageType === 'nhap-kho' && tabId === 'lenh-nhap-kho') {
+                            await Model.fetchProductReceiptsApi();
+                            renderMainOnly();
+                        }
                     }
                     break;
                 }
@@ -158,23 +220,85 @@ const WarehouseController = (function (Model, View) {
                 // --- CÁC SỰ KIỆN TRÊN ĐƠN HÀNG, LỆNH KHO & PHIẾU KHO ---
                 case 'open-voucher-modal': {
                     e.preventDefault();
+                    e.stopPropagation();
                     const vType = actionEl.getAttribute('data-voucher-type') || 'inbound';
                     const docNo = actionEl.getAttribute('data-doc-no') || '';
-                    // Nếu đang từ Đơn mua hàng bấm "Lập lệnh nhập kho" -> chuyển sang tab Lệnh nhập kho và mở Lệnh nhập kho
+                    const receiptId = actionEl.getAttribute('data-receipt-id') || docNo;
+                    // Nếu đang từ Đơn mua hàng bấm "Lập lệnh nhập kho" -> chuyển sang tab Nhập kho thành phẩm và mở chi tiết
                     if (vType === 'inbound-command') {
                         Model.setOperationTab('nhap-kho', 'lenh-nhap-kho');
                     } else if (vType === 'outbound-command') {
                         Model.setOperationTab('xuat-kho', 'lenh-xuat-kho');
                     }
-                    Model.openVoucherModal(vType, docNo);
+                    const mode = (docNo || receiptId) ? 'view' : 'create';
+                    Model.openVoucherModal(vType, receiptId || docNo, mode);
                     renderMainOnly();
                     break;
                 }
 
                 case 'close-voucher-modal': {
                     e.preventDefault();
+                    e.stopPropagation();
                     Model.closeVoucherModal();
                     renderMainOnly();
+                    break;
+                }
+
+                // Thao tác trên bảng tạo mới Phiếu nhập NVL
+                case 'add-inbound-item-row': {
+                    e.preventDefault();
+                    Model.addInboundNewItemRow();
+                    renderMainOnly();
+                    break;
+                }
+
+                case 'clear-inbound-item-rows': {
+                    e.preventDefault();
+                    const confirmed = await WhNotification.confirm('Bạn có chắc chắn muốn xóa tất cả các dòng nguyên vật liệu trong phiếu này không?', {
+                        title: 'Xóa danh sách vật tư',
+                        confirmText: 'Xóa tất cả',
+                        cancelText: 'Hủy bỏ',
+                        type: 'warning'
+                    });
+                    if (confirmed) {
+                        Model.clearInboundNewItemRows();
+                        renderMainOnly();
+                        WhNotification.toast('Đã làm trống danh sách vật tư', 'info');
+                    }
+                    break;
+                }
+
+                case 'delete-inbound-item-row': {
+                    e.preventDefault();
+                    const rowId = actionEl.getAttribute('data-row-id');
+                    if (rowId) {
+                        Model.deleteInboundNewItemRow(rowId);
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                case 'save-inbound-voucher': {
+                    e.preventDefault();
+                    const res = Model.saveInboundReceipt(false);
+                    if (!res.success) {
+                        WhNotification.alert(res.message, { type: 'warning', title: 'Thông tin chưa hợp lệ' });
+                    } else {
+                        WhNotification.toast('Lập phiếu nhập kho ' + res.voucherNo + ' thành công!', 'success');
+                        renderMainOnly();
+                    }
+                    break;
+                }
+
+                case 'save-draft-inbound-voucher': {
+                    e.preventDefault();
+                    const res = Model.saveInboundReceipt(true);
+                    if (!res.success) {
+                        WhNotification.alert(res.message, { type: 'warning', title: 'Thông tin chưa hợp lệ' });
+                    } else {
+                        WhNotification.toast('Đã lưu nháp phiếu nhập kho ' + res.voucherNo + ' thành công!', 'info');
+                        renderMainOnly();
+                    }
                     break;
                 }
 
@@ -190,16 +314,231 @@ const WarehouseController = (function (Model, View) {
                 }
 
                 case 'toggle-cmd-row-full': {
+                    e.stopPropagation();
                     const docType = actionEl.getAttribute('data-doc-type');
                     const rowId = actionEl.getAttribute('data-row-id');
                     if (docType && rowId) {
-                        Model.toggleCommandRowFull(docType, rowId, actionEl.checked);
-                        renderMainOnly();
+                        const updated = Model.toggleCommandRowFull(docType, rowId, actionEl.checked);
+                        if (updated) {
+                            // Cập nhật DOM trực tiếp tại dòng (in-place), không re-render toàn bộ giao diện làm reset cuộn
+                            const tr = actionEl.closest('tr');
+                            if (tr) {
+                                const qtyCell = tr.querySelector('[data-cell="actual-qty"]');
+                                if (qtyCell) {
+                                    qtyCell.textContent = updated.actualQty > 0
+                                        ? updated.actualQty.toLocaleString('vi-VN')
+                                        : '0';
+                                }
+                            }
+
+                            // Cập nhật tổng số lượng thực nhập ở dòng tfoot của bảng modal
+                            const modalTable = actionEl.closest('table') || (mainMount ? mainMount.querySelector('.wh-vtable') : null);
+                            if (modalTable) {
+                                const totalCell = modalTable.querySelector('[data-cell="total-actual-qty"]');
+                                if (totalCell) {
+                                    totalCell.textContent = updated.totalActualQty > 0
+                                        ? updated.totalActualQty.toLocaleString('vi-VN')
+                                        : '0';
+                                }
+                            }
+                        }
                     }
                     break;
                 }
 
-                // Xử lý nút Duyệt / Từ chối trên Lệnh xuất kho
+                // Xử lý nút Duyệt / Từ chối trên Lệnh xuất nguyên vật liệu (Material Issue)
+                case 'approve-material-receipt':
+                case 'approve-material-modal': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const orderNo = actionEl.getAttribute('data-order-no') || receiptId;
+                    const canApprove = actionEl.getAttribute('data-can-approve') !== 'false';
+                    const blockReason = actionEl.getAttribute('data-block-reason');
+
+                    if (!receiptId) return;
+
+                    // Kiểm tra điều kiện tồn kho & hạn sử dụng
+                    if (!canApprove) {
+                        await WhNotification.alert(
+                            blockReason || 'Phiếu yêu cầu xuất vật tư này không đủ điều kiện duyệt do thiếu tồn kho hoặc nguyên vật liệu có hạn sử dụng chỉ còn ≤ 1 ngày.',
+                            {
+                                type: 'error',
+                                title: 'Không thể duyệt phiếu xuất vật tư',
+                                confirmText: 'Đã hiểu'
+                            }
+                        );
+                        return;
+                    }
+
+                    const confirmed = await WhNotification.confirm(
+                        `Bạn có chắc chắn muốn duyệt xuất kho cho phiếu "${orderNo}" không?\n\nThao tác này sẽ trừ tồn kho nguyên vật liệu chính và chuyển vật tư vào tồn kho xưởng (WIP).`,
+                        {
+                            title: 'Xác nhận duyệt xuất nguyên vật liệu',
+                            confirmText: 'Duyệt xuất kho',
+                            cancelText: 'Hủy bỏ',
+                            type: 'info'
+                        }
+                    );
+
+                    if (confirmed) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang duyệt...';
+                        try {
+                            const res = await Model.approveMaterialReceipt(receiptId);
+                            WhNotification.toast(res.message || `Duyệt cấp phát vật tư ${orderNo} thành công!`, 'success');
+                            if (action === 'approve-material-modal') {
+                                Model.closeVoucherModal();
+                            }
+                            await Model.fetchMaterialReceiptsApi();
+                            renderMainOnly();
+                        } catch (err) {
+                            await WhNotification.alert(err.message || 'Lỗi khi duyệt xuất kho!', {
+                                type: 'error',
+                                title: 'Không thể duyệt xuất kho'
+                            });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                case 'reject-material-receipt':
+                case 'reject-material-modal': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const orderNo = actionEl.getAttribute('data-order-no') || receiptId;
+                    if (!receiptId) return;
+
+                    const reason = await WhNotification.prompt(
+                        `Nhập lý do từ chối cấp phát vật tư cho phiếu "${orderNo}":`,
+                        'Thiếu hàng thực tế hoặc chất lượng không đạt',
+                        {
+                            title: 'Từ chối cấp phát vật tư',
+                            confirmText: 'Từ chối cấp phát',
+                            cancelText: 'Hủy bỏ',
+                            type: 'warning'
+                        }
+                    );
+
+                    if (reason !== null && reason.trim()) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang xử lý...';
+                        try {
+                            const res = await Model.rejectMaterialReceipt(receiptId, reason.trim());
+                            WhNotification.toast(res.message || `Đã từ chối cấp phát vật tư ${orderNo}!`, 'warning');
+                            if (action === 'reject-material-modal') {
+                                Model.closeVoucherModal();
+                            }
+                            await Model.fetchMaterialReceiptsApi();
+                            renderMainOnly();
+                        } catch (err) {
+                            await WhNotification.alert(err.message || 'Lỗi khi từ chối cấp phát!', {
+                                type: 'error',
+                                title: 'Lỗi xử lý'
+                            });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                // Xử lý nút Duyệt / Từ chối Nhập kho thành phẩm (Product Receipt)
+                case 'approve-product-receipt':
+                case 'approve-product-modal': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const orderNo = actionEl.getAttribute('data-order-no') || receiptId;
+                    if (!receiptId) return;
+
+                    const confirmed = await WhNotification.confirm(
+                        `Bạn có chắc chắn muốn duyệt nhập kho thành phẩm cho lệnh "${orderNo}" không?\n\nThao tác này sẽ cộng hàng vào tồn kho chính và tự động kích hoạt hạn sử dụng sản phẩm.`,
+                        {
+                            title: 'Xác nhận duyệt nhập kho thành phẩm',
+                            confirmText: 'Duyệt nhập kho',
+                            cancelText: 'Hủy bỏ',
+                            type: 'info'
+                        }
+                    );
+
+                    if (confirmed) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang duyệt...';
+                        try {
+                            const res = await Model.approveProductReceipt(receiptId);
+                            WhNotification.toast(res.message || `Duyệt nhập kho thành phẩm ${orderNo} thành công!`, 'success');
+                            if (action === 'approve-product-modal') {
+                                Model.closeVoucherModal();
+                            }
+                            await Model.fetchProductReceiptsApi();
+                            renderMainOnly();
+                        } catch (err) {
+                            await WhNotification.alert(err.message || 'Lỗi khi duyệt nhập kho thành phẩm!', {
+                                type: 'error',
+                                title: 'Không thể duyệt nhập kho'
+                            });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                case 'reject-product-receipt':
+                case 'reject-product-modal': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const orderNo = actionEl.getAttribute('data-order-no') || receiptId;
+                    if (!receiptId) return;
+
+                    const reason = await WhNotification.prompt(
+                        `Nhập lý do từ chối nhận thành phẩm cho lệnh "${orderNo}":`,
+                        'Quy cách bao bì hoặc tiêu chuẩn chất lượng chưa đạt',
+                        {
+                            title: 'Từ chối nhận thành phẩm',
+                            confirmText: 'Từ chối',
+                            cancelText: 'Hủy bỏ',
+                            type: 'warning'
+                        }
+                    );
+
+                    if (reason !== null && reason.trim()) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang xử lý...';
+                        try {
+                            const res = await Model.rejectProductReceipt(receiptId, reason.trim());
+                            WhNotification.toast(res.message || `Đã từ chối nhận thành phẩm ${orderNo}!`, 'warning');
+                            if (action === 'reject-product-modal') {
+                                Model.closeVoucherModal();
+                            }
+                            await Model.fetchProductReceiptsApi();
+                            renderMainOnly();
+                        } catch (err) {
+                            await WhNotification.alert(err.message || 'Lỗi khi từ chối nhận thành phẩm!', {
+                                type: 'error',
+                                title: 'Lỗi xử lý'
+                            });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                // Xử lý nút Duyệt / Từ chối trên Lệnh xuất kho (mẫu cũ)
                 case 'approve-outbound-cmd': {
                     e.preventDefault();
                     const orderNo = actionEl.getAttribute('data-order-no');
@@ -273,19 +612,25 @@ const WarehouseController = (function (Model, View) {
                         for (const [key, value] of formData.entries()) {
                             newItem[key] = value;
                         }
-                        const codeKey = itemType === 'product' ? 'productCode' : 'ingrCode';
                         const nameKey = itemType === 'product' ? 'productName' : 'ingrName';
-                        if (!newItem[codeKey] || !newItem[codeKey].trim()) {
-                            alert('Vui lòng nhập mã ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'));
-                            return;
-                        }
                         if (!newItem[nameKey] || !newItem[nameKey].trim()) {
-                            alert('Vui lòng nhập tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'));
+                            WhNotification.alert('Vui lòng nhập tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'), { type: 'warning' });
                             return;
                         }
-                        Model.addVthhItem(itemType, newItem);
-                        Model.closeVthhModal();
-                        renderMainOnly();
+                        const origHtml = actionEl.innerHTML;
+                        try {
+                            actionEl.disabled = true;
+                            actionEl.innerHTML = '<span>Đang lưu...</span>';
+                            await Model.addVthhItem(itemType, newItem);
+                            WhNotification.toast(`Thêm mới ${itemType === 'product' ? 'sản phẩm' : 'nguyên vật liệu'} thành công!`, 'success');
+                            Model.closeVthhModal();
+                            renderMainOnly();
+                        } catch (err) {
+                            WhNotification.alert(err.message || 'Lỗi khi lưu dữ liệu!', { type: 'error' });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
                     }
                     break;
                 }
@@ -293,6 +638,7 @@ const WarehouseController = (function (Model, View) {
                 // Xem chi tiết VTHH (Chế độ khóa / chỉ xem) khi bấm vào mã SP hoặc mã NVL
                 case 'view-vthh-item': {
                     e.preventDefault();
+                    e.stopPropagation();
                     const itemType = actionEl.getAttribute('data-item-type');
                     const itemId = actionEl.getAttribute('data-item-id');
                     if (itemType && itemId && Model.openVthhModal) {
@@ -337,23 +683,25 @@ const WarehouseController = (function (Model, View) {
                         for (const [key, value] of formData.entries()) {
                             updatedFields[key] = value;
                         }
-                        Model.updateVthhItem(itemType, itemId, updatedFields);
-                        Model.closeVthhModal();
-                        renderMainOnly();
-                    }
-                    break;
-                }
-
-                // Chọn ảnh mẫu nhanh cho sản phẩm
-                case 'pick-img-preset': {
-                    e.preventDefault();
-                    const url = actionEl.getAttribute('data-img-url');
-                    const inputEl = document.getElementById('wh-edit-image-url');
-                    const previewImg = document.getElementById('wh-vthh-img-preview');
-                    if (inputEl) inputEl.value = url;
-                    if (previewImg) {
-                        previewImg.src = url;
-                        previewImg.style.display = 'block';
+                        const nameKey = itemType === 'product' ? 'productName' : 'ingrName';
+                        if (updatedFields[nameKey] !== undefined && !updatedFields[nameKey].trim()) {
+                            WhNotification.alert('Vui lòng không để trống tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'), { type: 'warning' });
+                            return;
+                        }
+                        const origHtml = actionEl.innerHTML;
+                        try {
+                            actionEl.disabled = true;
+                            actionEl.innerHTML = '<span>Đang lưu...</span>';
+                            await Model.updateVthhItem(itemType, itemId, updatedFields);
+                            WhNotification.toast('Cập nhật thông tin thành công!', 'success');
+                            Model.closeVthhModal();
+                            renderMainOnly();
+                        } catch (err) {
+                            WhNotification.alert(err.message || 'Lỗi khi cập nhật dữ liệu!', { type: 'error' });
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
                     }
                     break;
                 }
@@ -367,10 +715,21 @@ const WarehouseController = (function (Model, View) {
                     const itemName = actionEl.getAttribute('data-item-name') || '';
                     const typeLabel = itemType === 'product' ? 'sản phẩm' : 'nguyên vật liệu';
                     
-                    if (window.confirm(`Bạn có chắc chắn muốn xóa ${typeLabel} "${itemName}" không?`)) {
+                    const confirmed = await WhNotification.confirm(`Bạn có chắc chắn muốn xóa ${typeLabel} "${itemName}" không?`, {
+                        title: `Xác nhận xóa ${typeLabel}`,
+                        confirmText: 'Xóa',
+                        cancelText: 'Hủy bỏ',
+                        type: 'error'
+                    });
+                    if (confirmed) {
                         if (Model.deleteVthhItem) {
-                            Model.deleteVthhItem(itemType, itemId);
-                            renderMainOnly();
+                            try {
+                                await Model.deleteVthhItem(itemType, itemId);
+                                WhNotification.toast(`Đã xóa ${typeLabel} "${itemName}" thành công!`, 'success');
+                                renderMainOnly();
+                            } catch (err) {
+                                WhNotification.alert(err.message || `Không thể xóa ${typeLabel}!`, { type: 'error' });
+                            }
                         }
                     }
                     break;
@@ -442,6 +801,26 @@ const WarehouseController = (function (Model, View) {
                 case 'refresh-datagrid': {
                     e.preventDefault();
                     actionEl.classList.add('spinning');
+                    const curMenu = Model.getState().activeMenuId;
+                    if (curMenu === 'danh-muc-vthh') {
+                        try {
+                            await Promise.all([Model.loadProducts(), Model.loadIngredients()]);
+                        } catch (err) {
+                            console.error('Lỗi làm mới VTHH:', err);
+                        }
+                    } else if (curMenu === 'xuat-kho') {
+                        try {
+                            await Model.fetchMaterialReceiptsApi();
+                        } catch (err) {
+                            console.error('Lỗi làm mới xuất kho:', err);
+                        }
+                    } else if (curMenu === 'nhap-kho') {
+                        try {
+                            await Model.fetchProductReceiptsApi();
+                        } catch (err) {
+                            console.error('Lỗi làm mới nhập kho:', err);
+                        }
+                    }
                     setTimeout(function () {
                         renderMainOnly();
                     }, 250);
@@ -489,6 +868,27 @@ const WarehouseController = (function (Model, View) {
                 return;
             }
 
+            const action = target.getAttribute('data-action');
+            if (action === 'change-inbound-supplier') {
+                Model.setInboundNewSupplier(target.value);
+                renderMainOnly();
+                return;
+            }
+
+            if (action === 'change-inbound-item') {
+                const rowId = target.getAttribute('data-row-id');
+                Model.changeInboundNewItem(rowId, target.value);
+                renderMainOnly();
+                return;
+            }
+
+            if (action === 'change-inbound-item-qty') {
+                const rowId = target.getAttribute('data-row-id');
+                Model.changeInboundNewItemQty(rowId, target.value);
+                renderMainOnly();
+                return;
+            }
+
             const filterId = target.getAttribute('data-filter-id');
             if (filterId === 'inbound-status-filter') {
                 Model.setOperationStatusFilter('nhap-kho', target.value);
@@ -503,11 +903,52 @@ const WarehouseController = (function (Model, View) {
             const target = e.target;
             if (!target) return;
 
+            const inputAction = target.getAttribute('data-action');
+            if (inputAction === 'change-inbound-item-qty') {
+                const rowId = target.getAttribute('data-row-id');
+                const row = Model.changeInboundNewItemQty(rowId, target.value);
+                if (row) {
+                    const amtCell = document.querySelector(`.wh-cell-text[data-cell="amount"][data-row-id="${rowId}"]`);
+                    if (amtCell) {
+                        amtCell.textContent = Number(row.amount || 0).toLocaleString('vi-VN') + ' đ';
+                    }
+                    const draft = Model.getVoucherData('inbound');
+                    if (draft && draft.items) {
+                        const totalQty = draft.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+                        const totalAmt = draft.items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+                        const totalQtyEl = document.getElementById('wh-total-inbound-qty');
+                        if (totalQtyEl) {
+                            totalQtyEl.textContent = totalQty.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        }
+                        const totalAmtEl = document.getElementById('wh-total-inbound-amount');
+                        if (totalAmtEl) {
+                            totalAmtEl.textContent = totalAmt.toLocaleString('vi-VN') + ' đ';
+                        }
+                    }
+                }
+                return;
+            }
+
             if (target.id === 'wh-edit-image-url') {
+                const val = target.value.trim();
                 const previewImg = document.getElementById('wh-vthh-img-preview');
-                if (previewImg) {
-                    previewImg.src = target.value.trim();
-                    previewImg.style.display = 'block';
+                const brokenBox = document.getElementById('wh-vthh-img-broken');
+                if (!val) {
+                    if (previewImg) {
+                        previewImg.src = '';
+                        previewImg.style.display = 'none';
+                    }
+                    if (brokenBox) {
+                        brokenBox.style.display = 'inline-flex';
+                    }
+                } else {
+                    if (previewImg) {
+                        previewImg.src = val;
+                        previewImg.style.display = 'block';
+                    }
+                    if (brokenBox) {
+                        brokenBox.style.display = 'none';
+                    }
                 }
                 return;
             }

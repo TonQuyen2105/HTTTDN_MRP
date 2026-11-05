@@ -41,7 +41,7 @@ public class Ingredient
     public string IngrName { get; set; } = string.Empty;
 
     [Column("quantity")]
-    public int? Quantity { get; set; } = 0;
+    public decimal? Quantity { get; set; } = 0;
 
     [MaxLength(20)]
     [Column("unit")]
@@ -57,8 +57,8 @@ public class Ingredient
     [Column("description")]
     public string? Description { get; set; }
 
-    [Column("expireddate")]
-    public DateTime? ExpiredDate { get; set; }
+    [Column("shelflifemonths")]
+    public int? ShelfLifeMonths { get; set; } = 0;
 }
 
 [Table("product")]
@@ -90,8 +90,8 @@ public class Product
     [Column("description")]
     public string? Description { get; set; }
 
-    [Column("expireddate")]
-    public DateTime? ExpiredDate { get; set; }
+    [Column("shelflifemonths")]
+    public int? ShelfLifeMonths { get; set; } = 0;
 }
 
 [Table("bom")]
@@ -116,7 +116,7 @@ public class Bom
     public int ItemQuantity { get; set; }
 
     [Column("materialquantity")]
-    public int MaterialQuantity { get; set; }
+    public decimal MaterialQuantity { get; set; }
 
     [MaxLength(100)]
     [Column("bomcode")]
@@ -145,6 +145,9 @@ public class ProductionRequest
 
     [Column("createddate")]
     public DateTime? CreatedDate { get; set; }
+
+    [Column("requestcode")]
+    public string? RequestCode { get; set; }
 }
 
 [Table("importreceipt")]
@@ -165,6 +168,10 @@ public class ImportReceipt
 
     [Column("ipreceiptcode")]
     public string? IpReceiptCode { get; set; }
+
+    [MaxLength(50)]
+    [Column("status")]
+    public string? Status { get; set; }
 }
 
 [Table("importreceiptdetail")]
@@ -177,13 +184,16 @@ public class ImportReceiptDetail
     public int IngrId { get; set; }
 
     [Column("quantity")]
-    public int Quantity { get; set; }
+    public decimal Quantity { get; set; }
 
     [Column("cost")]
     public decimal? Cost { get; set; }
 
     [Column("createddate")]
     public DateTime? CreatedDate { get; set; }
+
+    [Column("expireddate")]
+    public DateTime? ExpiredDate { get; set; }
 }
 
 [Table("materialreceipt")]
@@ -238,6 +248,9 @@ public class MaterialReceiptDetail
 
     [Column("exportdate")]
     public DateTime? ExportDate { get; set; }
+
+    [Column("unitcost")]
+    public decimal? UnitCost { get; set; }
 }
 
 [Table("productreceipt")]
@@ -262,6 +275,9 @@ public class ProductReceipt
 
     [Column("requestid")]
     public int? RequestId { get; set; }
+
+    [Column("receiptcode")]
+    public string? ReceiptCode { get; set; }
 }
 
 [Table("productreceiptdetail")]
@@ -286,6 +302,9 @@ public class ProductReceiptDetail
 
     [Column("createddate")]
     public DateTime? CreatedDate { get; set; }
+
+    [Column("expireddate")]
+    public DateTime? ExpiredDate { get; set; }
 }
 
 [Table("productexportreceipt")]
@@ -372,6 +391,10 @@ public class SaleOrder
     [MaxLength(50)]
     [Column("status")]
     public string? Status { get; set; }
+
+    [MaxLength(50)]
+    [Column("ordercode")]
+    public string? OrderCode { get; set; }
 }
 
 [Table("saleorderdetail")]
@@ -385,4 +408,30 @@ public class SaleOrderDetail
 
     [Column("quantity")]
     public int Quantity { get; set; }
+
+    [Column("unitprice")]
+    public decimal? UnitPrice { get; set; }
+}
+
+[Table("wip_inventory")]
+public class WipInventory
+{
+    [Key]
+    [Column("wipid")]
+    public int WipId { get; set; }
+
+    [Column("requestid")]
+    public int RequestId { get; set; }
+
+    [Column("ingrid")]
+    public int? IngrId { get; set; }
+
+    [Column("productid")]
+    public int? ProductId { get; set; }
+
+    [Column("quantity")]
+    public decimal? Quantity { get; set; } = 0;
+
+    [Column("lastupdated")]
+    public DateTime? LastUpdated { get; set; }
 }

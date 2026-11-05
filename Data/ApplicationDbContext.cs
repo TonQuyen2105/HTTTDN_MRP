@@ -27,6 +27,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProductExportReceiptDetail> ProductExportReceiptDetails { get; set; } = null!;
     public DbSet<SaleOrder> SaleOrders { get; set; } = null!;
     public DbSet<SaleOrderDetail> SaleOrderDetails { get; set; } = null!;
+    public DbSet<WipInventory> WipInventories { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

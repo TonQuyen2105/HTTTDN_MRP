@@ -4,6 +4,7 @@
  * [VIEW LAYER - REUSABLE UI COMPONENTS]
  * Tập hợp các Component tái sử dụng cho phân hệ Kho hàng:
  * - WarehouseIcons: Bộ icon SVG chuẩn thiết kế
+ * - WhNotification: Hệ thống thông báo dùng chung (Toast & Dialog Modal)
  * - HeaderComponent: Thanh điều hướng trên cùng
  * - SidebarComponent: Thanh menu dọc bên trái (hỗ trợ submenu & thu gọn mượt mà)
  * - ParameterPopoverComponent: Hộp thoại cấu hình "Chọn tham số"
@@ -13,6 +14,226 @@
  * - StockVoucherModalComponent: Component Phiếu Nhập Kho (PNK00005) & Phiếu Xuất Kho (PXK00002) tái sử dụng
  * - MainContentComponent: Điều phối hiển thị nội dung theo mục Sidebar đang chọn
  */
+
+// =========================================================================
+// THÀNH PHẦN THÔNG BÁO DÙNG CHUNG TOÀN HỆ THỐNG (TOAST & DIALOG MODAL)
+// =========================================================================
+window.WhNotification = (function () {
+    const NOTIF_ICONS = {
+        success: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+        error: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+        warning: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        info: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`
+    };
+
+    function escapeText(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function ensureToastContainer() {
+        let container = document.getElementById('wh-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'wh-toast-container';
+            container.className = 'wh-toast-container';
+            document.body.appendChild(container);
+        }
+        return container;
+    }
+
+    function toast(message, type = 'info', title = '', duration = 3500) {
+        if (type === 'danger') type = 'error';
+        const container = ensureToastContainer();
+        const toastEl = document.createElement('div');
+        toastEl.className = `wh-toast wh-toast-${type}`;
+
+        const defaultTitle = type === 'success' ? 'Thành công' : (type === 'error' ? 'Lỗi thao tác' : (type === 'warning' ? 'Cảnh báo' : 'Thông báo'));
+        const displayTitle = title || defaultTitle;
+
+        toastEl.innerHTML = `
+            <div class="wh-toast-icon">${NOTIF_ICONS[type] || NOTIF_ICONS.info}</div>
+            <div class="wh-toast-content">
+                <div class="wh-toast-title">${escapeText(displayTitle)}</div>
+                <div class="wh-toast-message">${escapeText(message)}</div>
+            </div>
+            <button type="button" class="wh-toast-close" title="Đóng">&times;</button>
+            <div class="wh-toast-progress" style="animation-duration: ${duration}ms;"></div>
+        `;
+
+        const closeBtn = toastEl.querySelector('.wh-toast-close');
+        let timer = null;
+
+        const dismiss = () => {
+            if (timer) clearTimeout(timer);
+            toastEl.classList.add('is-hiding');
+            setTimeout(() => {
+                if (toastEl.parentNode) toastEl.parentNode.removeChild(toastEl);
+            }, 300);
+        };
+
+        closeBtn.onclick = dismiss;
+        timer = setTimeout(dismiss, duration);
+
+        container.appendChild(toastEl);
+    }
+
+    function alert(message, options = {}) {
+        return new Promise(resolve => {
+            const type = (options.type === 'danger') ? 'error' : (options.type || 'info');
+            const title = options.title || (type === 'error' ? 'Không thể thực hiện' : (type === 'warning' ? 'Cảnh báo' : 'Thông báo'));
+            const confirmText = options.confirmText || 'Đã hiểu';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'wh-dialog-overlay';
+            overlay.innerHTML = `
+                <div class="wh-dialog-box wh-dialog-${type}">
+                    <div class="wh-dialog-icon-wrap">
+                        ${NOTIF_ICONS[type] || NOTIF_ICONS.info}
+                    </div>
+                    <div class="wh-dialog-body">
+                        <h3 class="wh-dialog-title">${escapeText(title)}</h3>
+                        <div class="wh-dialog-message">${String(message || '').replace(/\n/g, '<br/>')}</div>
+                    </div>
+                    <div class="wh-dialog-footer">
+                        <button type="button" class="wh-dialog-btn wh-dialog-btn-primary">${escapeText(confirmText)}</button>
+                    </div>
+                </div>
+            `;
+
+            const btn = overlay.querySelector('.wh-dialog-btn-primary');
+            const cleanup = () => {
+                overlay.classList.add('is-closing');
+                setTimeout(() => {
+                    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    resolve();
+                }, 200);
+            };
+
+            btn.onclick = cleanup;
+            overlay.onkeydown = (e) => { if (e.key === 'Escape' || e.key === 'Enter') cleanup(); };
+            document.body.appendChild(overlay);
+            setTimeout(() => btn.focus(), 50);
+        });
+    }
+
+    function confirm(message, options = {}) {
+        return new Promise(resolve => {
+            const type = (options.type === 'danger') ? 'error' : (options.type || 'warning');
+            const title = options.title || 'Xác nhận thao tác';
+            const confirmText = options.confirmText || 'Đồng ý';
+            const cancelText = options.cancelText || 'Hủy bỏ';
+            const isDanger = options.isDanger || type === 'error' || type === 'warning';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'wh-dialog-overlay';
+            overlay.innerHTML = `
+                <div class="wh-dialog-box wh-dialog-${type}">
+                    <div class="wh-dialog-icon-wrap">
+                        ${NOTIF_ICONS[type] || NOTIF_ICONS.warning}
+                    </div>
+                    <div class="wh-dialog-body">
+                        <h3 class="wh-dialog-title">${escapeText(title)}</h3>
+                        <div class="wh-dialog-message">${String(message || '').replace(/\n/g, '<br/>')}</div>
+                    </div>
+                    <div class="wh-dialog-footer">
+                        <button type="button" class="wh-dialog-btn wh-dialog-btn-cancel">${escapeText(cancelText)}</button>
+                        <button type="button" class="wh-dialog-btn ${isDanger ? 'wh-dialog-btn-danger' : 'wh-dialog-btn-primary'}">${escapeText(confirmText)}</button>
+                    </div>
+                </div>
+            `;
+
+            const btnConfirm = overlay.querySelector('.wh-dialog-btn-primary, .wh-dialog-btn-danger');
+            const btnCancel = overlay.querySelector('.wh-dialog-btn-cancel');
+
+            const finish = (result) => {
+                overlay.classList.add('is-closing');
+                setTimeout(() => {
+                    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    resolve(result);
+                }, 200);
+            };
+
+            btnConfirm.onclick = () => finish(true);
+            btnCancel.onclick = () => finish(false);
+            overlay.onclick = (e) => {
+                if (e.target === overlay) finish(false);
+            };
+
+            document.body.appendChild(overlay);
+            setTimeout(() => btnConfirm.focus(), 50);
+        });
+    }
+
+    function prompt(message, defaultValue = '', options = {}) {
+        return new Promise(resolve => {
+            const type = options.type || 'info';
+            const title = options.title || 'Nhập thông tin';
+            const confirmText = options.confirmText || 'Xác nhận';
+            const cancelText = options.cancelText || 'Hủy bỏ';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'wh-dialog-overlay';
+            overlay.innerHTML = `
+                <div class="wh-dialog-box wh-dialog-${type}">
+                    <div class="wh-dialog-icon-wrap">
+                        ${NOTIF_ICONS[type] || NOTIF_ICONS.info}
+                    </div>
+                    <div class="wh-dialog-body">
+                        <h3 class="wh-dialog-title">${escapeText(title)}</h3>
+                        <div class="wh-dialog-message">${String(message || '').replace(/\n/g, '<br/>')}</div>
+                        <input type="text" class="wh-dialog-input" value="${escapeText(defaultValue)}" />
+                    </div>
+                    <div class="wh-dialog-footer">
+                        <button type="button" class="wh-dialog-btn wh-dialog-btn-cancel">${escapeText(cancelText)}</button>
+                        <button type="button" class="wh-dialog-btn wh-dialog-btn-primary">${escapeText(confirmText)}</button>
+                    </div>
+                </div>
+            `;
+
+            const input = overlay.querySelector('.wh-dialog-input');
+            const btnConfirm = overlay.querySelector('.wh-dialog-btn-primary');
+            const btnCancel = overlay.querySelector('.wh-dialog-btn-cancel');
+
+            const finish = (val) => {
+                overlay.classList.add('is-closing');
+                setTimeout(() => {
+                    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    resolve(val);
+                }, 200);
+            };
+
+            btnConfirm.onclick = () => finish(input.value);
+            btnCancel.onclick = () => finish(null);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') finish(input.value);
+                if (e.key === 'Escape') finish(null);
+            };
+
+            document.body.appendChild(overlay);
+            setTimeout(() => { input.focus(); input.select(); }, 50);
+        });
+    }
+
+    // Ghi đè an toàn alert & confirm mặc định của trình duyệt
+    window.alert = (msg) => alert(msg);
+    window.confirm = (msg) => confirm(msg);
+
+    return {
+        toast,
+        alert,
+        confirm,
+        prompt,
+        success: (msg, title) => toast(msg, 'success', title),
+        error: (msg, title) => toast(msg, 'error', title),
+        warning: (msg, title) => toast(msg, 'warning', title),
+        info: (msg, title) => toast(msg, 'info', title)
+    };
+})();
 
 const WarehouseComponents = (function () {
 
@@ -143,6 +364,12 @@ const WarehouseComponents = (function () {
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
         </svg>`,
+        brokenImage: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#94a3b8"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="#94a3b8"/>
+            <path d="m21 15-5-5L5 21"/>
+            <path d="M12 3l-1.5 4.5 3 4-2.5 4 2 5.5" stroke="#ef4444" stroke-width="1.8"/>
+        </svg>`,
         warehouse: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/>
             <path d="M6 18h12"/><path d="M6 14h12"/>
@@ -172,6 +399,12 @@ const WarehouseComponents = (function () {
     function formatVnNumber(num) {
         const n = Number(num) || 0;
         return n.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Định dạng tiền tệ VNĐ (25000 -> 25.000 đ | 12500000 -> 12.500.000 đ)
+    function formatVnCurrency(num) {
+        const n = Number(num) || 0;
+        return n.toLocaleString('vi-VN') + ' đ';
     }
 
     /**
@@ -209,6 +442,16 @@ const WarehouseComponents = (function () {
                 </div>
 
                 <div class="wh-header-right">
+                    <a
+                        href="/swagger"
+                        target="_blank"
+                        class="wh-swagger-link"
+                        title="Xem tài liệu và kiểm thử trực tiếp Web API qua Swagger UI"
+                        style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:6px; background:#0284c7; color:#ffffff; font-size:12px; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.08);"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <span>Web API</span>
+                    </a>
                     <button
                         type="button"
                         class="wh-data-mode-btn"
@@ -430,7 +673,7 @@ const WarehouseComponents = (function () {
 
                 <div class="wh-card-footer">
                     <span>Số liệu tính đến: <strong style="font-weight:500;">${escapeHtml(cardConfig.lastUpdated)}</strong></span>
-                    <a href="#reload" class="wh-reload-link" data-action="refresh-card" data-card-id="${cardConfig.id}">Tải lại</a>
+                    <a href="javascript:void(0)" onclick="return false;" class="wh-reload-link" data-action="refresh-card" data-card-id="${cardConfig.id}">Tải lại</a>
                 </div>
             </section>
         `;
@@ -562,7 +805,7 @@ const WarehouseComponents = (function () {
                     </div>
 
                     <div class="wh-ws-card-footer-right">
-                        <a href="#xuat-kho" class="wh-ws-more-link" data-action="select-menu" data-menu-id="xuat-kho">Xem thêm</a>
+                        <a href="javascript:void(0)" onclick="return false;" class="wh-ws-more-link" data-action="select-menu" data-menu-id="xuat-kho">Xem thêm</a>
                     </div>
                 </section>
 
@@ -599,7 +842,7 @@ const WarehouseComponents = (function () {
                     </div>
 
                     <div class="wh-ws-card-footer-right">
-                        <a href="#xuat-kho" class="wh-ws-more-link" data-action="select-menu" data-menu-id="xuat-kho">Xem thêm</a>
+                        <a href="javascript:void(0)" onclick="return false;" class="wh-ws-more-link" data-action="select-menu" data-menu-id="xuat-kho">Xem thêm</a>
                     </div>
                 </section>
             </div>
@@ -842,18 +1085,46 @@ const WarehouseComponents = (function () {
         const isOutbound = cmd.docType === 'outbound-command';
         const itemCodeHeader = isOutbound ? 'Mã NVL' : 'Mã SP';
         const itemNameHeader = isOutbound ? 'Tên nguyên vật liệu' : 'Tên sản phẩm';
-        const sectionTitle = isOutbound ? 'Nguyên vật liệu' : 'Sản phẩm';
-        const totalReqQty = cmd.items.reduce((s, r) => s + (Number(r.reqQty) || 0), 0);
-        const totalActualQty = cmd.items.reduce((s, r) => s + (Number(r.actualQty) || 0), 0);
+        const sectionTitle = isOutbound ? 'Danh sách nguyên vật liệu xuất kho' : 'Sản phẩm';
+        const totalReqQty = cmd.items.reduce((s, r) => s + (Number(r.reqQty ?? r.quantity) || 0), 0);
+        const totalActualQty = cmd.items.reduce((s, r) => s + (Number(r.actualQty ?? r.quantity) || 0), 0);
+        const totalAmount = cmd.items.reduce((s, r) => {
+            const qty = Number(r.quantity ?? r.reqQty) || 0;
+            const price = Number(r.price ?? r.unitCost) || 0;
+            return s + (r.amount !== undefined ? Number(r.amount) : (qty * price));
+        }, 0);
         const rangeText = cmd.items.length > 0 ? `1 - ${cmd.items.length}` : '0 - 0';
+        const isPending = isOutbound
+            ? (cmd.rawStatus === 'Pending' || cmd.statusText === 'Chờ xuất kho')
+            : (cmd.rawStatus === 'Pending' || cmd.rawStatus === 'In Production' || cmd.rawStatus === 'Completed' || cmd.statusText === 'Chờ nhập kho');
+        const isApproved = cmd.rawStatus === 'Approved' || cmd.statusText === 'Đã xuất kho' || cmd.statusText === 'Đã nhập kho' || (isOutbound && cmd.rawStatus === 'Completed');
+        const isRejected = cmd.rawStatus === 'Rejected' || cmd.statusText === 'Từ chối';
+
+        // Kiểm tra điều kiện tồn kho & hạn sử dụng cho Lệnh xuất NVL
+        const hasStockIssue = isOutbound && cmd.items.some(r => {
+            const qty = Number(r.reqQty ?? r.quantity) || 0;
+            const stock = Number(r.stockQty ?? 0);
+            return stock < qty || Boolean(r.isOutOfStock);
+        });
+        const hasExpiryIssue = isOutbound && cmd.items.some(r => Boolean(r.isExpiringSoon));
+        const canApprove = isOutbound ? (cmd.canApprove !== undefined ? Boolean(cmd.canApprove) : (!hasStockIssue && !hasExpiryIssue && isPending)) : isPending;
+
+        let blockReason = cmd.approvalBlockReason || '';
+        if (!blockReason) {
+            if (hasStockIssue) blockReason = 'Có nguyên vật liệu có số lượng tồn kho nhỏ hơn số lượng yêu cầu xuất!';
+            else if (hasExpiryIssue) blockReason = 'Có nguyên vật liệu hạn sử dụng chỉ còn 1 ngày hoặc đã hết hạn!';
+        }
 
         return `
             <div class="wh-voucher-overlay" id="wh-voucher-overlay">
-                <div class="wh-voucher-window">
+                <div class="wh-voucher-window" style="max-width:1060px;">
                     <!-- Thanh tiêu đề trên cùng -->
                     <div class="wh-voucher-topbar">
-                        <div class="wh-voucher-topbar-left">
+                        <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
                             <h2 class="wh-voucher-title">${escapeHtml(cmd.title)}</h2>
+                            <span class="wh-vthh-mode-badge ${isApproved ? 'is-view' : isRejected ? '' : 'is-edit'}" style="${isApproved ? 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;' : isRejected ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;' : ''}">
+                                ${escapeHtml(cmd.statusText || 'Chờ xuất kho')}
+                            </span>
                         </div>
 
                         <div class="wh-voucher-topbar-right">
@@ -868,49 +1139,56 @@ const WarehouseComponents = (function () {
                     <div class="wh-voucher-body">
                         <!-- Vùng Master (Trái - Phải ngăn nhau bằng đường gạch mờ) -->
                         <div class="wh-voucher-master">
-                            <!-- Khối bên trái: Mã nhân viên (220px) + Tên nhân viên yêu cầu (1fr) + Ghi chú (span 2) -->
+                            <!-- Khối bên trái -->
                             <div class="wh-voucher-master-left wh-outbound-master-left">
                                 <div class="wh-form-group">
                                     <label class="wh-form-label">Mã nhân viên</label>
-                                    <div class="wh-input-group">
-                                        <select class="wh-select-control">
-                                            ${(cmd.employeeCodeOptions || ['NV0006', 'NV0018', 'NV0005', 'NV0021']).map(opt => `
-                                                <option value="${escapeHtml(opt)}" ${opt === cmd.employeeCode ? 'selected' : ''}>${escapeHtml(opt)}</option>
-                                            `).join('')}
-                                        </select>
-                                        <button type="button" class="wh-input-addon-btn" title="Thêm nhân viên">${Icons.plus}</button>
-                                    </div>
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.employeeCode || 'NV0005')}" readonly disabled />
                                 </div>
                                 <div class="wh-form-group">
                                     <label class="wh-form-label">Tên nhân viên yêu cầu</label>
-                                    <input type="text" class="wh-input-control" value="${escapeHtml(cmd.employeeName || '')}" />
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.employeeName || 'Nguyễn Tiến Huy')}" readonly disabled />
                                 </div>
-
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label">Bộ phận nhận</label>
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.department || 'Phân xưởng Viên nén GMP')}" readonly disabled />
+                                </div>
                                 <div class="wh-form-group wh-col-span-2">
-                                    <label class="wh-form-label">Ghi chú</label>
-                                    <input type="text" class="wh-input-control" value="${escapeHtml(cmd.description || '')}" />
+                                    <label class="wh-form-label">Diễn giải / Mục đích xuất</label>
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.description || '')}" readonly />
                                 </div>
                             </div>
 
-                            <!-- Khối bên phải: Số lệnh + Hạn nhập/xuất + Tình trạng thực hiện -->
+                            <!-- Khối bên phải -->
                             <div class="wh-voucher-master-right">
                                 <div class="wh-form-group">
-                                    <label class="wh-form-label">${escapeHtml(cmd.commandNoLabel)}</label>
-                                    <input type="text" class="wh-input-control" value="${escapeHtml(cmd.commandNo)}" />
+                                    <label class="wh-form-label">${escapeHtml(cmd.commandNoLabel || 'Số lệnh')}</label>
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.commandNo)}" readonly disabled />
                                 </div>
                                 <div class="wh-form-group">
-                                    <label class="wh-form-label">${escapeHtml(cmd.dueDateLabel)}</label>
+                                    <label class="wh-form-label">${escapeHtml(cmd.dueDateLabel || 'Hạn xuất kho')}</label>
                                     <div class="wh-input-group">
-                                        <input type="text" class="wh-input-control" value="${escapeHtml(cmd.dueDate)}" />
-                                        <button type="button" class="wh-input-addon-btn" title="Chọn hạn">${Icons.calendar}</button>
+                                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.dueDate)}" readonly disabled />
+                                        <button type="button" class="wh-input-addon-btn" title="Chọn hạn" disabled>${Icons.calendar}</button>
                                     </div>
                                 </div>
                                 <div class="wh-form-group">
-                                    <label class="wh-form-label">Tình trạng thực hiện</label>
-                                    <input type="text" class="wh-input-control wh-input-readonly" value="${escapeHtml(cmd.statusText)}" readonly />
+                                    <label class="wh-form-label">Trạng thái thực hiện</label>
+                                    <input type="text" class="wh-input-control wh-input-readonly" value="${escapeHtml(cmd.statusText)}" readonly disabled />
                                 </div>
                             </div>
                         </div>
+
+                        ${isOutbound && isPending && !canApprove ? `
+                            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;color:#991b1b;font-size:12.5px;font-weight:500;">
+                                <div style="flex-shrink:0;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                </div>
+                                <div>
+                                    <strong style="color:#b91c1c;">Cảnh báo an toàn kho:</strong> Phiếu này hiện <strong>không thể duyệt xuất kho</strong> do: ${escapeHtml(blockReason)}. Vui lòng kiểm tra lại số lượng tồn kho và lô hạn sử dụng của nguyên vật liệu.
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <!-- Vùng Chi tiết Hàng hóa / Sản phẩm / Nguyên vật liệu -->
                         <div class="wh-voucher-detail">
@@ -920,51 +1198,188 @@ const WarehouseComponents = (function () {
                                 <table class="wh-vtable">
                                     <thead>
                                         <tr>
-                                            <th style="width: 38px;">#</th>
-                                            <th style="width: 130px;">${Icons.pin}${escapeHtml(itemCodeHeader)}</th>
+                                            <th style="width: 36px;">#</th>
+                                            <th style="width: 95px;">${Icons.pin}${escapeHtml(itemCodeHeader)}</th>
                                             <th>${escapeHtml(itemNameHeader)}</th>
-                                            <th style="width: 90px;">ĐVT</th>
-                                            <th style="width: 120px;" class="wh-text-right">${escapeHtml(cmd.reqQtyColLabel || 'SL Yêu cầu')}</th>
-                                            <th style="width: 120px;" class="wh-text-right">${escapeHtml(cmd.actualQtyColLabel || (isOutbound ? 'SL thực xuất' : 'SL thực nhập'))}</th>
-                                            <th style="width: 110px; text-align:center;">Đánh dấu đủ</th>
-                                            <th style="width: 130px;">Hạn sử dụng</th>
+                                            <th style="width: 60px; text-align:center;">ĐVT</th>
+                                            <th style="width: 95px;" class="wh-text-right">${escapeHtml(cmd.reqQtyColLabel || 'SL Yêu cầu')}</th>
+                                            ${isOutbound ? `
+                                                <th style="width: 105px;" class="wh-text-right">SL Tồn kho</th>
+                                                <th style="width: 105px; text-align:center;">Hạn sử dụng</th>
+                                                <th style="width: 100px;" class="wh-text-right">Đơn giá</th>
+                                                <th style="width: 115px;" class="wh-text-right">Thành tiền</th>
+                                                <th style="width: 140px; text-align:center;">Kiểm tra điều kiện</th>
+                                            ` : `
+                                                <th style="width: 110px;" class="wh-text-right">${escapeHtml(cmd.actualQtyColLabel || 'SL thực nhập')}</th>
+                                                <th style="width: 90px; text-align:center;">Đánh dấu đủ</th>
+                                                <th style="width: 110px;">Hạn sử dụng</th>
+                                            `}
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${cmd.items.map((row, idx) => `
-                                            <tr>
-                                                <td>${idx + 1}</td>
-                                                <td>${escapeHtml(row.itemCode)}</td>
-                                                <td>${escapeHtml(row.itemName)}</td>
-                                                <td>${escapeHtml(row.unit)}</td>
-                                                <td class="wh-text-right">${formatVnNumber(row.reqQty)}</td>
-                                                <td class="wh-text-right">${formatVnNumber(row.actualQty)}</td>
-                                                <td style="text-align:center;">
-                                                    <input
-                                                        type="checkbox"
-                                                        class="wh-dg-checkbox"
-                                                        data-action="toggle-cmd-row-full"
-                                                        data-doc-type="${escapeHtml(cmd.docType)}"
-                                                        data-row-id="${row.id}"
-                                                        ${row.isFull ? 'checked' : ''}
-                                                    />
-                                                </td>
-                                                <td>${escapeHtml(row.expiryDate)}</td>
-                                            </tr>
-                                        `).join('')}
+                                        ${cmd.items.map((row, idx) => {
+                                            const qty = Number(row.reqQty ?? row.quantity) || 0;
+                                            const stock = Number(row.stockQty ?? 0);
+                                            const unitCost = Number(row.unitCost ?? row.price) || 0;
+                                            const amt = row.amount !== undefined ? Number(row.amount) : (qty * unitCost);
+                                            const isOut = Boolean(row.isOutOfStock) || (stock < qty);
+                                            const shortage = isOut ? Math.max(0, qty - stock) : 0;
+                                            const isExpiringSoon = Boolean(row.isExpiringSoon);
+                                            const expiryDateText = row.expiryDate || '31/12/2027';
+
+                                            return `
+                                                <tr style="${isOut ? 'background:#fff7ed;' : ''}">
+                                                    <td>${idx + 1}</td>
+                                                    <td><strong>${escapeHtml(row.itemCode || row.ingrCode || '')}</strong></td>
+                                                    <td>
+                                                        <div style="font-weight:500;">${escapeHtml(row.itemName || row.ingrName || '')}</div>
+                                                        ${row.note ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(row.note)}</div>` : ''}
+                                                    </td>
+                                                    <td style="text-align:center;">${escapeHtml(row.unit || 'kg')}</td>
+                                                    <td class="wh-text-right" style="font-weight:600;">${formatVnNumber(qty)}</td>
+                                                    ${isOutbound ? `
+                                                        <td class="wh-text-right" style="font-weight:700; color:${isOut ? '#dc2626' : '#15803d'};">
+                                                            ${formatVnNumber(stock)}
+                                                            ${isOut ? `<div style="font-size:11px;color:#dc2626;font-weight:500;">(Thiếu ${formatVnNumber(shortage)} ${escapeHtml(row.unit || 'kg')})</div>` : ''}
+                                                        </td>
+                                                        <td style="text-align:center;">
+                                                            <span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;${isExpiringSoon ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;' : 'background:#f1f5f9;color:#334155;'}">
+                                                                ${escapeHtml(expiryDateText)}
+                                                            </span>
+                                                            ${isExpiringSoon ? `<div style="font-size:10px;color:#dc2626;font-weight:600;margin-top:2px;">⚠️ HSD ≤ 1 ngày</div>` : ''}
+                                                        </td>
+                                                        <td class="wh-text-right">${unitCost > 0 ? unitCost.toLocaleString('vi-VN') + ' đ' : '-'}</td>
+                                                        <td class="wh-text-right" style="font-weight:600;color:#2563eb;">${amt > 0 ? amt.toLocaleString('vi-VN') + ' đ' : '-'}</td>
+                                                        <td style="text-align:center;">
+                                                            ${isOut ? `
+                                                                <span class="wh-badge-danger" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 8px;border-radius:12px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;white-space:nowrap;">
+                                                                    ⚠️ Thiếu tồn kho
+                                                                </span>
+                                                            ` : isExpiringSoon ? `
+                                                                <span class="wh-badge-danger" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 8px;border-radius:12px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;white-space:nowrap;">
+                                                                    ⚠️ HSD ≤ 1 ngày
+                                                                </span>
+                                                            ` : `
+                                                                <span class="wh-badge-success" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 8px;border-radius:12px;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;white-space:nowrap;">
+                                                                    ✓ Đủ điều kiện
+                                                                </span>
+                                                            `}
+                                                        </td>
+                                                    ` : `
+                                                        <td class="wh-text-right" data-cell="actual-qty">${formatVnNumber(row.actualQty ?? qty)}</td>
+                                                        <td style="text-align:center;">
+                                                            <input
+                                                                type="checkbox"
+                                                                class="wh-dg-checkbox"
+                                                                data-action="toggle-cmd-row-full"
+                                                                data-doc-type="${escapeHtml(cmd.docType)}"
+                                                                data-row-id="${row.id}"
+                                                                ${row.isFull ? 'checked' : ''}
+                                                            />
+                                                        </td>
+                                                        <td>${escapeHtml(row.expiryDate || '')}</td>
+                                                    `}
+                                                </tr>
+                                            `;
+                                        }).join('')}
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <td colspan="4"></td>
-                                            <td class="wh-text-right">${formatVnNumber(totalReqQty)}</td>
-                                            <td class="wh-text-right">${formatVnNumber(totalActualQty)}</td>
-                                            <td colspan="2"></td>
+                                            <td colspan="4" style="text-align:right;font-weight:600;">Tổng cộng:</td>
+                                            <td class="wh-text-right" style="font-weight:700;color:#0f172a;">${formatVnNumber(totalReqQty)}</td>
+                                            ${isOutbound ? `
+                                                <td colspan="3"></td>
+                                                <td class="wh-text-right" style="font-weight:700;color:#2563eb;">${totalAmount > 0 ? totalAmount.toLocaleString('vi-VN') + ' đ' : '-'}</td>
+                                                <td></td>
+                                            ` : `
+                                                <td class="wh-text-right" data-cell="total-actual-qty" style="font-weight:700;color:#0f172a;">${formatVnNumber(totalActualQty)}</td>
+                                                <td colspan="2"></td>
+                                            `}
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
 
                             ${renderTableSplitFooter(cmd.items.length, rangeText)}
+                        </div>
+
+                        <!-- Footer chứa các nút hành động -->
+                        <div class="wh-voucher-footer" style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:1px solid #e2e8f0;background:#f8fafc;margin-top:16px;border-radius:0 0 8px 8px;">
+                            <div class="wh-modal-status-hint">
+                                ${isOutbound ? (
+                                    isApproved
+                                        ? `<span style="color:#16a34a;font-size:12px;font-weight:500;">✓ Phiếu này đã được duyệt xuất kho và chuyển giao vật tư vào xưởng sản xuất (WIP).</span>`
+                                        : isRejected
+                                            ? `<span style="color:#ef4444;font-size:12px;font-weight:500;">✗ Lệnh xuất kho này đã bị từ chối cấp phát.</span>`
+                                            : (!canApprove
+                                                ? `<span style="color:#dc2626;font-size:12px;font-weight:600;">⚠️ Không thể duyệt xuất: ${escapeHtml(blockReason)}</span>`
+                                                : `<span style="color:#16a34a;font-size:12px;font-weight:500;">✓ Tất cả nguyên vật liệu đều đủ tồn kho và hạn sử dụng hợp lệ. Sẵn sàng duyệt xuất kho.</span>`
+                                            )
+                                ) : (
+                                    isApproved
+                                        ? `<span style="color:#16a34a;font-size:12px;font-weight:500;">✓ Lệnh này đã được kiểm đếm và duyệt nhập kho thành phẩm. Tồn kho thành phẩm đã được cập nhật.</span>`
+                                        : isRejected
+                                            ? `<span style="color:#ef4444;font-size:12px;font-weight:500;">✗ Lệnh nhập kho thành phẩm này đã bị từ chối tiếp nhận.</span>`
+                                            : `<span style="color:#0284c7;font-size:12px;font-weight:500;">ℹ️ Kiểm tra đủ số lượng thực nhận và hạn sử dụng trước khi duyệt nhập kho thành phẩm.</span>`
+                                )}
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                ${isPending ? (
+                                    isOutbound ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm ${canApprove ? 'wh-btn-approve-outbound' : 'wh-btn-approve-disabled'}"
+                                            style="height:32px;padding:0 14px;font-size:12px;font-weight:600;${!canApprove ? 'opacity:0.6;cursor:not-allowed;background:#94a3b8;border-color:#94a3b8;color:#fff;' : ''}"
+                                            data-action="approve-material-modal"
+                                            data-receipt-id="${escapeHtml(String(cmd.receiptId || ''))}"
+                                            data-order-no="${escapeHtml(cmd.commandNo || '')}"
+                                            data-can-approve="${canApprove ? 'true' : 'false'}"
+                                            data-block-reason="${escapeHtml(blockReason)}"
+                                        >
+                                            ${Icons.checkBlue || ''} Duyệt xuất kho
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            style="height:32px;padding:0 12px;font-size:12px;"
+                                            data-action="reject-material-modal"
+                                            data-receipt-id="${escapeHtml(String(cmd.receiptId || ''))}"
+                                            data-order-no="${escapeHtml(cmd.commandNo || '')}"
+                                        >
+                                            ${Icons.closeX || ''} Từ chối
+                                        </button>
+                                    ` : `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound"
+                                            style="height:32px;padding:0 14px;font-size:12px;font-weight:600;"
+                                            data-action="approve-product-modal"
+                                            data-receipt-id="${escapeHtml(String(cmd.receiptId || ''))}"
+                                            data-order-no="${escapeHtml(cmd.commandNo || '')}"
+                                        >
+                                            ${Icons.checkBlue || ''} Duyệt nhập kho
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            style="height:32px;padding:0 12px;font-size:12px;"
+                                            data-action="reject-product-modal"
+                                            data-receipt-id="${escapeHtml(String(cmd.receiptId || ''))}"
+                                            data-order-no="${escapeHtml(cmd.commandNo || '')}"
+                                        >
+                                            ${Icons.closeX || ''} Từ chối
+                                        </button>
+                                    `
+                                ) : ''}
+                                <button
+                                    type="button"
+                                    class="wh-btn-sec"
+                                    style="height:32px;padding:0 16px;border-radius:4px;font-size:12px;"
+                                    data-action="close-voucher-modal"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -979,66 +1394,92 @@ const WarehouseComponents = (function () {
      */
     function renderStockVoucherModal(voucher) {
         const isInbound = voucher.voucherType === 'inbound';
-        const fullTitle = `Phiếu ${voucher.selectedSubType.toLowerCase()} ${voucher.voucherNo}`;
+        const isCreate = voucher.mode === 'create';
+        const suppliersList = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getSuppliersList) ? WarehouseModel.getSuppliersList() : [];
+        const ingredientsList = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getIngredientsList) ? WarehouseModel.getIngredientsList() : [];
+
+        let fullTitle = `Phiếu ${voucher.selectedSubType ? voucher.selectedSubType.toLowerCase() : (isInbound ? 'nhập kho' : 'xuất kho')} ${voucher.voucherNo}`;
+        if (isInbound && isCreate) {
+            fullTitle = `Lập phiếu nhập kho nguyên vật liệu - ${voucher.voucherNo}`;
+        }
+
         const totalQuantity = voucher.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+        const totalAmount = voucher.items.reduce((sum, item) => {
+            const qty = Number(item.quantity) || 0;
+            const price = Number(item.price) || 0;
+            return sum + (item.amount !== undefined ? Number(item.amount) : (qty * price));
+        }, 0);
         const rangeText = voucher.items.length > 0 ? `1 - ${voucher.items.length}` : '0 - 0';
 
-        // Phần thông tin chung bên trái (Master Left Grid) khác nhau nhẹ giữa Phiếu Nhập và Phiếu Xuất đúng theo 2 ảnh mẫu
-        const masterLeftFieldsHtml = isInbound
-            ? `
-                <!-- Dòng 1: Mã đối tượng + Tên đối tượng giao hàng -->
-                <div class="wh-form-group">
-                    <label class="wh-form-label">Mã đối tượng</label>
-                    <div class="wh-input-group">
-                        <select class="wh-select-control">
-                            ${voucher.partnerCodeOptions.map(opt => `
-                                <option value="${escapeHtml(opt)}" ${opt === voucher.partnerCode ? 'selected' : ''}>${escapeHtml(opt)}</option>
+        // Phần thông tin chung bên trái (Master Left Grid)
+        let masterLeftFieldsHtml = '';
+        if (isInbound) {
+            if (isCreate) {
+                // Phiếu Nhập - Chế độ tạo mới: Tên NCC là dropdown có danh sách xổ xuống, Mã NCC tự động đổi theo tên NCC
+                masterLeftFieldsHtml = `
+                    <!-- Dòng 1: Mã nhân viên + Tên nhân viên (Tự động theo người đang đăng nhập) -->
+                    <div class="wh-form-group">
+                        <label class="wh-form-label">Mã nhân viên</label>
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || 'NV0005')}" readonly disabled />
+                    </div>
+                    <div class="wh-form-group wh-col-span-2">
+                        <label class="wh-form-label">Tên nhân viên</label>
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || 'Nguyễn Tiến Huy')}" readonly disabled />
+                    </div>
+
+                    <!-- Dòng 2: Mã nhà cung cấp + Tên nhà cung cấp (Dropdown) -->
+                    <div class="wh-form-group">
+                        <label class="wh-form-label">Mã nhà cung cấp</label>
+                        <input
+                            type="text"
+                            class="wh-input-control is-readonly"
+                            id="wh-inbound-supplier-code"
+                            value="${escapeHtml(voucher.supplierCode || '')}"
+                            placeholder="Mã NCC tự động"
+                            readonly
+                            disabled
+                            style="font-weight: 600;"
+                        />
+                    </div>
+                    <div class="wh-form-group wh-col-span-2">
+                        <label class="wh-form-label">Tên nhà cung cấp <span class="wh-req">*</span></label>
+                        <select class="wh-select-control" data-action="change-inbound-supplier" style="width: 100%;">
+                            <option value="">-- Chọn nhà cung cấp --</option>
+                            ${suppliersList.map(s => `
+                                <option value="${escapeHtml(s.name)}" ${s.name === voucher.supplierName ? 'selected' : ''}>
+                                    ${escapeHtml(s.name)} (${escapeHtml(s.code)})
+                                </option>
                             `).join('')}
                         </select>
-                        <button type="button" class="wh-input-addon-btn" title="Thêm nhà cung cấp">${Icons.plus}</button>
                     </div>
-                </div>
-                <div class="wh-form-group wh-col-span-2">
-                    <label class="wh-form-label">Tên đối tượng giao hàng</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.partnerName)}" />
-                </div>
-
-                <!-- Dòng 2: Kho nhập * + Chi nhánh + Người giao -->
-                <div class="wh-form-group">
-                    <label class="wh-form-label">Kho nhập <span class="wh-req">*</span></label>
-                    <select class="wh-select-control">
-                        ${voucher.warehouseOptions.map(opt => `
-                            <option value="${escapeHtml(opt)}" ${opt === voucher.warehouse ? 'selected' : ''}>${escapeHtml(opt)}</option>
-                        `).join('')}
-                    </select>
-                </div>
-                <div class="wh-form-group">
-                    <label class="wh-form-label">Chi nhánh</label>
-                    <select class="wh-select-control">
-                        ${voucher.branchOptions.map(opt => `
-                            <option value="${escapeHtml(opt)}" ${opt === voucher.branch ? 'selected' : ''}>${escapeHtml(opt)}</option>
-                        `).join('')}
-                    </select>
-                </div>
-                <div class="wh-form-group">
-                    <label class="wh-form-label">Người giao</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.deliverer)}" />
-                </div>
-
-                <!-- Dòng 3: Tham chiếu + Diễn giải -->
-                <div class="wh-form-group">
-                    <label class="wh-form-label">Tham chiếu</label>
-                    <div class="wh-input-group">
-                        <input type="text" class="wh-input-control" value="${escapeHtml(voucher.reference)}" />
-                        <button type="button" class="wh-input-addon-btn" title="Chọn chứng từ tham chiếu">${Icons.search}</button>
+                `;
+            } else {
+                // Phiếu Nhập - Chế độ xem chi tiết: Khóa tất cả trường
+                masterLeftFieldsHtml = `
+                    <!-- Dòng 1: Mã nhân viên + Tên nhân viên -->
+                    <div class="wh-form-group">
+                        <label class="wh-form-label">Mã nhân viên</label>
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || 'NV0005')}" readonly disabled />
                     </div>
-                </div>
-                <div class="wh-form-group wh-col-span-2">
-                    <label class="wh-form-label">Diễn giải</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.description)}" />
-                </div>
-            `
-            : `
+                    <div class="wh-form-group wh-col-span-2">
+                        <label class="wh-form-label">Tên nhân viên</label>
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || 'Nguyễn Tiến Huy')}" readonly disabled />
+                    </div>
+
+                    <!-- Dòng 2: Mã nhà cung cấp + Tên nhà cung cấp -->
+                    <div class="wh-form-group">
+                        <label class="wh-form-label">Mã nhà cung cấp</label>
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.supplierCode || 'NCC0006')}" readonly disabled />
+                    </div>
+                    <div class="wh-form-group wh-col-span-2">
+                        <label class="wh-form-label">Tên nhà cung cấp</label>
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.supplierName || 'CÔNG TY CỔ PHẦN CÔNG NGHỆ IAT VIỆT NAM')}" readonly disabled />
+                    </div>
+                `;
+            }
+        } else {
+            // Phiếu Xuất (giữ nguyên mẫu)
+            masterLeftFieldsHtml = `
                 <!-- Dòng 1 (Phiếu Xuất): Mã đối tượng + Tên đối tượng nhận hàng + Kho xuất * -->
                 <div class="wh-form-group">
                     <label class="wh-form-label">Mã đối tượng</label>
@@ -1092,6 +1533,40 @@ const WarehouseComponents = (function () {
                     </div>
                 </div>
             `;
+        }
+
+        const masterRightFieldsHtml = isInbound
+            ? `
+                <div class="wh-form-group">
+                    <label class="wh-form-label">
+                        Số phiếu nhập kho <span class="wh-req">*</span>
+                    </label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.voucherNo)}" readonly disabled style="font-weight: 600;" />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">
+                        Ngày nhập kho <span class="wh-req">*</span>
+                    </label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.voucherDate)}" readonly disabled />
+                </div>
+            `
+            : `
+                <div class="wh-form-group">
+                    <label class="wh-form-label">
+                        Số phiếu xuất kho <span class="wh-req">*</span>
+                    </label>
+                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.voucherNo)}" />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">
+                        Ngày xuất kho <span class="wh-req">*</span>
+                    </label>
+                    <div class="wh-input-group">
+                        <input type="text" class="wh-input-control" value="${escapeHtml(voucher.voucherDate)}" />
+                        <button type="button" class="wh-input-addon-btn" title="Chọn ngày giờ">${Icons.calendar}</button>
+                    </div>
+                </div>
+            `;
 
         return `
             <div class="wh-voucher-overlay" id="wh-voucher-overlay">
@@ -1110,7 +1585,7 @@ const WarehouseComponents = (function () {
                         </div>
                     </div>
 
-                    <!-- Thân phiếu (Master + Detail + Đính kèm) -->
+                    <!-- Thân phiếu (Master + Detail) -->
                     <div class="wh-voucher-body">
                         <!-- Vùng Master -->
                         <div class="wh-voucher-master">
@@ -1119,88 +1594,234 @@ const WarehouseComponents = (function () {
                             </div>
 
                             <div class="wh-voucher-master-right">
-                                <div class="wh-form-group">
-                                    <label class="wh-form-label">
-                                        ${isInbound ? 'Số phiếu nhập kho' : 'Số phiếu xuất kho'} <span class="wh-req">*</span>
-                                    </label>
-                                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.voucherNo)}" />
-                                </div>
-                                <div class="wh-form-group">
-                                    <label class="wh-form-label">
-                                        ${isInbound ? 'Ngày nhập kho' : 'Ngày xuất kho'} <span class="wh-req">*</span>
-                                    </label>
-                                    <div class="wh-input-group">
-                                        <input type="text" class="wh-input-control" value="${escapeHtml(voucher.voucherDate)}" />
-                                        <button type="button" class="wh-input-addon-btn" title="Chọn ngày giờ">${Icons.calendar}</button>
-                                    </div>
-                                </div>
+                                ${masterRightFieldsHtml}
                             </div>
                         </div>
 
-                        <!-- Vùng Chi tiết Hàng hóa -->
+                        <!-- Vùng Chi tiết Hàng hóa / Nguyên vật liệu -->
                         <div class="wh-voucher-detail">
-                            <h3 class="wh-voucher-section-title">Hàng hóa</h3>
+                            <h3 class="wh-voucher-section-title">${isInbound ? 'Nguyên vật liệu' : 'Hàng hóa'}</h3>
 
                             <div class="wh-vtable-wrap">
-                                <table class="wh-vtable">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 38px;">#</th>
-                                            <th style="width: 155px;">${Icons.pin}Mã hàng</th>
-                                            <th>Tên hàng</th>
-                                            <th style="width: 115px;">Mã quy cách</th>
-                                            <th style="width: 80px;">ĐVT</th>
-                                            <th style="width: 105px;">Vị trí</th>
-                                            <th style="width: 115px;" class="wh-text-right">${escapeHtml(voucher.quantityColumnLabel)}</th>
-                                            <th style="width: 110px;">Số lô</th>
-                                            <th style="width: 115px;">Hạn sử dụng</th>
-                                            <th style="width: 40px;"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${voucher.items.length > 0 ? voucher.items.map((row, idx) => `
+                                ${isInbound ? (isCreate ? `
+                                    <!-- BẢNG TẠO MỚI NGUYÊN VẬT LIỆU (Có dropdown chọn NVL, thêm dòng, xóa từng dòng) -->
+                                    <table class="wh-vtable">
+                                        <thead>
                                             <tr>
-                                                <td>${idx + 1}</td>
-                                                <td>${escapeHtml(row.itemCode)}</td>
-                                                <td>${escapeHtml(row.itemName)}</td>
-                                                <td>${escapeHtml(row.specCode)}</td>
-                                                <td>${escapeHtml(row.unit)}</td>
-                                                <td>${escapeHtml(row.location)}</td>
-                                                <td class="wh-text-right">${formatVnNumber(row.quantity)}</td>
-                                                <td>${escapeHtml(row.batchNo)}</td>
-                                                <td>${escapeHtml(row.expiryDate)}</td>
-                                                <td style="text-align:center;">
-                                                    <button
-                                                        type="button"
-                                                        class="wh-vtable-del-btn"
-                                                        data-action="delete-voucher-row"
-                                                        data-voucher-type="${voucher.voucherType}"
-                                                        data-row-id="${row.id}"
-                                                        title="Xóa dòng"
-                                                    >
-                                                        ${Icons.trashRed}
-                                                    </button>
+                                                <th style="width: 45px; text-align: center;">#</th>
+                                                <th style="width: 140px;">${Icons.pin}Mã NVL</th>
+                                                <th>Tên nguyên vật liệu <span class="wh-req">*</span></th>
+                                                <th style="width: 75px; text-align: center;">ĐVT</th>
+                                                <th style="width: 115px;" class="wh-text-right">SL nhập <span class="wh-req">*</span></th>
+                                                <th style="width: 135px;" class="wh-text-right">Giá nguyên liệu</th>
+                                                <th style="width: 150px;" class="wh-text-right">Thành tiền</th>
+                                                <th style="width: 120px; text-align: center;">Hạn sử dụng</th>
+                                                <th style="width: 50px; text-align: center;">Xóa</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${voucher.items.length > 0 ? voucher.items.map((row, idx) => {
+                                                const qty = Number(row.quantity) || 0;
+                                                const price = Number(row.price) || 0;
+                                                const amount = (row.amount !== undefined && row.amount !== null) ? Number(row.amount) : (qty * price);
+                                                return `
+                                                    <tr>
+                                                        <td style="text-align: center;">${idx + 1}</td>
+                                                        <td>
+                                                            <input
+                                                                type="text"
+                                                                class="wh-input-control is-readonly wh-table-input"
+                                                                value="${escapeHtml(row.itemCode || '')}"
+                                                                placeholder="Tự động"
+                                                                readonly
+                                                                disabled
+                                                                style="font-weight: 600;"
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <select
+                                                                class="wh-select-control wh-table-select"
+                                                                data-action="change-inbound-item"
+                                                                data-row-id="${row.id}"
+                                                            >
+                                                                <option value="">-- Chọn nguyên vật liệu --</option>
+                                                                ${ingredientsList.map(ingr => `
+                                                                    <option value="${escapeHtml(ingr.ingrCode)}" ${row.itemCode === ingr.ingrCode ? 'selected' : ''}>
+                                                                        ${escapeHtml(ingr.ingrName)} (${escapeHtml(ingr.ingrCode)})
+                                                                    </option>
+                                                                `).join('')}
+                                                            </select>
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <span class="wh-cell-text" data-cell="unit" data-row-id="${row.id}">${escapeHtml(row.unit || '-')}</span>
+                                                        </td>
+                                                        <td class="wh-text-right">
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                step="any"
+                                                                class="wh-input-control wh-table-input wh-text-right wh-qty-input"
+                                                                data-action="change-inbound-item-qty"
+                                                                data-row-id="${row.id}"
+                                                                value="${row.quantity ? row.quantity : ''}"
+                                                                placeholder="0"
+                                                            />
+                                                        </td>
+                                                        <td class="wh-text-right">
+                                                            <span class="wh-cell-text wh-text-right" data-cell="price" data-row-id="${row.id}">${row.price ? formatVnCurrency(row.price) : '-'}</span>
+                                                        </td>
+                                                        <td class="wh-text-right">
+                                                            <span class="wh-cell-text wh-text-right" data-cell="amount" data-row-id="${row.id}" style="font-weight: 600; color: #1e3a8a;">
+                                                                ${formatVnCurrency(amount)}
+                                                            </span>
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <span class="wh-cell-text" data-cell="expiryDate" data-row-id="${row.id}">${escapeHtml(row.expiryDate || '-')}</span>
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <button
+                                                                type="button"
+                                                                class="wh-vtable-del-btn"
+                                                                data-action="delete-inbound-item-row"
+                                                                data-row-id="${row.id}"
+                                                                title="Xóa dòng này"
+                                                            >
+                                                                ${Icons.trashRed}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('') : `
+                                                <tr>
+                                                    <td colspan="9" class="wh-empty-row">Chưa có dòng nguyên vật liệu nào. Nhấn "+ Thêm dòng mới" bên dưới để bổ sung.</td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="4" style="text-align: right; font-weight: 700; color: #374151;">Tổng cộng:</td>
+                                                <td class="wh-text-right">
+                                                    <strong id="wh-total-inbound-qty">${formatVnNumber(totalQuantity)}</strong>
                                                 </td>
+                                                <td></td>
+                                                <td class="wh-text-right">
+                                                    <strong id="wh-total-inbound-amount" style="color: #1d4ed8; font-size: 13.5px;">${formatVnCurrency(totalAmount)}</strong>
+                                                </td>
+                                                <td></td>
+                                                <td></td>
                                             </tr>
-                                        `).join('') : `
+                                        </tfoot>
+                                    </table>
+                                ` : `
+                                    <!-- BẢNG XEM CHI TIẾT NGUYÊN VẬT LIỆU (Chỉ đọc, không chỉnh sửa) -->
+                                    <table class="wh-vtable">
+                                        <thead>
                                             <tr>
-                                                <td colspan="10" class="wh-empty-row">Chưa có dòng hàng hóa nào. Nhấn "+ Thêm dòng" để bổ sung.</td>
+                                                <th style="width: 45px; text-align: center;">#</th>
+                                                <th style="width: 170px;">${Icons.pin}Mã NVL</th>
+                                                <th>Tên nguyên vật liệu</th>
+                                                <th style="width: 80px; text-align: center;">ĐVT</th>
+                                                <th style="width: 120px;" class="wh-text-right">SL nhập</th>
+                                                <th style="width: 140px;" class="wh-text-right">Giá nguyên liệu</th>
+                                                <th style="width: 160px;" class="wh-text-right">Thành tiền</th>
+                                                <th style="width: 130px; text-align: center;">Hạn sử dụng</th>
                                             </tr>
-                                        `}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="wh-text-right">${formatVnNumber(totalQuantity)}</td>
-                                            <td colspan="3"></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            ${voucher.items.length > 0 ? voucher.items.map((row, idx) => {
+                                                const qty = Number(row.quantity) || 0;
+                                                const price = Number(row.price) || 0;
+                                                const amount = (row.amount !== undefined && row.amount !== null) ? Number(row.amount) : (qty * price);
+                                                return `
+                                                    <tr>
+                                                        <td style="text-align: center;">${idx + 1}</td>
+                                                        <td><strong>${escapeHtml(row.itemCode)}</strong></td>
+                                                        <td>${escapeHtml(row.itemName)}</td>
+                                                        <td style="text-align: center;">${escapeHtml(row.unit)}</td>
+                                                        <td class="wh-text-right">${formatVnNumber(qty)}</td>
+                                                        <td class="wh-text-right">${formatVnCurrency(price)}</td>
+                                                        <td class="wh-text-right" style="font-weight: 600; color: #1e3a8a;">${formatVnCurrency(amount)}</td>
+                                                        <td style="text-align: center;">${escapeHtml(row.expiryDate || '')}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('') : `
+                                                <tr>
+                                                    <td colspan="8" class="wh-empty-row">Chưa có dòng nguyên vật liệu nào.</td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="4" style="text-align: right; font-weight: 700; color: #374151;">Tổng cộng:</td>
+                                                <td class="wh-text-right" style="font-weight: 700;">${formatVnNumber(totalQuantity)}</td>
+                                                <td></td>
+                                                <td class="wh-text-right" style="font-weight: 700; color: #1d4ed8; font-size: 13.5px;">${formatVnCurrency(totalAmount)}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                `) : `
+                                    <!-- Bảng chi tiết Hàng hóa (Phiếu Xuất) -->
+                                    <table class="wh-vtable">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 38px;">#</th>
+                                                <th style="width: 155px;">${Icons.pin}Mã hàng</th>
+                                                <th>Tên hàng</th>
+                                                <th style="width: 115px;">Mã quy cách</th>
+                                                <th style="width: 80px;">ĐVT</th>
+                                                <th style="width: 105px;">Vị trí</th>
+                                                <th style="width: 115px;" class="wh-text-right">${escapeHtml(voucher.quantityColumnLabel)}</th>
+                                                <th style="width: 110px;">Số lô</th>
+                                                <th style="width: 115px;">Hạn sử dụng</th>
+                                                <th style="width: 40px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${voucher.items.length > 0 ? voucher.items.map((row, idx) => `
+                                                <tr>
+                                                    <td>${idx + 1}</td>
+                                                    <td>${escapeHtml(row.itemCode)}</td>
+                                                    <td>${escapeHtml(row.itemName)}</td>
+                                                    <td>${escapeHtml(row.specCode)}</td>
+                                                    <td>${escapeHtml(row.unit)}</td>
+                                                    <td>${escapeHtml(row.location)}</td>
+                                                    <td class="wh-text-right">${formatVnNumber(row.quantity)}</td>
+                                                    <td>${escapeHtml(row.batchNo)}</td>
+                                                    <td>${escapeHtml(row.expiryDate)}</td>
+                                                    <td style="text-align:center;">
+                                                        <button
+                                                            type="button"
+                                                            class="wh-vtable-del-btn"
+                                                            data-action="delete-voucher-row"
+                                                            data-voucher-type="${voucher.voucherType}"
+                                                            data-row-id="${row.id}"
+                                                            title="Xóa dòng"
+                                                        >
+                                                            ${Icons.trashRed}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `
+                                                <tr>
+                                                    <td colspan="10" class="wh-empty-row">Chưa có dòng hàng hóa nào. Nhấn "+ Thêm dòng" để bổ sung.</td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="6"></td>
+                                                <td class="wh-text-right">${formatVnNumber(totalQuantity)}</td>
+                                                <td colspan="3"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                `}
 
-                                <!-- Phân trang thu gọn ngay dưới chân bảng Hàng hóa -->
+                                <!-- Phân trang thu gọn ngay dưới chân bảng -->
                                 <div class="wh-vtable-pager-row">
                                     <span>Số dòng/trang</span>
-                                    <select class="wh-dg-page-size">
+                                    <select class="wh-dg-page-size" ${isInbound ? 'disabled' : ''}>
                                         <option value="20" selected>20</option>
                                         <option value="50">50</option>
                                     </select>
@@ -1214,54 +1835,121 @@ const WarehouseComponents = (function () {
                                 </div>
                             </div>
 
-                            <!-- Cụm nút Thêm dòng / Xóa hết dòng / Thêm ghi chú + Đính kèm -->
-                            <div class="wh-voucher-subfooter">
-                                <div class="wh-voucher-total-count">
-                                    Tổng số: <strong>${voucher.items.length}</strong>
-                                </div>
-
-                                <div class="wh-voucher-row-actions">
-                                    <button
-                                        type="button"
-                                        class="wh-vbtn-outline wh-vbtn-blue"
-                                        data-action="add-voucher-row"
-                                        data-voucher-type="${voucher.voucherType}"
-                                    >
-                                        ${Icons.plus}
-                                        <span>Thêm dòng</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="wh-vbtn-outline wh-vbtn-red"
-                                        data-action="clear-voucher-rows"
-                                        data-voucher-type="${voucher.voucherType}"
-                                    >
-                                        ${Icons.trashRed}
-                                        <span>Xóa hết dòng</span>
-                                    </button>
-                                    <button type="button" class="wh-vbtn-outline wh-vbtn-gray">
-                                        ${Icons.pencil}
-                                        <span>Thêm ghi chú</span>
-                                    </button>
-                                </div>
-
-                                <div class="wh-voucher-attach-title">Đính kèm</div>
-                                <label class="wh-voucher-dropzone">
-                                    <input type="file" accept=".xls,.xlsx" style="display:none;" />
-                                    <div class="wh-dropzone-main">
-                                        <span class="wh-dropzone-link">Chọn tệp</span> hoặc kéo và thả tệp vào đây
+                            ${isInbound ? (isCreate ? `
+                                <!-- Phiếu Nhập Tạo Mới: Cụm nút Thêm dòng mới & Xóa tất cả dòng -->
+                                <div class="wh-voucher-subfooter" style="padding-top: 10px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="wh-voucher-total-count" style="margin-bottom: 0;">
+                                        Tổng số dòng: <strong>${voucher.items.length}</strong>
                                     </div>
-                                    <div class="wh-dropzone-sub">Định dạng .xls, .xlsx (tối đa 20MB)</div>
-                                </label>
-                            </div>
+                                    <div class="wh-voucher-row-actions" style="margin-bottom: 0;">
+                                        <button
+                                            type="button"
+                                            class="wh-vbtn-outline wh-vbtn-blue"
+                                            data-action="add-inbound-item-row"
+                                            title="Thêm một dòng nguyên vật liệu mới"
+                                        >
+                                            ${Icons.plus}
+                                            <span>Thêm dòng mới</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-vbtn-outline wh-vbtn-red"
+                                            data-action="clear-inbound-item-rows"
+                                            title="Xóa tất cả các dòng hiện có"
+                                        >
+                                            ${Icons.trashRed}
+                                            <span>Xóa tất cả dòng</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : `
+                                <!-- Phiếu Nhập Xem Chi Tiết: Chỉ hiển thị tổng số dòng -->
+                                <div class="wh-voucher-subfooter" style="padding-top: 10px; margin-bottom: 0;">
+                                    <div class="wh-voucher-total-count">
+                                        Tổng số dòng: <strong>${voucher.items.length}</strong>
+                                    </div>
+                                </div>
+                            `) : `
+                                <!-- Cụm nút Thêm dòng / Xóa hết dòng / Thêm ghi chú + Đính kèm (Phiếu Xuất) -->
+                                <div class="wh-voucher-subfooter">
+                                    <div class="wh-voucher-total-count">
+                                        Tổng số: <strong>${voucher.items.length}</strong>
+                                    </div>
+
+                                    <div class="wh-voucher-row-actions">
+                                        <button
+                                            type="button"
+                                            class="wh-vbtn-outline wh-vbtn-blue"
+                                            data-action="add-voucher-row"
+                                            data-voucher-type="${voucher.voucherType}"
+                                        >
+                                            ${Icons.plus}
+                                            <span>Thêm dòng</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-vbtn-outline wh-vbtn-red"
+                                            data-action="clear-voucher-rows"
+                                            data-voucher-type="${voucher.voucherType}"
+                                        >
+                                            ${Icons.trashRed}
+                                            <span>Xóa hết dòng</span>
+                                        </button>
+                                        <button type="button" class="wh-vbtn-outline wh-vbtn-gray">
+                                            ${Icons.pencil}
+                                            <span>Thêm ghi chú</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="wh-voucher-attach-title">Đính kèm</div>
+                                    <label class="wh-voucher-dropzone">
+                                        <input type="file" accept=".xls,.xlsx" style="display:none;" />
+                                        <div class="wh-dropzone-main">
+                                            <span class="wh-dropzone-link">Chọn tệp</span> hoặc kéo và thả tệp vào đây
+                                        </div>
+                                        <div class="wh-dropzone-sub">Định dạng .xls, .xlsx (tối đa 20MB)</div>
+                                    </label>
+                                </div>
+                            `}
                         </div>
                     </div>
 
                     <!-- Thanh nút hành động cố định dưới đáy Phiếu -->
                     <div class="wh-voucher-bottombar">
-                        <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Hủy</button>
-                        <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Lưu và Thêm</button>
-                        <button type="button" class="wh-btn wh-btn-apply" data-action="close-voucher-modal">Lưu</button>
+                        ${isInbound ? (isCreate ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <div>
+                                    <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Hủy</button>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button
+                                        type="button"
+                                        class="wh-btn wh-btn-secondary"
+                                        data-action="save-draft-inbound-voucher"
+                                        title="Lưu lại bản nháp để tiếp tục chỉnh sửa sau"
+                                    >
+                                        Lưu nháp
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="wh-btn wh-btn-apply"
+                                        data-action="save-inbound-voucher"
+                                        title="Lưu và ghi sổ phiếu nhập kho"
+                                    >
+                                        Lưu
+                                    </button>
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="flex: 1; color: #64748b; font-size: 12.5px; font-style: italic;">
+                                * Chế độ xem chi tiết phiếu nhập kho (chỉ đọc)
+                            </div>
+                            <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Đóng</button>
+                        `) : `
+                            <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Hủy</button>
+                            <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Lưu và Thêm</button>
+                            <button type="button" class="wh-btn wh-btn-apply" data-action="close-voucher-modal">Lưu</button>
+                        `}
                     </div>
                 </div>
             </div>
@@ -1287,7 +1975,7 @@ const WarehouseComponents = (function () {
 
         const filtersHtml = config.filters.map(f => `
             <div class="wh-dg-filter-pill">
-                <span class="wh-dg-filter-prefix">${escapeHtml(f.prefix)}</span>
+                ${f.prefix ? `<span class="wh-dg-filter-prefix">${escapeHtml(f.prefix)}</span>` : ''}
                 <select
                     class="wh-dg-filter-select"
                     data-filter-id="${f.id}"
@@ -1301,10 +1989,10 @@ const WarehouseComponents = (function () {
         `).join('');
 
         let addBtnAction = '';
-        let addBtnTitle = 'Thêm mới';
+        let addBtnTitle = config.addButtonLabel || 'Thêm mới';
         if (config.canOpenVoucher) {
             addBtnAction = `data-action="open-voucher-modal" data-voucher-type="${config.voucherType}"`;
-            addBtnTitle = `Lập phiếu ${config.voucherType === 'inbound' ? 'nhập kho' : 'xuất kho'}`;
+            addBtnTitle = config.addButtonLabel || `Lập phiếu ${config.voucherType === 'inbound' ? 'nhập kho' : 'xuất kho'}`;
         } else if (config.pageType === 'danh-muc-vthh') {
             const isProd = config.activeTab === 'san-pham';
             addBtnAction = `data-action="create-vthh-item" data-item-type="${isProd ? 'product' : 'ingredient'}"`;
@@ -1400,7 +2088,8 @@ const WarehouseComponents = (function () {
                             const itemId = row.id ?? val;
                             return `<td>
                                 <a
-                                    href="#${escapeHtml(val)}"
+                                    href="javascript:void(0)"
+                                    onclick="return false;"
                                     class="wh-dg-link"
                                     data-action="view-vthh-item"
                                     data-item-type="${itemType}"
@@ -1412,40 +2101,56 @@ const WarehouseComponents = (function () {
                         if (config.canOpenVoucher) {
                             return `<td>
                                 <a
-                                    href="#${escapeHtml(val)}"
+                                    href="javascript:void(0)"
+                                    onclick="return false;"
                                     class="wh-dg-link"
                                     data-action="open-voucher-modal"
                                     data-voucher-type="${config.voucherType}"
                                     data-doc-no="${escapeHtml(val)}"
+                                    data-receipt-id="${escapeHtml(String(row.expReceiptId || row.id || ''))}"
                                     title="Nhấn để mở chi tiết phiếu ${escapeHtml(val)}"
                                 >${escapeHtml(val)}</a>
                             </td>`;
                         }
-                        return `<td><a href="#${escapeHtml(val)}" class="wh-dg-link" onclick="return false;">${escapeHtml(val)}</a></td>`;
+                        return `<td><a href="javascript:void(0)" class="wh-dg-link" onclick="return false;">${escapeHtml(val)}</a></td>`;
                     }
                     if (col.isStatusLink) {
                         const cls = row.statusType === 'success' ? 'wh-dg-status-success' : 'wh-dg-status-info';
                         return `<td><span class="${cls}">${escapeHtml(val)}</span></td>`;
                     }
+                    if (col.isBadge) {
+                        let cls = 'wh-dg-status-warning';
+                        const currentStatus = val || row.status || row.orderStatus;
+                        if (currentStatus === 'Đã xuất kho' || currentStatus === 'Đã nhập kho' || currentStatus === 'Approved' || currentStatus === 'Completed' || row.orderStatusType === 'success' || row.statusType === 'success') {
+                            cls = 'wh-dg-status-success';
+                        } else if (currentStatus === 'Từ chối' || currentStatus === 'Rejected' || row.orderStatusType === 'danger') {
+                            cls = 'wh-dg-status-danger';
+                        } else if (currentStatus === 'Chờ xuất kho' || currentStatus === 'Chờ nhập kho' || currentStatus === 'Pending' || row.orderStatusType === 'warning' || row.statusType === 'warning') {
+                            cls = 'wh-dg-status-warning';
+                        }
+                        return `<td><span class="${cls}">${escapeHtml(val)}</span></td>`;
+                    }
                     if (col.isOrderStatus) {
                         let cls = 'wh-dg-status-warning';
                         const currentStatus = val || row.status || row.orderStatus;
-                        if (currentStatus === 'Đã xuất kho' || currentStatus === 'Đã nhập kho' || row.orderStatusType === 'success' || row.statusType === 'success') {
+                        if (currentStatus === 'Đã xuất kho' || currentStatus === 'Đã nhập kho' || currentStatus === 'Approved' || currentStatus === 'Completed' || row.orderStatusType === 'success' || row.statusType === 'success') {
                             cls = 'wh-dg-status-success';
-                        } else if (currentStatus === 'Chờ xuất kho' || currentStatus === 'Chờ nhập kho' || row.orderStatusType === 'warning' || row.statusType === 'warning') {
+                        } else if (currentStatus === 'Từ chối' || currentStatus === 'Rejected' || row.orderStatusType === 'danger') {
+                            cls = 'wh-dg-status-danger';
+                        } else if (currentStatus === 'Chờ xuất kho' || currentStatus === 'Chờ nhập kho' || currentStatus === 'Pending' || row.orderStatusType === 'warning' || row.statusType === 'warning') {
                             cls = 'wh-dg-status-warning';
                         }
                         return `<td><span class="${cls}">${escapeHtml(val)}</span></td>`;
                     }
                     if (col.isImage) {
-                        const imgSrc = row[col.key] || '';
+                        const imgSrc = (row[col.key] || '').trim();
                         const altText = row.productName || 'Ảnh sản phẩm';
                         return `
                             <td class="wh-dg-img-cell" style="text-align:center;">
                                 <div class="wh-product-img-box">
                                     ${imgSrc
-                                        ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(altText)}" class="wh-product-thumbnail" />`
-                                        : `<span class="wh-product-img-placeholder">${Icons.items}</span>`
+                                        ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(altText)}" class="wh-product-thumbnail" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='inline-flex';" /><span class="wh-product-img-broken" style="display:none;" title="Không thể tải ảnh">${Icons.brokenImage}</span>`
+                                        : `<span class="wh-product-img-broken" title="Chưa có ảnh sản phẩm">${Icons.brokenImage}</span>`
                                     }
                                 </div>
                             </td>
@@ -1480,6 +2185,123 @@ const WarehouseComponents = (function () {
                                         title="Xóa ${escapeHtml(itemName)}"
                                     >
                                         ${Icons.trashRed}
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                    }
+                    if (col.isActionInboundProduct) {
+                        const status = row.orderStatus || row.status || '';
+                        const isPending = status === 'Chờ nhập kho' || status === 'Pending' || status === 'In Production' || status === 'Completed';
+                        const isApproved = status === 'Đã nhập kho' || status === 'Approved';
+                        const isRejected = status === 'Từ chối' || status === 'Rejected';
+                        const orderNo = row.orderNo || row.receiptCode || '';
+                        const receiptId = row.productReceiptId || row.id || '';
+
+                        return `
+                            <td class="wh-dg-action-cell" style="text-align:center;">
+                                <div class="wh-dg-action-group">
+                                    ${isPending ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound"
+                                            data-action="approve-product-receipt"
+                                            data-receipt-id="${escapeHtml(String(receiptId))}"
+                                            data-order-no="${escapeHtml(orderNo)}"
+                                            title="Duyệt nhận thành phẩm cho lệnh ${escapeHtml(orderNo)}"
+                                        >
+                                            ${Icons.checkBlue || ''} Duyệt
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            data-action="reject-product-receipt"
+                                            data-receipt-id="${escapeHtml(String(receiptId))}"
+                                            data-order-no="${escapeHtml(orderNo)}"
+                                            title="Từ chối nhận thành phẩm"
+                                        >
+                                            ${Icons.closeX || ''} Từ chối
+                                        </button>
+                                    ` : isApproved ? `
+                                        <span class="wh-action-status-badge is-approved" title="Đã duyệt nhận thành phẩm">
+                                            ✓ Đã nhập
+                                        </span>
+                                    ` : isRejected ? `
+                                        <span class="wh-action-status-badge is-rejected" title="Đã từ chối nhận hàng">
+                                            ✕ Từ chối
+                                        </span>
+                                    ` : ''}
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-view-voucher"
+                                        data-action="open-voucher-modal"
+                                        data-voucher-type="inbound-command"
+                                        data-doc-no="${escapeHtml(orderNo)}"
+                                        data-receipt-id="${escapeHtml(String(receiptId))}"
+                                        title="Xem chi tiết ${escapeHtml(orderNo)}"
+                                    >
+                                        ${Icons.docFile || Icons.pencil}
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                    }
+                    if (col.isActionOutbound) {
+                        const status = row.orderStatus || row.status || '';
+                        const isPending = status === 'Chờ xuất kho' || status === 'Pending';
+                        const isApproved = status === 'Đã xuất kho' || status === 'Approved' || status === 'Completed';
+                        const isRejected = status === 'Từ chối' || status === 'Rejected';
+                        const orderNo = row.orderNo || row.expReceiptCode || '';
+                        const receiptId = row.expReceiptId || row.id || '';
+                        const canApprove = row.canApprove !== false;
+                        const blockReason = row.approvalBlockReason || '';
+
+                        return `
+                            <td class="wh-dg-action-cell" style="text-align:center;">
+                                <div class="wh-dg-action-group">
+                                    ${isPending ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound ${canApprove ? '' : 'is-disabled'}"
+                                            style="${canApprove ? '' : 'opacity:0.65; cursor:not-allowed; background:#94a3b8; color:#fff; border-color:#94a3b8;'}"
+                                            data-action="approve-material-receipt"
+                                            data-can-approve="${canApprove ? 'true' : 'false'}"
+                                            data-block-reason="${escapeHtml(blockReason)}"
+                                            data-receipt-id="${escapeHtml(String(receiptId))}"
+                                            data-order-no="${escapeHtml(orderNo)}"
+                                            title="${canApprove ? `Duyệt xuất kho cho phiếu ${escapeHtml(orderNo)}` : `Không thể duyệt: ${escapeHtml(blockReason)}`}"
+                                        >
+                                            ${Icons.checkBlue || ''} Duyệt
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            data-action="reject-material-receipt"
+                                            data-receipt-id="${escapeHtml(String(receiptId))}"
+                                            data-order-no="${escapeHtml(orderNo)}"
+                                            title="Từ chối cấp phát vật tư"
+                                        >
+                                            ${Icons.closeX || ''} Từ chối
+                                        </button>
+                                    ` : isApproved ? `
+                                        <span class="wh-action-status-badge is-approved" title="Đã duyệt xuất kho">
+                                            ✓ Đã xuất
+                                        </span>
+                                    ` : isRejected ? `
+                                        <span class="wh-action-status-badge is-rejected" title="Đã từ chối cấp phát">
+                                            ✕ Từ chối
+                                        </span>
+                                    ` : ''}
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-view-voucher"
+                                        data-action="open-voucher-modal"
+                                        data-voucher-type="outbound-command"
+                                        data-doc-no="${escapeHtml(orderNo)}"
+                                        data-receipt-id="${escapeHtml(String(receiptId))}"
+                                        title="Xem chi tiết ${escapeHtml(orderNo)}"
+                                    >
+                                        ${Icons.docFile || Icons.pencil}
                                     </button>
                                 </div>
                             </td>
@@ -1578,6 +2400,7 @@ const WarehouseComponents = (function () {
         const itemCode = isProduct ? item.productCode : item.ingrCode;
         const itemName = isProduct ? item.productName : item.ingrName;
         const typeLabel = isProduct ? 'sản phẩm' : 'nguyên vật liệu';
+        const actualItemId = item.id ?? item.productId ?? item.ingrId ?? modalData.itemId ?? '';
 
         let titleText = '';
         let badgeClass = 'is-view';
@@ -1595,14 +2418,6 @@ const WarehouseComponents = (function () {
             badgeClass = 'is-view';
             badgeLabel = 'Chỉ xem (Đã khóa)';
         }
-
-        const presetImages = isProduct && canEdit ? [
-            { label: 'Viên nén', url: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><rect width="48" height="48" rx="8" fill="#fee2e2"/><circle cx="24" cy="24" r="14" fill="#ffffff" stroke="#ef4444" stroke-width="2"/><path d="M24 10a14 14 0 0 1 0 28" fill="#ef4444"/><path d="M18 24h12M24 18v12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>') },
-            { label: 'Viên nang', url: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><rect width="48" height="48" rx="8" fill="#fef3c7"/><g transform="rotate(-35 24 24)"><rect x="14" y="18" width="10" height="12" rx="5" fill="#f59e0b"/><rect x="24" y="18" width="10" height="12" rx="5" fill="#ef4444"/><rect x="14" y="18" width="20" height="12" rx="6" fill="none" stroke="#b45309" stroke-width="1.5"/></g></svg>') },
-            { label: 'Siro / Chai', url: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><rect width="48" height="48" rx="8" fill="#ffedd5"/><rect x="20" y="8" width="8" height="5" rx="1.5" fill="#9a3412"/><path d="M16 16h16a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H16a3 3 0 0 1-3-3V19a3 3 0 0 1 3-3z" fill="#ea580c"/><rect x="17" y="22" width="14" height="12" rx="2" fill="#fff" opacity="0.9"/><path d="M24 25v6M21 28h6" stroke="#ea580c" stroke-width="1.5" stroke-linecap="round"/></svg>') },
-            { label: 'Dung dịch', url: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><rect width="48" height="48" rx="8" fill="#e0f2fe"/><rect x="21" y="8" width="6" height="4" fill="#0284c7"/><path d="M17 15h14a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3H17a3 3 0 0 1-3-3V18a3 3 0 0 1 3-3z" fill="#38bdf8"/><path d="M24 21c-3 4-4 6-4 8a4 4 0 0 0 8 0c0-2-1-4-4-8z" fill="#ffffff"/></svg>') },
-            { label: 'Lọ / Hũ', url: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><rect width="48" height="48" rx="8" fill="#f3e8ff"/><rect x="18" y="8" width="12" height="5" rx="1.5" fill="#eab308"/><rect x="15" y="13" width="18" height="24" rx="3" fill="#7e22ce"/><rect x="18" y="19" width="12" height="12" rx="2" fill="#faf5ff"/><circle cx="24" cy="25" r="3" fill="#eab308"/></svg>') }
-        ] : [];
 
         return `
             <div class="wh-voucher-overlay" id="wh-voucher-overlay">
@@ -1640,14 +2455,18 @@ const WarehouseComponents = (function () {
                                                 src="${escapeHtml(item.imageUrl || '')}"
                                                 alt="${escapeHtml(itemName || 'Sản phẩm')}"
                                                 class="wh-vthh-preview-img"
-                                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+                                                style="${item.imageUrl ? '' : 'display:none;'}"
+                                                onerror="this.style.display='none';var fb=document.getElementById('wh-vthh-img-broken');if(fb)fb.style.display='inline-flex';"
+                                                onload="if(this.src && this.style.display==='none'){this.style.display='block';var fb=document.getElementById('wh-vthh-img-broken');if(fb)fb.style.display='none';}"
                                             />
-                                            <div class="wh-vthh-img-fallback" style="display:none;">${Icons.items}</div>
+                                            <div id="wh-vthh-img-broken" class="wh-vthh-img-broken" style="${item.imageUrl ? 'display:none;' : 'display:inline-flex;'}" title="Chưa có ảnh hoặc liên kết ảnh bị lỗi">
+                                                ${Icons.brokenImage}
+                                            </div>
                                         </div>
                                         ${canEdit ? `
                                             <div class="wh-vthh-img-controls">
                                                 <label class="wh-form-label" style="font-size:11px;margin-bottom:3px;">
-                                                    Ảnh sản phẩm:
+                                                    Ảnh sản phẩm (URL):
                                                 </label>
                                                 <input
                                                     type="text"
@@ -1655,21 +2474,8 @@ const WarehouseComponents = (function () {
                                                     id="wh-edit-image-url"
                                                     class="wh-input-control"
                                                     value="${escapeHtml(item.imageUrl || '')}"
-                                                    placeholder="Dán link ảnh hoặc chọn mẫu..."
+                                                    placeholder="Dán link ảnh sản phẩm..."
                                                 />
-                                                <div class="wh-vthh-preset-list">
-                                                    ${presetImages.map(p => `
-                                                        <button
-                                                            type="button"
-                                                            class="wh-vthh-preset-pill"
-                                                            data-action="pick-img-preset"
-                                                            data-img-url="${escapeHtml(p.url)}"
-                                                            title="Chọn mẫu ${escapeHtml(p.label)}"
-                                                        >
-                                                            ${escapeHtml(p.label)}
-                                                        </button>
-                                                    `).join('')}
-                                                </div>
                                             </div>
                                         ` : `
                                             <div class="wh-vthh-img-info">
@@ -1923,7 +2729,7 @@ const WarehouseComponents = (function () {
                                     class="wh-btn wh-btn-apply"
                                     data-action="edit-vthh-item"
                                     data-item-type="${itemType}"
-                                    data-item-id="${escapeHtml(String(item.id))}"
+                                    data-item-id="${escapeHtml(String(actualItemId))}"
                                     style="display:inline-flex;align-items:center;gap:6px;"
                                 >
                                     ${Icons.penToSquare || Icons.pencil}
@@ -1942,7 +2748,7 @@ const WarehouseComponents = (function () {
                                     class="wh-btn wh-btn-apply"
                                     data-action="save-vthh-item"
                                     data-item-type="${itemType}"
-                                    data-item-id="${escapeHtml(String(item.id))}"
+                                    data-item-id="${escapeHtml(String(actualItemId))}"
                                     style="display:inline-flex;align-items:center;gap:6px;"
                                 >
                                     ${Icons.checkBlue}

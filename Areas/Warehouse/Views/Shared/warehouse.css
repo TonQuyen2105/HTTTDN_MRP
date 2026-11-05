@@ -2136,11 +2136,20 @@ html, body {
     display: block;
 }
 
-.wh-product-img-placeholder {
+.wh-product-img-placeholder,
+.wh-product-img-broken {
     color: #94a3b8;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: #f8fafc;
+}
+
+.wh-product-img-broken svg {
+    width: 19px;
+    height: 19px;
 }
 
 /* Action Delete Button in Danh mục VTHH */
@@ -2208,6 +2217,82 @@ html, body {
     width: 14px;
     height: 14px;
     stroke: currentColor;
+}
+
+/* Outbound Material Action Buttons */
+.wh-btn-action-sm {
+    height: 26px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.wh-btn-approve-outbound {
+    border: 1px solid #86efac;
+    background-color: #f0fdf4;
+    color: #15803d;
+}
+
+.wh-btn-approve-outbound:hover {
+    background-color: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.35);
+}
+
+.wh-btn-reject-outbound {
+    border: 1px solid #fecaca;
+    background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+.wh-btn-reject-outbound:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.35);
+}
+
+.wh-btn-view-voucher {
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    color: #475569;
+}
+
+.wh-btn-view-voucher:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.wh-action-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.wh-action-status-badge.is-approved {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.wh-action-status-badge.is-rejected {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
 }
 
 /* Modal Chi tiết & Chỉnh sửa VTHH */
@@ -2289,8 +2374,20 @@ html, body {
     display: block;
 }
 
-.wh-vthh-img-fallback {
+.wh-vthh-img-fallback,
+.wh-vthh-img-broken {
     color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: #f8fafc;
+}
+
+.wh-vthh-img-broken svg {
+    width: 42px;
+    height: 42px;
 }
 
 .wh-vthh-img-controls {
@@ -2347,11 +2444,14 @@ html, body {
     margin-left: 6px;
 }
 
-.wh-input-control.is-readonly {
+.wh-input-control.is-readonly,
+.wh-input-control:disabled {
     background-color: #f8fafc !important;
-    color: #475569 !important;
-    border-color: #e2e8f0 !important;
-    cursor: not-allowed;
+    color: #1e293b !important;
+    -webkit-text-fill-color: #1e293b !important;
+    border-color: #cbd5e1 !important;
+    cursor: default !important;
+    opacity: 1 !important;
 }
 
 .wh-vthh-bottombar {
@@ -2377,6 +2477,347 @@ html, body {
     gap: 5px;
     font-size: 11.5px;
     color: #64748b;
+}
+
+/* Table Form Controls for Inbound Voucher Creation */
+.wh-table-select {
+    width: 100%;
+    min-width: 220px;
+    height: 32px;
+    padding: 2px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background-color: #ffffff;
+    font-size: 12.5px;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wh-table-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.wh-table-input {
+    width: 100%;
+    height: 32px;
+    padding: 2px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wh-table-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.wh-qty-input {
+    width: 100px;
+    text-align: right;
+    font-weight: 600;
+}
+
+.wh-cell-text {
+    display: inline-block;
+    padding: 4px 0;
+    font-size: 12.5px;
+    color: #1f2937;
+}
+
+.wh-btn-secondary {
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    height: 32px;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.wh-btn-secondary:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+/* =========================================================================
+   HỆ THỐNG THÔNG BÁO DÙNG CHUNG (TOAST & DIALOG MODAL)
+   ========================================================================= */
+
+/* Container chứa Toast góc trên bên phải */
+.wh-toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.wh-toast {
+    pointer-events: auto;
+    width: 380px;
+    max-width: calc(100vw - 48px);
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-left: 4px solid #0284c7;
+    position: relative;
+    overflow: hidden;
+    animation: whSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.wh-toast.is-hiding {
+    opacity: 0;
+    transform: translateX(50px);
+}
+
+.wh-toast-success {
+    border-left-color: #16a34a;
+}
+.wh-toast-error {
+    border-left-color: #dc2626;
+}
+.wh-toast-warning {
+    border-left-color: #d97706;
+}
+.wh-toast-info {
+    border-left-color: #0284c7;
+}
+
+.wh-toast-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.wh-toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.wh-toast-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+
+.wh-toast-message {
+    font-size: 12.5px;
+    color: #475569;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.wh-toast-close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px;
+    margin-left: 6px;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+}
+
+.wh-toast-close:hover {
+    color: #334155;
+}
+
+.wh-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.08);
+    transform-origin: left;
+    animation: whProgressLinear linear forwards;
+}
+
+/* Modal Dialog Thông báo / Xác nhận */
+.wh-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    animation: whFadeIn 0.2s ease forwards;
+    padding: 16px;
+}
+
+.wh-dialog-overlay.is-closing {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.wh-dialog-box {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 440px;
+    max-width: calc(100vw - 32px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 24px;
+    animation: whZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.wh-dialog-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.wh-dialog-success .wh-dialog-icon-wrap {
+    background: #dcfce7;
+}
+.wh-dialog-error .wh-dialog-icon-wrap {
+    background: #fee2e2;
+}
+.wh-dialog-warning .wh-dialog-icon-wrap {
+    background: #fef3c7;
+}
+.wh-dialog-info .wh-dialog-icon-wrap {
+    background: #e0f2fe;
+}
+
+.wh-dialog-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+}
+
+.wh-dialog-message {
+    font-size: 13.5px;
+    color: #475569;
+    line-height: 1.55;
+    margin-bottom: 20px;
+}
+
+.wh-dialog-input {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin-top: 10px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.wh-dialog-input:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.wh-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.wh-dialog-btn {
+    height: 36px;
+    padding: 0 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wh-dialog-btn-primary {
+    background: #0284c7;
+    color: #ffffff;
+}
+.wh-dialog-btn-primary:hover {
+    background: #0369a1;
+}
+
+.wh-dialog-btn-danger {
+    background: #dc2626;
+    color: #ffffff;
+}
+.wh-dialog-btn-danger:hover {
+    background: #b91c1c;
+}
+
+.wh-dialog-btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+.wh-dialog-btn-cancel:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Animations */
+@keyframes whSlideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes whProgressLinear {
+    from {
+        transform: scaleX(1);
+    }
+    to {
+        transform: scaleX(0);
+    }
+}
+
+@keyframes whFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes whZoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 

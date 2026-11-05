@@ -51,10 +51,11 @@ namespace httt.Migrations
                         .HasDefaultValue("User")
                         .HasColumnName("role");
 
-                    b.Property<bool>("Status")
+                    b.Property<string>("Status")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
+                        .HasColumnType("text")
+                        .HasDefaultValue("Active")
                         .HasColumnName("status");
 
                     b.Property<string>("Username")

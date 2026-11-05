@@ -50,6 +50,11 @@
                             <option value="Admin" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Admin", StringComparison.OrdinalIgnoreCase))">Admin</option>
                             <option value="Manager" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Manager", StringComparison.OrdinalIgnoreCase))">Manager</option>
                             <option value="Employee" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Employee", StringComparison.OrdinalIgnoreCase))">Employee</option>
+                            <option value="Production" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Production", StringComparison.OrdinalIgnoreCase))">Production</option>
+                            <option value="Warehouse" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Warehouse", StringComparison.OrdinalIgnoreCase))">Warehouse</option>
+                            <option value="Sales" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Sales", StringComparison.OrdinalIgnoreCase))">Sales</option>
+                            <option value="Kho" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("Kho", StringComparison.OrdinalIgnoreCase))">Kho</option>
+                            <option value="BanHang" selected="@(!string.IsNullOrWhiteSpace(roleFilter) && roleFilter.Equals("BanHang", StringComparison.OrdinalIgnoreCase))">BanHang</option>
                         </select>
                     </div>
 
@@ -145,7 +150,20 @@
                                         @(string.IsNullOrWhiteSpace(item.Phone) ? "—" : item.Phone)
                                     </td>
                                     <td>
-                                        <span class="adm-badge @(item.Role == "Admin" ? "adm-badge--admin" : item.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                                        @{
+                                            var roleClass = item.Role switch
+                                            {
+                                                "Admin" => "adm-badge--admin",
+                                                "Manager" => "adm-badge--manager",
+                                                "Production" => "adm-badge--production",
+                                                "Warehouse" => "adm-badge--warehouse",
+                                                "Sales" => "adm-badge--sales",
+                                                "Kho" => "adm-badge--warehouse",
+                                                "BanHang" => "adm-badge--sales",
+                                                _ => "adm-badge--employee"
+                                            };
+                                        }
+                                        <span class="adm-badge @roleClass">
                                             @item.Role
                                         </span>
                                     </td>
@@ -295,6 +313,11 @@
                                             <option value="Admin">Admin</option>
                                             <option value="Manager">Manager</option>
                                             <option value="Employee">Employee</option>
+                                            <option value="Production">Production</option>
+                                            <option value="Warehouse">Warehouse</option>
+                                            <option value="Sales">Sales</option>
+                                            <option value="Kho">Kho</option>
+                                            <option value="BanHang">BanHang</option>
                                         </select>
                                     </div>
                                     <div class="invalid-feedback">Vui lòng chọn vai trò.</div>
@@ -388,6 +411,11 @@
                             <option value="Admin">Admin</option>
                             <option value="Manager">Manager</option>
                             <option value="Employee">Employee</option>
+                            <option value="Production">Production</option>
+                            <option value="Warehouse">Warehouse</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Kho">Kho</option>
+                            <option value="BanHang">BanHang</option>
                         </select>
                         <label for="accountRole">
                             <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>Vai trò / Quyền
@@ -494,6 +522,9 @@
             function getRoleBadgeClass(role) {
                 if (role === 'Admin') return 'adm-badge--admin';
                 if (role === 'Manager') return 'adm-badge--manager';
+                if (role === 'Production') return 'adm-badge--production';
+                if (role === 'Warehouse' || role === 'Kho') return 'adm-badge--warehouse';
+                if (role === 'Sales' || role === 'BanHang') return 'adm-badge--sales';
                 return 'adm-badge--employee';
             }
 
@@ -725,6 +756,16 @@
             }
 
             initializeAccountPage();
+
+            // Hiển thị thông báo Toast nếu có TempData từ Controller
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>admToast('success', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"]!.ToString())));</text>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>admToast('error', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ErrorMessage"]!.ToString())));</text>
+            }
         })();
     </script>
 }

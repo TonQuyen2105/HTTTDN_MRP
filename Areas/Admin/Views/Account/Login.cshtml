@@ -1,6 +1,8 @@
 @{
     ViewData["Title"] = "Đăng nhập Admin";
     Layout = null; /* Standalone page, no sidebar/header */
+    var errorMessage = ViewBag.ErrorMessage as string;
+    var returnUrl = ViewBag.ReturnUrl as string;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -10,9 +12,10 @@
     <title>@ViewData["Title"] — HTTT Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
     <link href="/css/admin-style.css" rel="stylesheet" />
 </head>
-<body style="background: #0f172a; margin: 0; padding: 0;" data-error-message="@ViewBag.ErrorMessage">
+<body style="background: #0f172a; margin: 0; padding: 0;">
 
 <div class="adm-login-wrapper">
 
@@ -27,7 +30,7 @@
                 </div>
                 <div>
                     <div class="adm-login-left-brand-name">HTTT Admin</div>
-                    <div class="adm-login-left-brand-tagline">Hệ thống quản trị nội bộ</div>
+                    <div class="adm-login-left-brand-tagline">Hệ thống MRP Quản lý Kho Thuốc</div>
                 </div>
             </div>
 
@@ -36,7 +39,7 @@
                 <i class="fa-solid fa-shield-halved adm-login-left-hero-icon" aria-hidden="true"></i>
                 <h2 class="adm-login-left-headline">Trung tâm kiểm soát<br>toàn hệ thống</h2>
                 <p class="adm-login-left-desc">
-                    Quản trị tài khoản, phân quyền và giám sát hoạt động<br>
+                    Quản trị tài khoản, phân quyền RBAC và giám sát vận hành<br>
                     từ một bảng điều khiển tập trung, an toàn và hiệu quả.
                 </p>
             </div>
@@ -45,25 +48,35 @@
             <ul class="adm-login-left-features" aria-label="Tính năng hệ thống">
                 <li>
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Quản lý tài khoản & phân quyền theo vai trò
+                    Bảo mật xác thực Cookie &amp; mã hóa mật khẩu an toàn
                 </li>
                 <li>
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Theo dõi hoạt động hệ thống theo thời gian thực
+                    Giám sát số liệu kho &amp; sản xuất MRP thời gian thực
                 </li>
                 <li>
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Bảo mật với Cookie Authentication ASP.NET Core
+                    Phân quyền phân hệ độc quyền cho Quản trị viên
                 </li>
             </ul>
         </div>
 
         <!-- ── Right panel (form) ── -->
         <div class="adm-login-panel-right">
-            <h1 class="adm-login-form-title">Đăng nhập</h1>
-            <p class="adm-login-form-subtitle">Vui lòng nhập thông tin tài khoản quản trị để tiếp tục.</p>
+            <h1 class="adm-login-form-title">Đăng nhập Admin</h1>
+            <p class="adm-login-form-subtitle">Vui lòng nhập thông tin tài khoản Quản trị để tiếp tục.</p>
 
-            <form asp-area="Admin" asp-controller="Account" asp-action="Login" method="post" class="adm-login-form" novalidate>
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger d-flex align-items-center mb-4 py-2 px-3 rounded-3 shadow-sm border-0" role="alert" style="background: rgba(239, 68, 68, 0.12); color: #dc2626;">
+                    <i class="fa-solid fa-triangle-exclamation me-2 fs-5" aria-hidden="true"></i>
+                    <div style="font-size: 0.875rem; font-weight: 500;">
+                        @errorMessage
+                    </div>
+                </div>
+            }
+
+            <form asp-area="Admin" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl" method="post" class="adm-login-form" id="loginForm" novalidate>
                 @Html.AntiForgeryToken()
 
                 <!-- Username -->
@@ -90,15 +103,21 @@
                     </button>
                 </div>
 
-                <button type="submit" class="adm-login-submit-btn">
-                    <i class="fa-solid fa-arrow-right-to-bracket me-2" aria-hidden="true"></i>
-                    Đăng nhập vào hệ thống
+                <button type="submit" class="adm-login-submit-btn" id="btnLoginSubmit">
+                    <span class="btn-text">
+                        <i class="fa-solid fa-arrow-right-to-bracket me-2" aria-hidden="true"></i>
+                        Đăng nhập vào hệ thống
+                    </span>
+                    <span class="btn-spinner d-none">
+                        <i class="fa-solid fa-spinner fa-spin me-2" aria-hidden="true"></i>
+                        Đang xác thực...
+                    </span>
                 </button>
             </form>
 
             <div class="adm-login-footer">
                 <i class="fa-solid fa-lock fa-xs me-1" aria-hidden="true"></i>
-                Phiên đăng nhập được mã hoá &amp; bảo vệ
+                Hệ thống xác thực bảo mật &amp; phiên làm việc 8 giờ
             </div>
         </div>
 
@@ -106,7 +125,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    // Ẩn/hiện mật khẩu
     const toggleBtn = document.getElementById('togglePwd');
     const pwdInput = document.getElementById('password');
     const toggleIcon = document.getElementById('togglePwdIcon');
@@ -118,6 +139,37 @@
             toggleIcon.classList.toggle('fa-eye', !isPassword);
             toggleIcon.classList.toggle('fa-eye-slash', isPassword);
         });
+    }
+
+    // Hiển thị trạng thái Loading khi submit
+    const loginForm = document.getElementById('loginForm');
+    const submitBtn = document.getElementById('btnLoginSubmit');
+    if (loginForm && submitBtn) {
+        loginForm.addEventListener('submit', function () {
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            if (btnText && btnSpinner) {
+                btnText.classList.add('d-none');
+                btnSpinner.classList.remove('d-none');
+            }
+            submitBtn.disabled = true;
+        });
+    }
+
+    // SweetAlert2 Toast nếu có lỗi từ Server
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <text>
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(errorMessage)),
+            showConfirmButton: false,
+            timer: 4500,
+            timerProgressBar: true
+        });
+        </text>
     }
 </script>
 </body>

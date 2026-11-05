@@ -1,18 +1,40 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using httt.Data;
+using httt.Areas.Admin.Services;
+using httt.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Port=5432;Database=httt;Username=postgres;Password=postgres";
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING");
+
+var hasPlaceholderConnectionString = !string.IsNullOrWhiteSpace(connectionString) && (
+    connectionString.Contains("your-host", StringComparison.OrdinalIgnoreCase) ||
+    connectionString.Contains("your-database", StringComparison.OrdinalIgnoreCase) ||
+    connectionString.Contains("your-user", StringComparison.OrdinalIgnoreCase) ||
+    connectionString.Contains("your-password", StringComparison.OrdinalIgnoreCase));
+
+if (string.IsNullOrWhiteSpace(connectionString) || hasPlaceholderConnectionString)
+{
+    throw new InvalidOperationException(
+        "Database is not configured. Set ConnectionStrings:DefaultConnection or the DATABASE_URL environment variable to a valid Supabase/PostgreSQL connection string before running the app.");
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.CommandTimeout(3);
-        npgsqlOptions.EnableRetryOnFailure(1, TimeSpan.FromSeconds(1), null);
-    }));
+    options.UseNpgsql(
+        connectionString,
+        npgsqlOptions =>
+        {
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(3),
+                errorCodesToAdd: null);
+
+            npgsqlOptions.CommandTimeout(10);
+        }));
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -24,11 +46,95 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Events = new CookieAuthenticationEvents
+        {
+            // Chỉ kiểm tra dữ liệu đã được lưu trong Cookie. Không query DB ở mỗi request
+            // để tránh tốn băng thông/Supabase round-trip cho mọi trang.
+            OnValidatePrincipal = async context =>
+            {
+                var principal = context.Principal;
+                if (principal is null || principal.Identity?.IsAuthenticated != true)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return;
+                }
+
+                var idValue = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var roleValue = principal.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+                if (!int.TryParse(idValue, out _) ||
+                    string.IsNullOrWhiteSpace(roleValue) ||
+                    !string.Equals(roleValue, "Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+        };
     });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    // Protect every unsafe MVC request by default. Individual POST actions still
+    // declare ValidateAntiForgeryToken explicitly to make the contract obvious.
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+});
+builder.Services.AddAuthorization();
+builder.Services.AddMemoryCache();
+
+// ?? Application Services ??????????????????????????????????????????????????
+builder.Services.AddScoped<UserAccountService>();
 
 var app = builder.Build();
+
+var autoMigrate = builder.Configuration.GetValue("DatabaseAutoMigrate", false);
+
+if (autoMigrate)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    try
+    {
+        await db.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Database migration skipped because startup migration is not available/healthy. The app will continue without auto-migration.");
+    }
+}
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    try
+    {
+        if (!await db.UserAccounts.AnyAsync())
+        {
+            var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME") ?? "admin";
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "Admin@123";
+
+            db.UserAccounts.Add(new UserAccount
+            {
+                Username = adminUsername,
+                Password = UserAccountService.HashPassword(adminPassword),
+                FullName = "System Administrator",
+                Phone = "0000000000",
+                Role = "Admin",
+                Status = "Active"
+            });
+
+            await db.SaveChangesAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Admin seed check failed. Database is reachable but user seeding was skipped.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -45,6 +151,22 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapControllers();
+
+app.MapControllerRoute(
+    name: "admin-login-alias",
+    pattern: "Admin/Login",
+    defaults: new { area = "Admin", controller = "Account", action = "Login" });
+
+app.MapControllerRoute(
+    name: "admin-login",
+    pattern: "Admin/Account/Login",
+    defaults: new { area = "Admin", controller = "Account", action = "Login" });
+
+app.MapAreaControllerRoute(
+    name: "admin_area",
+    areaName: "Admin",
+    pattern: "Admin/{controller=Dashboard}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "areas",
@@ -54,6 +176,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

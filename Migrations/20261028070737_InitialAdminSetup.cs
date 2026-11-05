@@ -26,7 +26,7 @@ namespace httt.Migrations
                     fullname = table.Column<string>(type: "text", nullable: false),
                     phone = table.Column<string>(type: "text", nullable: true),
                     role = table.Column<string>(type: "text", nullable: false, defaultValue: "User"),
-                    status = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                    status = table.Column<string>(type: "text", nullable: false, defaultValue: "Active")
                 },
                 constraints: table =>
                 {

@@ -2201,6 +2201,17 @@ const WarehouseComponents = (function () {
                                 <div class="wh-dg-action-group">
                                     <button
                                         type="button"
+                                        class="wh-btn-action-icon wh-btn-view-voucher"
+                                        data-action="view-vthh-item"
+                                        data-item-type="${itemType}"
+                                        data-item-id="${escapeHtml(String(itemId))}"
+                                        data-item-name="${escapeHtml(itemName)}"
+                                        title="Xem chi tiết ${escapeHtml(itemName)}"
+                                    >
+                                        ${Icons.docFile || Icons.pencil}
+                                    </button>
+                                    <button
+                                        type="button"
                                         class="wh-btn-action-icon wh-btn-edit-row"
                                         data-action="edit-vthh-item"
                                         data-item-type="${itemType}"
@@ -2506,14 +2517,24 @@ const WarehouseComponents = (function () {
             badgeClass = 'is-edit';
             badgeLabel = 'Chế độ chỉnh sửa';
         } else {
-            titleText = `Thông tin chi tiết ${typeLabel}: ${itemCode}`;
+            titleText = isProduct
+                ? `Thông tin chi tiết sản phẩm: ${itemCode}`
+                : `Thông tin chi tiết nguyên vật liệu: ${itemCode} - ${itemName}`;
             badgeClass = 'is-view';
-            badgeLabel = 'Chỉ xem (Đã khóa)';
+            badgeLabel = 'Chỉ xem';
         }
+
+        const isWideModal = !canEdit;
+        const rawReceipts = isProduct
+            ? (item.productReceipts || item.importReceipts || [])
+            : (item.importReceipts || []);
+        const receipts = Array.isArray(rawReceipts) ? rawReceipts : [];
+        const totalImportQty = receipts.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
+        const totalImportAmount = receipts.reduce((sum, r) => sum + (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))), 0);
 
         return `
             <div class="wh-voucher-overlay" id="wh-voucher-overlay">
-                <div class="wh-voucher-window wh-vthh-modal-window">
+                <div class="wh-voucher-window wh-vthh-modal-window ${isWideModal ? 'wh-vthh-wide' : ''}">
                     <!-- Thanh tiêu đề Modal -->
                     <div class="wh-voucher-topbar">
                         <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
@@ -2537,7 +2558,279 @@ const WarehouseComponents = (function () {
                     <!-- Thân Form chi tiết -->
                     <div class="wh-voucher-body wh-vthh-modal-body">
                         <form id="wh-vthh-form" onsubmit="return false;">
-                            ${isProduct ? `
+                            ${!canEdit ? (isProduct ? `
+                                <!-- Giao diện Xem chi tiết Thành phẩm (kèm chi tiết các lệnh/phiếu nhập kho thành phẩm) -->
+                                <div class="wh-vthh-info-card">
+                                    <div class="wh-vthh-info-head">
+                                        <div style="display:flex;align-items:center;gap:14px;">
+                                            ${item.imageUrl ? `
+                                                <div style="width:52px;height:52px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                                    <img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(itemName)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';" />
+                                                </div>
+                                            ` : ''}
+                                            <div>
+                                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                                                    <span class="wh-vthh-info-code">${escapeHtml(itemCode)}</span>
+                                                    <span class="wh-vthh-info-name">${escapeHtml(itemName)}</span>
+                                                </div>
+                                                ${item.shelfLifeMonths || item.expiredDate ? `
+                                                    <div style="font-size:12px;color:#64748b;">
+                                                        Hạn sử dụng: <strong>${item.shelfLifeMonths ? `${item.shelfLifeMonths} tháng` : ''}</strong> ${item.expiredDate ? `(${escapeHtml(item.expiredDate)})` : ''}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="wh-vthh-stats-grid">
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Đơn vị tính (ĐVT)</div>
+                                            <div class="wh-vthh-stat-value">${escapeHtml(item.unit || 'Hộp')}</div>
+                                        </div>
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Số lượng tồn kho</div>
+                                            <div class="wh-vthh-stat-value is-primary">${item.quantityFormatted || item.quantity || 0} ${escapeHtml(item.unit || 'Hộp')}</div>
+                                        </div>
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Giá vốn hiện hành</div>
+                                            <div class="wh-vthh-stat-value">${item.costFormatted || (item.cost ? Number(item.cost).toLocaleString('vi-VN') : '0')} đ</div>
+                                        </div>
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Số lệnh nhập đã lập</div>
+                                            <div class="wh-vthh-stat-value is-success">${receipts.length} lệnh/phiếu</div>
+                                        </div>
+                                    </div>
+                                    ${item.description ? `
+                                        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0;font-size:12.5px;color:#64748b;">
+                                            <strong>Mô tả / Tiêu chuẩn chất lượng:</strong> ${escapeHtml(item.description)}
+                                        </div>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Bảng chi tiết từng lệnh / phiếu nhập kho thành phẩm của sản phẩm -->
+                                <div class="wh-vthh-receipts-section">
+                                    <div class="wh-vthh-receipts-title">
+                                        <h3>
+                                            ${Icons.boxCheck || '📦'} Chi tiết từng lệnh / phiếu nhập kho thành phẩm của sản phẩm
+                                        </h3>
+                                        <span style="font-size:12px;color:#64748b;">
+                                            Tổng cộng: <strong>${receipts.length}</strong> lần nhập kho
+                                        </span>
+                                    </div>
+
+                                    ${receipts.length > 0 ? `
+                                        <div class="wh-vthh-table-wrapper">
+                                            <table class="wh-vthh-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width:40px;text-align:center;">#</th>
+                                                        <th style="width:130px;">Số lệnh nhập</th>
+                                                        <th style="width:150px;">Ngày nhập kho</th>
+                                                        <th>Người lập / Phân xưởng</th>
+                                                        <th style="width:105px;text-align:right;">SL nhập</th>
+                                                        <th style="width:115px;text-align:right;">Giá vốn</th>
+                                                        <th style="width:130px;text-align:right;">Thành tiền</th>
+                                                        <th style="width:115px;text-align:center;">Hạn sử dụng</th>
+                                                        <th style="width:115px;text-align:center;">Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${receipts.map((r, idx) => {
+                                                        const isApprove = r.status === 'Approve' || r.status === 'Approved' || r.status === 'Đã nhập kho';
+                                                        const isReject = r.status === 'Reject' || r.status === 'Rejected' || r.status === 'Từ chối';
+                                                        const isDraft = r.status === 'Lưu nháp' || r.status === 'Nháp' || r.isDraft;
+                                                        const statusBadgeCls = isApprove ? 'wh-dg-status-success' : isReject ? 'wh-dg-status-danger' : isDraft ? 'wh-dg-status-draft' : 'wh-dg-status-warning';
+                                                        const statusText = isApprove ? 'Approve' : isReject ? 'Reject' : isDraft ? 'Lưu nháp' : (r.status || 'Chờ nhập kho');
+
+                                                        return `
+                                                            <tr>
+                                                                <td style="text-align:center;color:#64748b;">${idx + 1}</td>
+                                                                <td style="font-weight:600;color:#0f172a;">
+                                                                    ${escapeHtml(r.voucherNo || r.orderNo || '---')}
+                                                                </td>
+                                                                <td style="color:#64748b;">${escapeHtml(r.importDate || '---')}</td>
+                                                                <td>
+                                                                    <div style="font-weight:600;color:#1e293b;">${escapeHtml(r.creatorName || r.source || 'Phân xưởng sản xuất')}</div>
+                                                                    ${r.employeeCode ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(r.employeeCode)} • ${escapeHtml(r.source || 'Phân xưởng')}</div>` : ''}
+                                                                </td>
+                                                                <td style="text-align:right;font-weight:700;color:#0f172a;">
+                                                                    ${escapeHtml(String(r.quantityFormatted || r.quantity))} <span style="font-size:11px;font-weight:normal;color:#64748b;">${escapeHtml(r.unit || item.unit || 'Hộp')}</span>
+                                                                </td>
+                                                                <td style="text-align:right;color:#475569;">
+                                                                    ${escapeHtml(String(r.costFormatted || (r.cost ? Number(r.cost).toLocaleString('vi-VN') : '0')))} đ
+                                                                </td>
+                                                                <td style="text-align:right;font-weight:600;color:#0284c7;">
+                                                                    ${escapeHtml(String(r.amountFormatted || (r.amount ? Number(r.amount).toLocaleString('vi-VN') : '0')))} đ
+                                                                </td>
+                                                                <td style="text-align:center;">
+                                                                    <span class="wh-vthh-expiry-tag">${escapeHtml(r.expiredDate || item.expiredDate || '31/12/2028')}</span>
+                                                                </td>
+                                                                <td style="text-align:center;">
+                                                                    <span class="${statusBadgeCls}">${escapeHtml(statusText)}</span>
+                                                                </td>
+                                                            </tr>
+                                                        `;
+                                                    }).join('')}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <td colspan="4" style="text-align:right;font-weight:700;color:#1e293b;">
+                                                            Tổng cộng (${receipts.length} lệnh/phiếu):
+                                                        </td>
+                                                        <td style="text-align:right;color:#0f172a;">
+                                                            ${totalImportQty.toLocaleString('vi-VN')} <span style="font-size:11px;color:#64748b;">${escapeHtml(item.unit || 'Hộp')}</span>
+                                                        </td>
+                                                        <td></td>
+                                                        <td style="text-align:right;color:#0284c7;">
+                                                            ${totalImportAmount.toLocaleString('vi-VN')} đ
+                                                        </td>
+                                                        <td colspan="2"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    ` : `
+                                        <div style="text-align:center;padding:36px 16px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;margin-top:6px;">
+                                            <div style="font-size:32px;margin-bottom:8px;">📦</div>
+                                            <div style="font-weight:600;color:#334155;font-size:14.5px;">Chưa có lệnh hoặc phiếu nhập kho nào cho sản phẩm này</div>
+                                            <div style="font-size:12.5px;color:#64748b;margin-top:4px;">Khi lập và duyệt lệnh/phiếu nhập kho thành phẩm có chứa ${escapeHtml(itemCode)}, thông tin chi tiết số lượng, giá vốn và hạn sử dụng theo từng đợt nhập sẽ hiển thị tại đây.</div>
+                                        </div>
+                                    `}
+                                </div>
+                            ` : `
+                                <!-- Giao diện Xem chi tiết Nguyên vật liệu (kèm chi tiết các phiếu nhập) -->
+                                <div class="wh-vthh-info-card">
+                                    <div class="wh-vthh-info-head">
+                                        <div style="display:flex;align-items:center;gap:12px;">
+                                            <span class="wh-vthh-info-code">${escapeHtml(itemCode)}</span>
+                                            <span class="wh-vthh-info-name">${escapeHtml(itemName)}</span>
+                                        </div>
+                                    </div>
+                                    <div class="wh-vthh-stats-grid">
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Đơn vị tính (ĐVT)</div>
+                                            <div class="wh-vthh-stat-value">${escapeHtml(item.unit || 'kg')}</div>
+                                        </div>
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Số lượng tồn kho</div>
+                                            <div class="wh-vthh-stat-value is-primary">${item.quantityFormatted || item.quantity || 0} ${escapeHtml(item.unit || 'kg')}</div>
+                                        </div>
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Đơn giá hiện hành</div>
+                                            <div class="wh-vthh-stat-value">${item.priceFormatted || (item.price ? Number(item.price).toLocaleString('vi-VN') : '0')} đ</div>
+                                        </div>
+                                        <div class="wh-vthh-stat-item">
+                                            <div class="wh-vthh-stat-label">Số phiếu nhập đã lập</div>
+                                            <div class="wh-vthh-stat-value is-success">${receipts.length} phiếu</div>
+                                        </div>
+                                    </div>
+                                    ${item.description ? `
+                                        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0;font-size:12.5px;color:#64748b;">
+                                            <strong>Tiêu chuẩn kỹ thuật:</strong> ${escapeHtml(item.description)}
+                                        </div>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Bảng chi tiết từng phiếu nhập của nguyên vật liệu -->
+                                <div class="wh-vthh-receipts-section">
+                                    <div class="wh-vthh-receipts-title">
+                                        <h3>
+                                            ${Icons.boxCheck || '📦'} Chi tiết từng phiếu nhập kho của nguyên vật liệu
+                                        </h3>
+                                        <span style="font-size:12px;color:#64748b;">
+                                            Tổng cộng: <strong>${receipts.length}</strong> lần nhập kho
+                                        </span>
+                                    </div>
+
+                                    ${receipts.length > 0 ? `
+                                        <div class="wh-vthh-table-wrapper">
+                                            <table class="wh-vthh-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width:40px;text-align:center;">#</th>
+                                                        <th style="width:130px;">Số phiếu nhập</th>
+                                                        <th style="width:150px;">Ngày nhập kho</th>
+                                                        <th>Nhà cung cấp</th>
+                                                        <th style="width:105px;text-align:right;">SL nhập</th>
+                                                        <th style="width:115px;text-align:right;">Đơn giá nhập</th>
+                                                        <th style="width:130px;text-align:right;">Thành tiền</th>
+                                                        <th style="width:115px;text-align:center;">Hạn sử dụng</th>
+                                                        <th style="width:115px;text-align:center;">Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${receipts.map((r, idx) => {
+                                                        const isApprove = r.status === 'Approve' || r.status === 'Approved' || r.status === 'Đã nhập kho';
+                                                        const isReject = r.status === 'Reject' || r.status === 'Rejected' || r.status === 'Từ chối';
+                                                        const isDraft = r.status === 'Lưu nháp' || r.status === 'Nháp' || r.isDraft;
+                                                        const statusBadgeCls = isApprove ? 'wh-dg-status-success' : isReject ? 'wh-dg-status-danger' : isDraft ? 'wh-dg-status-draft' : 'wh-dg-status-warning';
+                                                        const statusText = isApprove ? 'Approve' : isReject ? 'Reject' : isDraft ? 'Lưu nháp' : (r.status || 'Chờ nhập kho');
+
+                                                        return `
+                                                            <tr>
+                                                                <td style="text-align:center;color:#64748b;">${idx + 1}</td>
+                                                                <td style="font-weight:600;color:#0f172a;">
+                                                                    ${escapeHtml(r.voucherNo || '---')}
+                                                                </td>
+                                                                <td style="color:#64748b;">${escapeHtml(r.importDate || '---')}</td>
+                                                                <td>
+                                                                    <div style="font-weight:600;color:#1e293b;">${escapeHtml(r.supplierName || '---')}</div>
+                                                                    ${r.supplierCode ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(r.supplierCode)}</div>` : ''}
+                                                                </td>
+                                                                <td style="text-align:right;font-weight:700;color:#0f172a;">
+                                                                    ${escapeHtml(String(r.quantityFormatted || r.quantity))} <span style="font-size:11px;font-weight:normal;color:#64748b;">${escapeHtml(r.unit || item.unit || 'kg')}</span>
+                                                                </td>
+                                                                <td style="text-align:right;color:#475569;">
+                                                                    ${escapeHtml(String(r.costFormatted || (r.cost ? Number(r.cost).toLocaleString('vi-VN') : '0')))} đ
+                                                                </td>
+                                                                <td style="text-align:right;font-weight:600;color:#0284c7;">
+                                                                    ${escapeHtml(String(r.amountFormatted || (r.amount ? Number(r.amount).toLocaleString('vi-VN') : '0')))} đ
+                                                                </td>
+                                                                <td style="text-align:center;">
+                                                                    <span class="wh-vthh-expiry-tag">${escapeHtml(r.expiredDate || '31/12/2028')}</span>
+                                                                </td>
+                                                                <td style="text-align:center;">
+                                                                    <span class="${statusBadgeCls}">${escapeHtml(statusText)}</span>
+                                                                </td>
+                                                            </tr>
+                                                        `;
+                                                    }).join('')}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <td colspan="4" style="text-align:right;font-weight:700;color:#1e293b;">
+                                                            Tổng cộng (${receipts.length} phiếu):
+                                                        </td>
+                                                        <td style="text-align:right;color:#0f172a;">
+                                                            ${totalImportQty.toLocaleString('vi-VN')} <span style="font-size:11px;color:#64748b;">${escapeHtml(item.unit || 'kg')}</span>
+                                                        </td>
+                                                        <td></td>
+                                                        <td style="text-align:right;color:#0284c7;">
+                                                            ${totalImportAmount.toLocaleString('vi-VN')} đ
+                                                        </td>
+                                                        <td colspan="2"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    ` : `
+                                        <div style="text-align:center;padding:36px 16px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;margin-top:6px;">
+                                            <div style="font-size:32px;margin-bottom:8px;">📦</div>
+                                            <div style="font-weight:600;color:#334155;font-size:14.5px;">Chưa có phiếu nhập kho nào cho nguyên vật liệu này</div>
+                                            <div style="font-size:12.5px;color:#64748b;margin-top:4px;">Khi lập và duyệt phiếu nhập có chứa ${escapeHtml(itemCode)}, thông tin chi tiết số lượng, đơn giá và hạn sử dụng theo từng phiếu sẽ hiển thị tại đây.</div>
+                                        </div>
+                                    `}
+                                </div>
+                            `) : (isProduct ? `
+                                <!-- Form Thêm mới hoặc Sửa thông tin Sản phẩm -->
+                                ${isCreate ? `
+                                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #166534; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;">
+                                        <span style="font-size: 16px; line-height: 1;">💡</span>
+                                        <div>
+                                            <strong>Quy tắc thêm mới thành phẩm:</strong> Chỉ cần điền <strong>Tên sản phẩm</strong> (và ảnh sản phẩm nếu có) để khởi tạo mã mới trong hệ thống. Các thông tin còn lại (ĐVT, số lượng tồn kho = 0, giá vốn = 0, hạn sử dụng, mô tả) mặc định bỏ trống/0 và sẽ được cập nhật tự động khi lập và duyệt <strong>Phiếu nhập kho thành phẩm</strong>.
+                                        </div>
+                                    </div>
+                                ` : ''}
+
                                 <!-- Khối ảnh và thông tin chung cho Sản phẩm -->
                                 <div class="wh-vthh-product-head">
                                     <div class="wh-vthh-img-section">
@@ -2555,50 +2848,35 @@ const WarehouseComponents = (function () {
                                                 ${Icons.brokenImage}
                                             </div>
                                         </div>
-                                        ${canEdit ? `
-                                            <div class="wh-vthh-img-controls">
-                                                <label class="wh-form-label" style="font-size:11px;margin-bottom:3px;">
-                                                    Ảnh sản phẩm (URL):
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="imageUrl"
-                                                    id="wh-edit-image-url"
-                                                    class="wh-input-control"
-                                                    value="${escapeHtml(item.imageUrl || '')}"
-                                                    placeholder="Dán link ảnh sản phẩm..."
-                                                />
-                                            </div>
-                                        ` : `
-                                            <div class="wh-vthh-img-info">
-                                                <span class="wh-form-label" style="font-size:11px;">Hình ảnh sản phẩm</span>
-                                            </div>
-                                        `}
+                                        <div class="wh-vthh-img-controls">
+                                            <label class="wh-form-label" style="font-size:11px;margin-bottom:3px;">
+                                                Ảnh sản phẩm (URL):
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="imageUrl"
+                                                id="wh-edit-image-url"
+                                                class="wh-input-control"
+                                                value="${escapeHtml(item.imageUrl || '')}"
+                                                placeholder="Dán link ảnh sản phẩm..."
+                                            />
+                                        </div>
                                     </div>
 
                                     <div class="wh-vthh-main-fields">
                                         <div class="wh-form-group">
                                             <label class="wh-form-label">
-                                                Mã sản phẩm <span class="${isCreate ? 'wh-req' : 'wh-lock-hint'}" title="${isCreate ? 'Bắt buộc nhập' : 'Mã không được phép sửa'}">${isCreate ? '*' : `${Icons.lock} Khóa`}</span>
+                                                Mã sản phẩm <span class="wh-lock-hint" title="${isCreate ? 'Mã được hệ thống tự động sinh' : 'Mã không được phép sửa'}">${Icons.lock} ${isCreate ? 'Tự động' : 'Khóa'}</span>
                                             </label>
-                                            ${isCreate ? `
-                                                <input
-                                                    type="text"
-                                                    name="productCode"
-                                                    class="wh-input-control"
-                                                    value="${escapeHtml(item.productCode || '')}"
-                                                    placeholder="VD: SP011"
-                                                    required
-                                                />
-                                            ` : `
-                                                <input
-                                                    type="text"
-                                                    class="wh-input-control is-readonly"
-                                                    value="${escapeHtml(item.productCode)}"
-                                                    disabled
-                                                    readonly
-                                                />
-                                            `}
+                                            <input
+                                                type="text"
+                                                name="productCode"
+                                                class="wh-input-control is-readonly"
+                                                value="${escapeHtml(item.productCode || '')}"
+                                                readonly
+                                                tabindex="-1"
+                                                style="font-weight: 600;"
+                                            />
                                         </div>
 
                                         <div class="wh-form-group">
@@ -2606,23 +2884,26 @@ const WarehouseComponents = (function () {
                                             <input
                                                 type="text"
                                                 name="productName"
-                                                class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
+                                                class="wh-input-control"
                                                 value="${escapeHtml(item.productName || '')}"
-                                                placeholder="VD: Thuốc trị ho thảo dược..."
-                                                ${!canEdit ? 'readonly disabled' : ''}
+                                                placeholder="VD: Viên nén Panadol Extra 500mg..."
                                                 required
+                                                ${isCreate ? 'autofocus' : ''}
                                             />
                                         </div>
 
                                         <div class="wh-form-group">
-                                            <label class="wh-form-label">Đơn vị tính (ĐVT)</label>
+                                            <label class="wh-form-label">
+                                                Đơn vị tính (ĐVT) <span class="wh-lock-hint" title="${isCreate ? 'Cập nhật từ phiếu nhập' : 'Đơn vị tính cố định'}">${Icons.lock} Khóa</span>
+                                            </label>
                                             <input
                                                 type="text"
                                                 name="unit"
-                                                class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                                value="${escapeHtml(item.unit || 'Hộp')}"
-                                                placeholder="Hộp, Chai, Vỉ..."
-                                                ${!canEdit ? 'readonly disabled' : ''}
+                                                class="wh-input-control is-readonly"
+                                                value="${escapeHtml(item.unit || '')}"
+                                                readonly
+                                                tabindex="-1"
+                                                placeholder="(Bỏ trống - Cập nhật từ phiếu nhập)"
                                             />
                                         </div>
                                     </div>
@@ -2630,75 +2911,117 @@ const WarehouseComponents = (function () {
 
                                 <div class="wh-vthh-grid-fields">
                                     <div class="wh-form-group">
-                                        <label class="wh-form-label">Số lượng tồn kho</label>
+                                        <label class="wh-form-label">
+                                            Số lượng tồn kho <span class="wh-lock-hint" title="${isCreate ? 'Mặc định 0 cho sản phẩm mới' : 'Cập nhật qua phiếu xuất/nhập'}">${Icons.lock} Khóa</span>
+                                        </label>
                                         <input
                                             type="number"
                                             name="quantity"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${item.quantity !== undefined ? item.quantity : 0}"
-                                            ${!canEdit ? 'readonly disabled' : ''}
+                                            class="wh-input-control is-readonly"
+                                            value="${isCreate ? 0 : (item.quantity !== undefined ? item.quantity : 0)}"
+                                            readonly
+                                            tabindex="-1"
+                                            style="font-weight: 600;"
                                         />
                                     </div>
 
-                                    <div class="wh-form-group">
-                                        <label class="wh-form-label">Giá vốn (VNĐ)</label>
-                                        <input
-                                            type="number"
-                                            name="cost"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${item.cost !== undefined ? item.cost : 0}"
-                                            ${!canEdit ? 'readonly disabled' : ''}
-                                        />
-                                    </div>
-
-                                    <div class="wh-form-group">
-                                        <label class="wh-form-label">Hạn sử dụng</label>
-                                        <input
-                                            type="text"
-                                            name="expiredDate"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${escapeHtml(item.expiredDate || '31/12/2028')}"
-                                            placeholder="DD/MM/YYYY"
-                                            ${!canEdit ? 'readonly disabled' : ''}
-                                        />
-                                    </div>
-
-                                    <div class="wh-form-group wh-col-span-full">
-                                        <label class="wh-form-label">Mô tả / Tiêu chuẩn chất lượng</label>
-                                        <textarea
-                                            name="description"
-                                            rows="3"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            placeholder="Nhập ghi chú quy chuẩn, GMP, hoạt chất..."
-                                            ${!canEdit ? 'readonly disabled' : ''}
-                                        >${escapeHtml(item.description || '')}</textarea>
-                                    </div>
-                                </div>
-                            ` : `
-                                <!-- Form cho Nguyên vật liệu -->
-                                <div class="wh-vthh-grid-fields">
                                     <div class="wh-form-group">
                                         <label class="wh-form-label">
-                                            Mã nguyên vật liệu <span class="${isCreate ? 'wh-req' : 'wh-lock-hint'}" title="${isCreate ? 'Bắt buộc nhập' : 'Mã không được phép sửa'}">${isCreate ? '*' : `${Icons.lock} Khóa`}</span>
+                                            Giá vốn (VNĐ) ${isCreate ? `<span class="wh-lock-hint" title="Mặc định 0, cập nhật khi nhập kho">${Icons.lock} Khóa</span>` : ''}
+                                        </label>
+                                        ${isCreate ? `
+                                            <input
+                                                type="number"
+                                                name="cost"
+                                                class="wh-input-control is-readonly"
+                                                value="0"
+                                                readonly
+                                                tabindex="-1"
+                                            />
+                                        ` : `
+                                            <input
+                                                type="number"
+                                                name="cost"
+                                                class="wh-input-control"
+                                                value="${item.cost !== undefined ? item.cost : 0}"
+                                            />
+                                        `}
+                                    </div>
+
+                                    <div class="wh-form-group">
+                                        <label class="wh-form-label">
+                                            Hạn sử dụng ${isCreate ? `<span class="wh-lock-hint" title="Cập nhật từ phiếu nhập">${Icons.lock} Khóa</span>` : ''}
                                         </label>
                                         ${isCreate ? `
                                             <input
                                                 type="text"
-                                                name="ingrCode"
-                                                class="wh-input-control"
-                                                value="${escapeHtml(item.ingrCode || '')}"
-                                                placeholder="VD: NVL011"
-                                                required
+                                                name="expiredDate"
+                                                class="wh-input-control is-readonly"
+                                                value=""
+                                                readonly
+                                                tabindex="-1"
+                                                placeholder="(Bỏ trống - Cập nhật từ phiếu nhập)"
                                             />
                                         ` : `
                                             <input
                                                 type="text"
-                                                class="wh-input-control is-readonly"
-                                                value="${escapeHtml(item.ingrCode)}"
-                                                disabled
-                                                readonly
+                                                name="expiredDate"
+                                                class="wh-input-control"
+                                                value="${escapeHtml(item.expiredDate || '')}"
+                                                placeholder="DD/MM/YYYY"
                                             />
                                         `}
+                                    </div>
+
+                                    <div class="wh-form-group wh-col-span-full">
+                                        <label class="wh-form-label">
+                                            Mô tả / Tiêu chuẩn chất lượng ${isCreate ? `<span class="wh-lock-hint" title="Cập nhật từ phiếu nhập">${Icons.lock} Khóa</span>` : ''}
+                                        </label>
+                                        ${isCreate ? `
+                                            <textarea
+                                                name="description"
+                                                rows="3"
+                                                class="wh-input-control is-readonly"
+                                                readonly
+                                                tabindex="-1"
+                                                placeholder="(Bỏ trống - Cập nhật từ phiếu nhập thành phẩm)"
+                                                style="resize: none;"
+                                            ></textarea>
+                                        ` : `
+                                            <textarea
+                                                name="description"
+                                                rows="3"
+                                                class="wh-input-control"
+                                                placeholder="Nhập ghi chú quy chuẩn, GMP, hoạt chất..."
+                                            >${escapeHtml(item.description || '')}</textarea>
+                                        `}
+                                    </div>
+                                </div>
+                            ` : `
+                                <!-- Form Thêm mới hoặc Sửa thông tin Nguyên vật liệu -->
+                                <div class="wh-vthh-grid-fields">
+                                    ${isCreate ? `
+                                        <div style="grid-column: 1 / -1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #166534; display: flex; align-items: flex-start; gap: 8px;">
+                                            <span style="font-size: 16px; line-height: 1;">💡</span>
+                                            <div>
+                                                <strong>Quy tắc thêm mới nguyên vật liệu:</strong> Chỉ cần điền <strong>Tên nguyên vật liệu</strong> để khởi tạo mã mới trong hệ thống. Các thông tin còn lại (ĐVT, số lượng tồn kho = 0, đơn giá = 0, hạn sử dụng, mô tả) mặc định bỏ trống/0 và sẽ được cập nhật tự động khi lập và duyệt <strong>Phiếu nhập kho</strong>.
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    <div class="wh-form-group">
+                                        <label class="wh-form-label">
+                                            Mã nguyên vật liệu <span class="wh-lock-hint" title="${isCreate ? 'Mã được hệ thống tự động sinh' : 'Mã không được phép sửa'}">${Icons.lock} ${isCreate ? 'Tự động' : 'Khóa'}</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="ingrCode"
+                                            class="wh-input-control is-readonly"
+                                            value="${escapeHtml(item.ingrCode || '')}"
+                                            readonly
+                                            tabindex="-1"
+                                            style="font-weight: 600;"
+                                        />
                                     </div>
 
                                     <div class="wh-form-group">
@@ -2706,72 +3029,117 @@ const WarehouseComponents = (function () {
                                         <input
                                             type="text"
                                             name="ingrName"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
+                                            class="wh-input-control"
                                             value="${escapeHtml(item.ingrName || '')}"
                                             placeholder="VD: Paracetamol BP tinh khiết..."
-                                            ${!canEdit ? 'readonly disabled' : ''}
                                             required
+                                            ${isCreate ? 'autofocus' : ''}
                                         />
                                     </div>
 
                                     <div class="wh-form-group">
-                                        <label class="wh-form-label">Đơn vị tính (ĐVT)</label>
+                                        <label class="wh-form-label">
+                                            Đơn vị tính (ĐVT) <span class="wh-lock-hint" title="${isCreate ? 'Cập nhật từ phiếu nhập' : 'Đơn vị tính cố định'}">${Icons.lock} Khóa</span>
+                                        </label>
                                         <input
                                             type="text"
                                             name="unit"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${escapeHtml(item.unit || 'kg')}"
-                                            placeholder="kg, lít, bao..."
-                                            ${!canEdit ? 'readonly disabled' : ''}
+                                            class="wh-input-control is-readonly"
+                                            value="${escapeHtml(item.unit || '')}"
+                                            readonly
+                                            tabindex="-1"
+                                            placeholder="(Bỏ trống - Cập nhật từ phiếu nhập)"
                                         />
                                     </div>
 
                                     <div class="wh-form-group">
-                                        <label class="wh-form-label">Số lượng tồn kho</label>
+                                        <label class="wh-form-label">
+                                            Số lượng tồn kho <span class="wh-lock-hint" title="${isCreate ? 'Mặc định 0 cho NVL mới' : 'Cập nhật qua phiếu xuất/nhập'}">${Icons.lock} Khóa</span>
+                                        </label>
                                         <input
                                             type="number"
                                             name="quantity"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${item.quantity !== undefined ? item.quantity : 0}"
-                                            ${!canEdit ? 'readonly disabled' : ''}
+                                            class="wh-input-control is-readonly"
+                                            value="${isCreate ? 0 : (item.quantity !== undefined ? item.quantity : 0)}"
+                                            readonly
+                                            tabindex="-1"
+                                            style="font-weight: 600;"
                                         />
                                     </div>
 
                                     <div class="wh-form-group">
-                                        <label class="wh-form-label">Đơn giá (VNĐ)</label>
-                                        <input
-                                            type="number"
-                                            name="price"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${item.price !== undefined ? item.price : 0}"
-                                            ${!canEdit ? 'readonly disabled' : ''}
-                                        />
+                                        <label class="wh-form-label">
+                                            Đơn giá (VNĐ) ${isCreate ? `<span class="wh-lock-hint" title="Mặc định 0, cập nhật khi nhập kho">${Icons.lock} Khóa</span>` : ''}
+                                        </label>
+                                        ${isCreate ? `
+                                            <input
+                                                type="number"
+                                                name="price"
+                                                class="wh-input-control is-readonly"
+                                                value="0"
+                                                readonly
+                                                tabindex="-1"
+                                            />
+                                        ` : `
+                                            <input
+                                                type="number"
+                                                name="price"
+                                                class="wh-input-control"
+                                                value="${item.price !== undefined ? item.price : 0}"
+                                            />
+                                        `}
                                     </div>
 
                                     <div class="wh-form-group">
-                                        <label class="wh-form-label">Hạn sử dụng</label>
-                                        <input
-                                            type="text"
-                                            name="expiredDate"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            value="${escapeHtml(item.expiredDate || '31/12/2028')}"
-                                            placeholder="DD/MM/YYYY"
-                                            ${!canEdit ? 'readonly disabled' : ''}
-                                        />
+                                        <label class="wh-form-label">
+                                            Hạn sử dụng ${isCreate ? `<span class="wh-lock-hint" title="Cập nhật từ phiếu nhập">${Icons.lock} Khóa</span>` : ''}
+                                        </label>
+                                        ${isCreate ? `
+                                            <input
+                                                type="text"
+                                                name="expiredDate"
+                                                class="wh-input-control is-readonly"
+                                                value=""
+                                                readonly
+                                                tabindex="-1"
+                                                placeholder="(Bỏ trống - Cập nhật từ phiếu nhập)"
+                                            />
+                                        ` : `
+                                            <input
+                                                type="text"
+                                                name="expiredDate"
+                                                class="wh-input-control"
+                                                value="${escapeHtml(item.expiredDate || '')}"
+                                                placeholder="DD/MM/YYYY"
+                                            />
+                                        `}
                                     </div>
 
                                     <div class="wh-form-group wh-col-span-full">
-                                        <label class="wh-form-label">Mô tả / Tiêu chuẩn kỹ thuật</label>
-                                        <textarea
-                                            name="description"
-                                            rows="3"
-                                            class="wh-input-control ${!canEdit ? 'is-readonly' : ''}"
-                                            placeholder="Độ tinh khiết, tiêu chuẩn Dược điển BP/USP..."
-                                            ${!canEdit ? 'readonly disabled' : ''}
-                                        >${escapeHtml(item.description || '')}</textarea>
+                                        <label class="wh-form-label">
+                                            Mô tả / Tiêu chuẩn kỹ thuật ${isCreate ? `<span class="wh-lock-hint" title="Cập nhật từ phiếu nhập">${Icons.lock} Khóa</span>` : ''}
+                                        </label>
+                                        ${isCreate ? `
+                                            <textarea
+                                                name="description"
+                                                rows="3"
+                                                class="wh-input-control is-readonly"
+                                                readonly
+                                                tabindex="-1"
+                                                placeholder="(Bỏ trống - Cập nhật từ phiếu nhập của nguyên vật liệu)"
+                                                style="resize: none;"
+                                            ></textarea>
+                                        ` : `
+                                            <textarea
+                                                name="description"
+                                                rows="3"
+                                                class="wh-input-control"
+                                                placeholder="Độ tinh khiết, tiêu chuẩn Dược điển BP/USP..."
+                                            >${escapeHtml(item.description || '')}</textarea>
+                                        `}
                                     </div>
                                 </div>
-                            `}
+                            `)}
                         </form>
                     </div>
 
@@ -2780,7 +3148,9 @@ const WarehouseComponents = (function () {
                         <div class="wh-vthh-bottombar-left">
                             ${isCreate ? `
                                 <span class="wh-vthh-lock-notice">
-                                    * Vui lòng điền đầy đủ mã và tên ${typeLabel}.
+                                    ${itemType === 'ingredient'
+                                        ? '* Chỉ cần điền Tên nguyên vật liệu để tạo mới. Các thông tin còn lại sẽ cập nhật từ phiếu nhập kho.'
+                                        : `* Vui lòng điền đầy đủ mã và tên ${typeLabel}.`}
                                 </span>
                             ` : (isEdit ? `
                                 <span class="wh-vthh-lock-notice">

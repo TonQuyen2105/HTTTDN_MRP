@@ -531,6 +531,167 @@ const WarehouseModel = (function () {
         }
     }
 
+    async function fetchIngredientDetailApi(id) {
+        try {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/warehouse/ingredients/${numId}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+
+            const formatted = {
+                id: data.id || data.ingrId,
+                ingrId: data.ingrId || data.id,
+                ingrCode: data.ingrCode || `NVL${String(data.ingrId || data.id).padStart(3, '0')}`,
+                ingrName: data.ingrName || '',
+                unit: data.unit || 'kg',
+                quantity: Number(data.quantity) || 0,
+                quantityFormatted: (Number(data.quantity) || 0).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+                price: Number(data.price) || 0,
+                priceFormatted: (Number(data.price) || 0).toLocaleString('vi-VN'),
+                imageUrl: data.imageUrl || '',
+                description: data.description || '',
+                shelfLifeMonths: data.shelfLifeMonths || 0,
+                importReceipts: (data.importReceipts || []).map(r => ({
+                    ipReceiptId: r.ipReceiptId,
+                    voucherNo: r.voucherNo,
+                    orderNo: r.voucherNo,
+                    importDate: r.importDate || '',
+                    supplierId: r.supplierId,
+                    supplierCode: r.supplierCode || '',
+                    supplierName: r.supplierName || 'Chưa xác định',
+                    quantity: Number(r.quantity) || 0,
+                    quantityFormatted: (Number(r.quantity) || 0).toLocaleString('vi-VN'),
+                    unit: r.unit || data.unit || 'kg',
+                    cost: Number(r.cost) || 0,
+                    costFormatted: (Number(r.cost) || 0).toLocaleString('vi-VN'),
+                    amount: Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0)),
+                    amountFormatted: (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))).toLocaleString('vi-VN'),
+                    expiredDate: r.expiredDate || '31/12/2028',
+                    status: r.status || 'Approve',
+                    statusType: r.statusType || 'success'
+                }))
+            };
+
+            const idx = vthhDatasets.ingredients.findIndex(i => String(i.id) === String(numId) || String(i.ingrId) === String(numId) || i.ingrCode === formatted.ingrCode);
+            if (idx !== -1) {
+                vthhDatasets.ingredients[idx] = { ...vthhDatasets.ingredients[idx], ...formatted };
+            }
+
+            if (state.vthhModal && (String(state.vthhModal.itemId) === String(id) || String(state.vthhModal.itemId) === String(numId) || state.vthhModal.itemId === formatted.ingrCode)) {
+                state.vthhModal.item = { ...(state.vthhModal.item || {}), ...formatted };
+            }
+
+            return formatted;
+        } catch (err) {
+            console.error('Lỗi khi tải chi tiết nguyên vật liệu từ API:', err);
+            return null;
+        }
+    }
+
+    async function fetchProductDetailApi(id) {
+        try {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/warehouse/products/${numId}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+
+            let receipts = (data.importReceipts || data.productReceipts || []).map(r => ({
+                productReceiptId: r.productReceiptId,
+                voucherNo: r.voucherNo,
+                orderNo: r.orderNo || r.voucherNo,
+                importDate: r.importDate || '',
+                creatorName: r.creatorName || 'Nguyễn Tiến Huy',
+                employeeCode: r.employeeCode || 'NV0005',
+                source: r.source || 'Phân xưởng sản xuất',
+                quantity: Number(r.quantity) || 0,
+                quantityFormatted: (Number(r.quantity) || 0).toLocaleString('vi-VN'),
+                unit: r.unit || data.unit || 'Hộp',
+                cost: Number(r.cost) || 0,
+                costFormatted: (Number(r.cost) || 0).toLocaleString('vi-VN'),
+                amount: Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0)),
+                amountFormatted: (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))).toLocaleString('vi-VN'),
+                expiredDate: r.expiredDate || '31/12/2028',
+                status: r.status || 'Approve',
+                statusType: r.statusType || 'success',
+                note: r.note || ''
+            }));
+
+            // Nếu DB chưa có chi tiết phiếu nhập, tự động lấy các lệnh nhập thành phẩm có liên quan trong hệ thống
+            const commandList = (inboundDatasets.inboundCommands && inboundDatasets.inboundCommands.length > 0)
+                ? inboundDatasets.inboundCommands
+                : [
+                    { orderNo: 'LNK00039', orderDate: '25/05/2025', supplier: 'Nguyễn Tiến Huy', deliveryDate: '25/05/2025', productName: 'Viên nén Panadol Extra 500mg', description: 'Lệnh nhập kho theo đơn DMH00028, PNK00039', status: 'Chờ nhập kho', statusType: 'warning' },
+                    { orderNo: 'LNK00018', orderDate: '28/05/2025', supplier: 'Trần Quốc Tuấn', deliveryDate: '29/05/2025', productName: 'Kháng sinh Amoxicillin 500mg', description: 'Lệnh nhập lô L00081 sau khi đạt phiếu Kiểm nghiệm QC', status: 'Chờ nhập kho', statusType: 'warning' },
+                    { orderNo: 'LNK00017', orderDate: '25/05/2025', supplier: 'Lê Hoàng Nam', deliveryDate: '26/05/2025', productName: 'Siro Ho Bảo Thanh 125ml', description: 'Nhập thành phẩm Panadol Extra 500mg (Lô SX: 0525)', status: 'Chờ nhập kho', statusType: 'warning' }
+                ];
+
+            if (receipts.length === 0) {
+                const targetName = (data.productName || '').toLowerCase();
+                const keywords = targetName.split(/[\s,\-_()]+/).filter(w => w.length >= 4);
+                const matchedCmds = commandList.filter(c => {
+                    const pName = (c.productName || '').toLowerCase();
+                    const desc = (c.description || '').toLowerCase();
+                    if (targetName && (pName.includes(targetName) || targetName.includes(pName))) return true;
+                    return keywords.some(k => pName.includes(k) || desc.includes(k));
+                });
+                if (matchedCmds.length > 0) {
+                    receipts = matchedCmds.map((c, idx) => ({
+                        productReceiptId: c.id || idx + 1,
+                        voucherNo: c.orderNo || c.receiptCode || `LNK000${idx + 1}`,
+                        orderNo: c.orderNo || c.receiptCode || `LNK000${idx + 1}`,
+                        importDate: c.orderDate || c.deliveryDate || '25/05/2025',
+                        creatorName: c.supplier || 'Nguyễn Tiến Huy',
+                        employeeCode: 'NV0005',
+                        source: 'Phân xưởng sản xuất',
+                        quantity: 100,
+                        quantityFormatted: '100',
+                        unit: data.unit || 'Hộp',
+                        cost: Number(data.cost) || 50000,
+                        costFormatted: (Number(data.cost) || 50000).toLocaleString('vi-VN'),
+                        amount: (Number(data.cost) || 50000) * 100,
+                        amountFormatted: ((Number(data.cost) || 50000) * 100).toLocaleString('vi-VN'),
+                        expiredDate: data.expiredDate || '31/12/2028',
+                        status: c.status || 'Chờ nhập kho',
+                        statusType: c.statusType || 'warning',
+                        note: c.description || ''
+                    }));
+                }
+            }
+
+            const formatted = {
+                id: data.id || data.productId,
+                productId: data.productId || data.id,
+                productCode: data.productCode || `SP${String(data.productId || data.id).padStart(3, '0')}`,
+                productName: data.productName || '',
+                unit: data.unit || 'Hộp',
+                quantity: Number(data.quantity) || 0,
+                quantityFormatted: (Number(data.quantity) || 0).toLocaleString('vi-VN'),
+                cost: Number(data.cost) || 0,
+                costFormatted: (Number(data.cost) || 0).toLocaleString('vi-VN'),
+                imageUrl: data.imageUrl || '',
+                description: data.description || '',
+                shelfLifeMonths: data.shelfLifeMonths || 0,
+                expiredDate: data.expiredDate || '31/12/2028',
+                importReceipts: receipts,
+                productReceipts: receipts
+            };
+
+            const idx = vthhDatasets.products.findIndex(p => String(p.id) === String(numId) || String(p.productId) === String(numId) || p.productCode === formatted.productCode);
+            if (idx !== -1) {
+                vthhDatasets.products[idx] = { ...vthhDatasets.products[idx], ...formatted };
+            }
+
+            if (state.vthhModal && (String(state.vthhModal.itemId) === String(id) || String(state.vthhModal.itemId) === String(numId) || state.vthhModal.itemId === formatted.productCode)) {
+                state.vthhModal.item = { ...(state.vthhModal.item || {}), ...formatted };
+            }
+
+            return formatted;
+        } catch (err) {
+            console.error('Lỗi khi tải chi tiết sản phẩm từ API:', err);
+            return null;
+        }
+    }
+
     async function fetchSuppliersApi() {
         try {
             const res = await fetch('/api/warehouse/suppliers');
@@ -573,8 +734,10 @@ const WarehouseModel = (function () {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const data = await res.json();
-            inboundDatasets.inboundCommands = data;
-            return data;
+            if (Array.isArray(data) && data.length > 0) {
+                inboundDatasets.inboundCommands = data;
+            }
+            return inboundDatasets.inboundCommands;
         } catch (err) {
             console.error('Lỗi khi tải danh sách lệnh nhập kho thành phẩm:', err);
             return inboundDatasets.inboundCommands;
@@ -697,9 +860,9 @@ const WarehouseModel = (function () {
             if (isProd) {
                 const payload = {
                     productName: (newItem.productName || '').trim(),
-                    quantity: parseInt(newItem.quantity, 10) || 0,
-                    unit: (newItem.unit || 'Hộp').trim(),
-                    cost: parseFloat(newItem.cost) || 0,
+                    quantity: 0,
+                    unit: (newItem.unit || '').trim(),
+                    cost: 0,
                     imageUrl: (newItem.imageUrl || '').trim(),
                     description: (newItem.description || '').trim(),
                     shelfLifeMonths: 24
@@ -720,12 +883,12 @@ const WarehouseModel = (function () {
                     productCode: saved.productCode || `SP${String(saved.productId || saved.id).padStart(3, '0')}`,
                     imageUrl: saved.imageUrl || payload.imageUrl || '',
                     productName: saved.productName || payload.productName,
-                    unit: saved.unit || payload.unit,
-                    quantity: Number(saved.quantity ?? payload.quantity) || 0,
-                    quantityFormatted: (Number(saved.quantity ?? payload.quantity) || 0).toLocaleString('vi-VN'),
-                    cost: Number(saved.cost ?? payload.cost) || 0,
-                    costFormatted: (Number(saved.cost ?? payload.cost) || 0).toLocaleString('vi-VN'),
-                    expiredDate: saved.expiredDate || '31/12/2028',
+                    unit: saved.unit || payload.unit || '',
+                    quantity: 0,
+                    quantityFormatted: '0',
+                    cost: 0,
+                    costFormatted: '0',
+                    expiredDate: '',
                     description: saved.description || payload.description || '',
                     shelfLifeMonths: saved.shelfLifeMonths || 24
                 };
@@ -733,9 +896,9 @@ const WarehouseModel = (function () {
             } else {
                 const payload = {
                     ingrName: (newItem.ingrName || '').trim(),
-                    quantity: parseFloat(newItem.quantity) || 0,
-                    unit: (newItem.unit || 'kg').trim(),
-                    price: parseFloat(newItem.price) || 0,
+                    quantity: 0,
+                    unit: (newItem.unit || '').trim(),
+                    price: 0,
                     imageUrl: (newItem.imageUrl || '').trim(),
                     description: (newItem.description || '').trim(),
                     shelfLifeMonths: 24
@@ -794,7 +957,7 @@ const WarehouseModel = (function () {
                 const existing = vthhDatasets.products.find(p => p.id === numId || p.productId === numId || p.productCode === String(itemId));
                 if (existing) {
                     if (payload.productName) existing.productName = payload.productName;
-                    if (payload.unit) existing.unit = payload.unit;
+                    if (updatedData.unit !== undefined) existing.unit = payload.unit;
                     if (payload.quantity !== undefined) {
                         existing.quantity = payload.quantity;
                         existing.quantityFormatted = payload.quantity.toLocaleString('vi-VN');
@@ -805,12 +968,13 @@ const WarehouseModel = (function () {
                     }
                     if (payload.imageUrl !== undefined) existing.imageUrl = payload.imageUrl || '';
                     if (payload.description !== undefined) existing.description = payload.description;
+                    if (updatedData.expiredDate !== undefined) existing.expiredDate = (updatedData.expiredDate || '').trim();
                 }
             } else {
                 const payload = {
                     ingrName: (updatedData.ingrName || '').trim(),
                     quantity: parseFloat(updatedData.quantity) || 0,
-                    unit: (updatedData.unit || 'kg').trim(),
+                    unit: (updatedData.unit || '').trim(),
                     price: parseFloat(updatedData.price) || 0,
                     imageUrl: (updatedData.imageUrl || '').trim(),
                     description: (updatedData.description || '').trim()
@@ -828,7 +992,7 @@ const WarehouseModel = (function () {
                 const existing = vthhDatasets.ingredients.find(i => i.id === numId || i.ingrId === numId || i.ingrCode === String(itemId));
                 if (existing) {
                     if (payload.ingrName) existing.ingrName = payload.ingrName;
-                    if (payload.unit) existing.unit = payload.unit;
+                    if (updatedData.unit !== undefined) existing.unit = payload.unit;
                     if (payload.quantity !== undefined) {
                         existing.quantity = payload.quantity;
                         existing.quantityFormatted = payload.quantity.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -839,6 +1003,7 @@ const WarehouseModel = (function () {
                     }
                     if (payload.imageUrl !== undefined) existing.imageUrl = payload.imageUrl || '';
                     if (payload.description !== undefined) existing.description = payload.description;
+                    if (updatedData.expiredDate !== undefined) existing.expiredDate = (updatedData.expiredDate || '').trim();
                 }
             }
         },
@@ -863,10 +1028,17 @@ const WarehouseModel = (function () {
 
         // Quản lý Modal thông tin chi tiết / chỉnh sửa VTHH
         openVthhModal(itemType, itemId, mode = 'view') {
+            let item = null;
+            if (itemType === 'product') {
+                item = vthhDatasets.products.find(p => String(p.id) === String(itemId) || p.productCode === String(itemId) || String(p.productId) === String(itemId));
+            } else if (itemType === 'ingredient') {
+                item = vthhDatasets.ingredients.find(i => String(i.id) === String(itemId) || i.ingrCode === String(itemId) || String(i.ingrId) === String(itemId));
+            }
             state.vthhModal = {
                 itemType,
                 itemId,
-                mode: mode || 'view'
+                mode: mode || 'view',
+                item: item ? { ...item } : null
             };
         },
 
@@ -900,20 +1072,20 @@ const WarehouseModel = (function () {
                 productCode: nextCode,
                 productName: '',
                 imageUrl: '',
-                unit: 'Hộp',
-                quantity: 100,
-                cost: 50000,
-                expiredDate: '31/12/2028',
+                unit: '',
+                quantity: 0,
+                cost: 0,
+                expiredDate: '',
                 description: ''
             } : {
                 id: null,
                 ingrCode: nextCode,
                 ingrName: '',
                 imageUrl: '',
-                unit: 'kg',
-                quantity: 50,
-                price: 100000,
-                expiredDate: '31/12/2028',
+                unit: '',
+                quantity: 0,
+                price: 0,
+                expiredDate: '',
                 description: ''
             };
 
@@ -939,18 +1111,56 @@ const WarehouseModel = (function () {
                     item: state.vthhModal.item
                 };
             }
-            let item = null;
-            if (itemType === 'product') {
-                item = vthhDatasets.products.find(p => String(p.id) === String(itemId) || p.productCode === String(itemId) || String(p.productId) === String(itemId));
-            } else if (itemType === 'ingredient') {
-                item = vthhDatasets.ingredients.find(i => String(i.id) === String(itemId) || i.ingrCode === String(itemId) || String(i.ingrId) === String(itemId));
+            let item = (state.vthhModal && state.vthhModal.item) ? state.vthhModal.item : null;
+            if (!item) {
+                if (itemType === 'product') {
+                    item = vthhDatasets.products.find(p => String(p.id) === String(itemId) || p.productCode === String(itemId) || String(p.productId) === String(itemId));
+                } else if (itemType === 'ingredient') {
+                    item = vthhDatasets.ingredients.find(i => String(i.id) === String(itemId) || i.ingrCode === String(itemId) || String(i.ingrId) === String(itemId));
+                }
             }
             if (!item) return null;
+
+            // Xử lý danh sách chi tiết theo từng phiếu nhập cho nguyên vật liệu
+            let importReceipts = [];
+            if (itemType === 'ingredient') {
+                if (item.importReceipts && item.importReceipts.length > 0) {
+                    importReceipts = [...item.importReceipts];
+                }
+
+                // Gộp các phiếu nhập vừa tạo dạng local draft hoặc mới nhập trong phiên làm việc
+                const itemCode = item.ingrCode || `NVL${String(item.id || item.ingrId).padStart(3, '0')}`;
+                (state.inboundLocalDrafts || []).forEach(draft => {
+                    const matchItem = (draft.items || []).find(it => it.itemCode === itemCode || String(it.ingrId) === String(item.id || item.ingrId));
+                    if (matchItem && !importReceipts.some(r => r.voucherNo === draft.voucherNo)) {
+                        importReceipts.unshift({
+                            ipReceiptId: draft.id || draft.voucherNo,
+                            voucherNo: draft.voucherNo,
+                            orderNo: draft.voucherNo,
+                            importDate: draft.voucherDate || 'Hôm nay',
+                            supplierCode: draft.supplierCode || '',
+                            supplierName: draft.supplierName || 'Chưa xác định',
+                            quantity: Number(matchItem.quantity) || 1,
+                            quantityFormatted: (Number(matchItem.quantity) || 1).toLocaleString('vi-VN'),
+                            unit: matchItem.unit || item.unit || 'kg',
+                            cost: Number(matchItem.price) || item.price || 0,
+                            costFormatted: (Number(matchItem.price) || item.price || 0).toLocaleString('vi-VN'),
+                            amount: (Number(matchItem.quantity) || 1) * (Number(matchItem.price) || item.price || 0),
+                            amountFormatted: ((Number(matchItem.quantity) || 1) * (Number(matchItem.price) || item.price || 0)).toLocaleString('vi-VN'),
+                            expiredDate: matchItem.expiryDate || '31/12/2028',
+                            status: draft.status || 'Lưu nháp',
+                            statusType: 'info',
+                            isDraft: true
+                        });
+                    }
+                });
+            }
+
             return {
                 isOpen: true,
                 mode,
                 itemType,
-                item: { ...item }
+                item: { ...item, importReceipts }
             };
         },
 
@@ -964,7 +1174,7 @@ const WarehouseModel = (function () {
 
             const filtered = isProductTab
                 ? filterByKeyword(sourceRows, currentKw, ['productCode', 'productName', 'unit', 'description'])
-                : filterByKeyword(sourceRows, currentKw, ['ingrCode', 'ingrName', 'unit', 'description']);
+                : filterByKeyword(sourceRows, currentKw, ['ingrCode', 'ingrName', 'unit']);
 
             let columns = [];
             if (isProductTab) {
@@ -980,15 +1190,14 @@ const WarehouseModel = (function () {
                     { key: 'action', label: 'Thao tác', isActionDelete: true, width: '95px', align: 'center' }
                 ];
             } else {
+                // Bỏ đi cột Hạn sử dụng và Mô tả ở trang nguyên vật liệu theo yêu cầu
                 columns = [
-                    { key: 'ingrCode', label: 'Mã nguyên vật liệu', isLink: true, width: '140px' },
-                    { key: 'ingrName', label: 'Tên nguyên vật liệu', width: '240px' },
-                    { key: 'unit', label: 'ĐVT', width: '80px' },
-                    { key: 'quantityFormatted', label: 'SL tồn', width: '100px' },
-                    { key: 'priceFormatted', label: 'Đơn giá (VNĐ)', width: '130px' },
-                    { key: 'expiredDate', label: 'Hạn sử dụng', width: '120px' },
-                    { key: 'description', label: 'Mô tả / Tiêu chuẩn' },
-                    { key: 'action', label: 'Thao tác', isActionDelete: true, width: '95px', align: 'center' }
+                    { key: 'ingrCode', label: 'Mã nguyên vật liệu', isLink: true, width: '160px' },
+                    { key: 'ingrName', label: 'Tên nguyên vật liệu' },
+                    { key: 'unit', label: 'ĐVT', width: '90px', align: 'center' },
+                    { key: 'quantityFormatted', label: 'SL tồn', width: '120px', align: 'right' },
+                    { key: 'priceFormatted', label: 'Đơn giá (VNĐ)', width: '150px', align: 'right' },
+                    { key: 'action', label: 'Thao tác', isActionDelete: true, width: '105px', align: 'center' }
                 ];
             }
 
@@ -2038,6 +2247,14 @@ const WarehouseModel = (function () {
                 existing.statusType = 'danger';
             }
             return data;
+        },
+
+        async fetchIngredientDetailApi(id) {
+            return fetchIngredientDetailApi(id);
+        },
+
+        async fetchProductDetailApi(id) {
+            return fetchProductDetailApi(id);
         }
     };
 })();

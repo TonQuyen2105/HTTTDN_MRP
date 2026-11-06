@@ -2311,6 +2311,159 @@ html, body {
     overflow: hidden;
 }
 
+.wh-vthh-modal-window.wh-vthh-wide {
+    max-width: 1040px;
+    width: 95%;
+}
+
+.wh-vthh-info-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+}
+
+.wh-vthh-info-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.wh-vthh-info-code {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #e0f2fe;
+    color: #0369a1;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid #bae6fd;
+}
+
+.wh-vthh-info-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.wh-vthh-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.wh-vthh-stat-item {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 9px 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.wh-vthh-stat-label {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.wh-vthh-stat-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.wh-vthh-stat-value.is-primary {
+    color: #0284c7;
+}
+
+.wh-vthh-stat-value.is-success {
+    color: #16a34a;
+}
+
+.wh-vthh-receipts-section {
+    margin-top: 8px;
+}
+
+.wh-vthh-receipts-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.wh-vthh-receipts-title h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wh-vthh-table-wrapper {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow-x: auto;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.wh-vthh-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    text-align: left;
+}
+
+.wh-vthh-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.wh-vthh-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+}
+
+.wh-vthh-table tr:hover {
+    background-color: #f8fafc;
+}
+
+.wh-vthh-table tfoot td {
+    background-color: #f8fafc;
+    font-weight: 700;
+    border-top: 2px solid #e2e8f0;
+    color: #0f172a;
+}
+
+.wh-vthh-expiry-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: #fef3c7;
+    color: #92400e;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid #fde68a;
+    white-space: nowrap;
+}
+
 .wh-vthh-mode-badge {
     display: inline-flex;
     align-items: center;

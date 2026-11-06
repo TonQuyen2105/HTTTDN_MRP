@@ -44,7 +44,7 @@ public class ProductApiController : ControllerBase
             productName = p.ProductName,
             quantity = p.Quantity ?? 0,
             quantityFormatted = (p.Quantity ?? 0).ToString("N0"),
-            unit = p.Unit ?? "Hộp",
+            unit = p.Unit ?? "",
             cost = p.Cost ?? 0,
             costFormatted = (p.Cost ?? 0).ToString("N0"),
             imageUrl = p.ImageUrl ?? "",
@@ -59,7 +59,7 @@ public class ProductApiController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/warehouse/products/{id} : Xem chi tiết 1 thành phẩm
+    /// GET /api/warehouse/products/{id} : Xem chi tiết 1 thành phẩm kèm các phiếu nhập kho thành phẩm
     /// </summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetProductById(int id)
@@ -70,6 +70,43 @@ public class ProductApiController : ControllerBase
             return NotFound(new { message = $"Không tìm thấy thành phẩm có ID {id}." });
         }
 
+        // Lấy danh sách chi tiết các phiếu nhập kho thành phẩm có chứa sản phẩm này
+        var detailsQuery = from d in _context.ProductReceiptDetails.AsNoTracking()
+                           where d.ProductId == id
+                           join r in _context.ProductReceipts.AsNoTracking() on d.ProductReceiptId equals r.ProductReceiptId
+                           join u in _context.UserAccounts.AsNoTracking() on r.RequestedBy equals u.UserID into uJoin
+                           from u in uJoin.DefaultIfEmpty()
+                           orderby (r.CreatedDate ?? d.CreatedDate) descending, r.ProductReceiptId descending
+                           select new
+                           {
+                               productReceiptId = r.ProductReceiptId,
+                               voucherNo = !string.IsNullOrWhiteSpace(r.ReceiptCode) ? r.ReceiptCode : $"LNK{r.ProductReceiptId:D5}",
+                               orderNo = !string.IsNullOrWhiteSpace(r.ReceiptCode) ? r.ReceiptCode : $"LNK{r.ProductReceiptId:D5}",
+                               importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
+                                   ? (r.CreatedDate ?? d.CreatedDate)!.Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                   : "",
+                               creatorName = u != null ? (!string.IsNullOrWhiteSpace(u.FullName) ? u.FullName : u.Username) : "Nguyễn Tiến Huy",
+                               employeeCode = u != null ? $"NV{u.UserID:D4}" : "NV0005",
+                               source = "Phân xưởng sản xuất",
+                               quantity = d.Quantity,
+                               quantityFormatted = d.Quantity.ToString("N0"),
+                               unit = !string.IsNullOrWhiteSpace(item.Unit) ? item.Unit : "Hộp",
+                               cost = item.Cost ?? 0,
+                               costFormatted = (item.Cost ?? 0).ToString("N0"),
+                               amount = (item.Cost ?? 0) * d.Quantity,
+                               amountFormatted = ((item.Cost ?? 0) * d.Quantity).ToString("N0"),
+                               expiredDate = d.ExpiredDate.HasValue
+                                   ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
+                                   : "31/12/2028",
+                               status = (r.Status == "Approved" || r.Status == "Đã nhập kho" || r.Status == "Approve") ? "Approve" :
+                                        (r.Status == "Rejected" || r.Status == "Từ chối" || r.Status == "Reject") ? "Reject" : "Chờ nhập kho",
+                               statusType = (r.Status == "Approved" || r.Status == "Đã nhập kho" || r.Status == "Approve") ? "success" :
+                                            (r.Status == "Rejected" || r.Status == "Từ chối" || r.Status == "Reject") ? "danger" : "warning",
+                               note = d.Note ?? ""
+                           };
+
+        var receiptDetails = await detailsQuery.ToListAsync();
+
         return Ok(new
         {
             id = item.ProductId,
@@ -78,7 +115,7 @@ public class ProductApiController : ControllerBase
             productName = item.ProductName,
             quantity = item.Quantity ?? 0,
             quantityFormatted = (item.Quantity ?? 0).ToString("N0"),
-            unit = item.Unit ?? "Hộp",
+            unit = item.Unit ?? "",
             cost = item.Cost ?? 0,
             costFormatted = (item.Cost ?? 0).ToString("N0"),
             imageUrl = item.ImageUrl ?? "",
@@ -86,8 +123,59 @@ public class ProductApiController : ControllerBase
             shelfLifeMonths = item.ShelfLifeMonths ?? 0,
             expiredDate = (item.ShelfLifeMonths != null && item.ShelfLifeMonths > 0)
                 ? DateTime.Now.AddMonths(item.ShelfLifeMonths.Value).ToString("dd/MM/yyyy")
-                : "31/12/2028"
+                : "31/12/2028",
+            importReceipts = receiptDetails,
+            productReceipts = receiptDetails
         });
+    }
+
+    /// <summary>
+    /// GET /api/warehouse/products/{id}/product-receipts : Danh sách lệnh nhập kho thành phẩm của sản phẩm
+    /// </summary>
+    [HttpGet("{id:int}/product-receipts")]
+    public async Task<IActionResult> GetProductReceipts(int id)
+    {
+        var exists = await _context.Products.AnyAsync(p => p.ProductId == id);
+        if (!exists)
+        {
+            return NotFound(new { message = $"Không tìm thấy thành phẩm có ID {id}." });
+        }
+
+        var detailsQuery = from d in _context.ProductReceiptDetails.AsNoTracking()
+                           where d.ProductId == id
+                           join r in _context.ProductReceipts.AsNoTracking() on d.ProductReceiptId equals r.ProductReceiptId
+                           join u in _context.UserAccounts.AsNoTracking() on r.RequestedBy equals u.UserID into uJoin
+                           from u in uJoin.DefaultIfEmpty()
+                           orderby (r.CreatedDate ?? d.CreatedDate) descending, r.ProductReceiptId descending
+                           select new
+                           {
+                               productReceiptId = r.ProductReceiptId,
+                               voucherNo = !string.IsNullOrWhiteSpace(r.ReceiptCode) ? r.ReceiptCode : $"LNK{r.ProductReceiptId:D5}",
+                               orderNo = !string.IsNullOrWhiteSpace(r.ReceiptCode) ? r.ReceiptCode : $"LNK{r.ProductReceiptId:D5}",
+                               importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
+                                   ? (r.CreatedDate ?? d.CreatedDate)!.Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                   : "",
+                               creatorName = u != null ? (!string.IsNullOrWhiteSpace(u.FullName) ? u.FullName : u.Username) : "Nguyễn Tiến Huy",
+                               employeeCode = u != null ? $"NV{u.UserID:D4}" : "NV0005",
+                               source = "Phân xưởng sản xuất",
+                               quantity = d.Quantity,
+                               quantityFormatted = d.Quantity.ToString("N0"),
+                               unit = "Hộp",
+                               cost = 0,
+                               costFormatted = "0",
+                               amount = 0,
+                               amountFormatted = "0",
+                               expiredDate = d.ExpiredDate.HasValue
+                                   ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
+                                   : "31/12/2028",
+                               status = (r.Status == "Approved" || r.Status == "Đã nhập kho" || r.Status == "Approve") ? "Approve" :
+                                        (r.Status == "Rejected" || r.Status == "Từ chối" || r.Status == "Reject") ? "Reject" : "Chờ nhập kho",
+                               statusType = (r.Status == "Approved" || r.Status == "Đã nhập kho" || r.Status == "Approve") ? "success" :
+                                            (r.Status == "Rejected" || r.Status == "Từ chối" || r.Status == "Reject") ? "danger" : "warning",
+                               note = d.Note ?? ""
+                           };
+
+        return Ok(await detailsQuery.ToListAsync());
     }
 
     /// <summary>
@@ -105,7 +193,7 @@ public class ProductApiController : ControllerBase
         {
             ProductName = dto.ProductName.Trim(),
             Quantity = dto.Quantity >= 0 ? dto.Quantity : 0,
-            Unit = string.IsNullOrWhiteSpace(dto.Unit) ? "Hộp" : dto.Unit.Trim(),
+            Unit = !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : "",
             Cost = dto.Cost >= 0 ? dto.Cost : 0,
             ImageUrl = dto.ImageUrl?.Trim(),
             Description = dto.Description?.Trim(),

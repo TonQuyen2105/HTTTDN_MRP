@@ -795,6 +795,17 @@ const WarehouseController = (function (Model, View) {
                     if (itemType && itemId && Model.openVthhModal) {
                         Model.openVthhModal(itemType, itemId, 'view');
                         renderMainOnly();
+                        if (itemType === 'ingredient' && Model.fetchIngredientDetailApi) {
+                            try {
+                                await Model.fetchIngredientDetailApi(itemId);
+                                renderMainOnly();
+                            } catch (_) {}
+                        } else if (itemType === 'product' && Model.fetchProductDetailApi) {
+                            try {
+                                await Model.fetchProductDetailApi(itemId);
+                                renderMainOnly();
+                            } catch (_) {}
+                        }
                     }
                     break;
                 }

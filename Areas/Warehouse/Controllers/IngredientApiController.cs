@@ -59,7 +59,7 @@ public class IngredientApiController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/warehouse/ingredients/{id} : Xem chi tiết 1 nguyên vật liệu
+    /// GET /api/warehouse/ingredients/{id} : Xem chi tiết 1 nguyên vật liệu và lịch sử các phiếu nhập
     /// </summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetIngredientById(int id)
@@ -69,6 +69,41 @@ public class IngredientApiController : ControllerBase
         {
             return NotFound(new { message = $"Không tìm thấy nguyên vật liệu có ID {id}." });
         }
+
+        // Lấy danh sách chi tiết các phiếu nhập có chứa nguyên vật liệu này
+        var detailsQuery = from d in _context.ImportReceiptDetails.AsNoTracking()
+                           where d.IngrId == id
+                           join r in _context.ImportReceipts.AsNoTracking() on d.IpReceiptId equals r.IpReceiptId
+                           join s in _context.Suppliers.AsNoTracking() on r.SupplierId equals s.SupplierId into supJoin
+                           from s in supJoin.DefaultIfEmpty()
+                           orderby (r.CreatedDate ?? d.CreatedDate) descending, r.IpReceiptId descending
+                           select new
+                           {
+                               ipReceiptId = r.IpReceiptId,
+                               voucherNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
+                               orderNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
+                               importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
+                                   ? (r.CreatedDate ?? d.CreatedDate).Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                   : "",
+                               supplierId = r.SupplierId,
+                               supplierCode = s != null ? $"NCC{s.SupplierId:D4}" : "",
+                               supplierName = s != null ? s.SupplierName : "Chưa xác định",
+                               quantity = d.Quantity,
+                               quantityFormatted = d.Quantity.ToString("N2"),
+                               unit = item.Unit ?? "kg",
+                               cost = d.Cost ?? item.Price ?? 0,
+                               costFormatted = (d.Cost ?? item.Price ?? 0).ToString("N0"),
+                               amount = (d.Cost ?? item.Price ?? 0) * d.Quantity,
+                               amountFormatted = ((d.Cost ?? item.Price ?? 0) * d.Quantity).ToString("N0"),
+                               expiredDate = d.ExpiredDate.HasValue
+                                   ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
+                                   : "31/12/2028",
+                               status = r.Status ?? "Approve",
+                               statusType = (r.Status == "Approve" || r.Status == "Approved" || r.Status == "Đã nhập kho") ? "success" :
+                                            (r.Status == "Reject" || r.Status == "Rejected" || r.Status == "Từ chối") ? "danger" : "warning"
+                           };
+
+        var receiptDetails = await detailsQuery.ToListAsync();
 
         return Ok(new
         {
@@ -86,8 +121,55 @@ public class IngredientApiController : ControllerBase
             shelfLifeMonths = item.ShelfLifeMonths ?? 0,
             expiredDate = (item.ShelfLifeMonths != null && item.ShelfLifeMonths > 0)
                 ? DateTime.Now.AddMonths(item.ShelfLifeMonths.Value).ToString("dd/MM/yyyy")
-                : "31/12/2028"
+                : "31/12/2028",
+            importReceipts = receiptDetails
         });
+    }
+
+    /// <summary>
+    /// GET /api/warehouse/ingredients/{id}/import-receipts : Danh sách phiếu nhập của nguyên vật liệu
+    /// </summary>
+    [HttpGet("{id:int}/import-receipts")]
+    public async Task<IActionResult> GetIngredientImportReceipts(int id)
+    {
+        var exists = await _context.Ingredients.AnyAsync(i => i.IngrId == id);
+        if (!exists)
+        {
+            return NotFound(new { message = $"Không tìm thấy nguyên vật liệu có ID {id}." });
+        }
+
+        var detailsQuery = from d in _context.ImportReceiptDetails.AsNoTracking()
+                           where d.IngrId == id
+                           join r in _context.ImportReceipts.AsNoTracking() on d.IpReceiptId equals r.IpReceiptId
+                           join s in _context.Suppliers.AsNoTracking() on r.SupplierId equals s.SupplierId into supJoin
+                           from s in supJoin.DefaultIfEmpty()
+                           orderby (r.CreatedDate ?? d.CreatedDate) descending, r.IpReceiptId descending
+                           select new
+                           {
+                               ipReceiptId = r.IpReceiptId,
+                               voucherNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
+                               orderNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
+                               importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
+                                   ? (r.CreatedDate ?? d.CreatedDate).Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                   : "",
+                               supplierId = r.SupplierId,
+                               supplierCode = s != null ? $"NCC{s.SupplierId:D4}" : "",
+                               supplierName = s != null ? s.SupplierName : "Chưa xác định",
+                               quantity = d.Quantity,
+                               quantityFormatted = d.Quantity.ToString("N2"),
+                               cost = d.Cost ?? 0,
+                               costFormatted = (d.Cost ?? 0).ToString("N0"),
+                               amount = (d.Cost ?? 0) * d.Quantity,
+                               amountFormatted = ((d.Cost ?? 0) * d.Quantity).ToString("N0"),
+                               expiredDate = d.ExpiredDate.HasValue
+                                   ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
+                                   : "31/12/2028",
+                               status = r.Status ?? "Approve",
+                               statusType = (r.Status == "Approve" || r.Status == "Approved" || r.Status == "Đã nhập kho") ? "success" :
+                                            (r.Status == "Reject" || r.Status == "Rejected" || r.Status == "Từ chối") ? "danger" : "warning"
+                           };
+
+        return Ok(await detailsQuery.ToListAsync());
     }
 
     /// <summary>
@@ -105,7 +187,7 @@ public class IngredientApiController : ControllerBase
         {
             IngrName = dto.IngrName.Trim(),
             Quantity = dto.Quantity >= 0 ? dto.Quantity : 0,
-            Unit = string.IsNullOrWhiteSpace(dto.Unit) ? "kg" : dto.Unit.Trim(),
+            Unit = !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : "",
             Price = dto.Price >= 0 ? dto.Price : 0,
             ImageUrl = dto.ImageUrl?.Trim(),
             Description = dto.Description?.Trim(),

@@ -2981,6 +2981,256 @@ html, body {
     }
 }
 
+/* ==========================================================================
+   Phân hệ: Yêu cầu sản xuất (Production Requests)
+   ========================================================================== */
+.wh-pr-stats-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.wh-pr-stat-card {
+    flex: 1;
+    min-width: 140px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.wh-pr-stat-card:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+}
+
+.wh-pr-stat-card.is-active {
+    border-color: #0284c7;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 1px #0284c7;
+}
+
+.wh-pr-stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.wh-pr-stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+}
+
+.wh-pr-stat-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.wh-pr-stat-val.text-warning {
+    color: #d97706;
+}
+
+.wh-pr-stat-val.text-primary {
+    color: #0284c7;
+}
+
+.wh-pr-stat-val.text-success {
+    color: #16a34a;
+}
+
+.wh-pr-stat-val.text-danger {
+    color: #dc2626;
+}
+
+/* Badge trạng thái phân công & nút phân công nhanh */
+.wh-pr-assigned-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    max-width: 175px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wh-pr-assigned-badge:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+}
+
+.wh-pr-unassigned-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: #fffbeb;
+    border: 1px dashed #f59e0b;
+    color: #b45309;
+    border-radius: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.wh-pr-unassigned-btn:hover {
+    background: #fef3c7;
+    border-color: #d97706;
+    color: #92400e;
+}
+
+/* Badge trạng thái lệnh sản xuất */
+.wh-pr-status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 10px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.wh-pr-badge-pending {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.wh-pr-badge-progress {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.wh-pr-badge-completed {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.wh-pr-badge-cancelled {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.wh-btn-assign-pr {
+    color: #0284c7;
+}
+
+.wh-btn-assign-pr:hover {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.wh-pr-assigned-badge.is-locked {
+    cursor: default;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.wh-pr-assigned-badge.is-locked:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    transform: none;
+}
+
+.wh-btn-accept-pr {
+    color: #16a34a;
+}
+
+.wh-btn-accept-pr:hover {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.wh-btn-complete-pr {
+    color: #2563eb;
+}
+
+.wh-btn-complete-pr:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Modal action buttons */
+.wh-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 16px;
+    background-color: var(--wh-primary, #0284c7);
+    color: #ffffff;
+    border: 1px solid var(--wh-primary, #0284c7);
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease;
+}
+
+.wh-btn-primary:hover {
+    background-color: var(--wh-primary-hover, #0369a1);
+    border-color: var(--wh-primary-hover, #0369a1);
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+}
+
+.wh-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 16px;
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease;
+}
+
+.wh-btn-secondary:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
+}
+
+.wh-btn-primary:active,
+.wh-btn-secondary:active {
+    transform: translateY(1px);
+}
+
 
 
 

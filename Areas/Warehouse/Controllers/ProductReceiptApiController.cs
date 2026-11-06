@@ -50,17 +50,20 @@ public class ProductReceiptApiController : ControllerBase
             .Where(p => prodIds.Contains(p.ProductId))
             .ToDictionaryAsync(p => p.ProductId);
 
-        var userIds = list.Select(p => p.RequestedBy).Where(u => u.HasValue).Select(u => u!.Value).Distinct().ToList();
-        var users = await _context.UserAccounts
-            .AsNoTracking()
-            .Where(u => userIds.Contains(u.UserID))
-            .ToDictionaryAsync(u => u.UserID);
-
         var reqIds = list.Select(p => p.RequestId).Where(r => r.HasValue).Select(r => r!.Value).Distinct().ToList();
         var prodRequests = await _context.ProductionRequests
             .AsNoTracking()
             .Where(r => reqIds.Contains(r.RequestId))
             .ToDictionaryAsync(r => r.RequestId);
+
+        var assignedUserIds = prodRequests.Values.Select(r => r.AssignedTo).Where(u => u.HasValue).Select(u => u!.Value);
+        var userIds = list.Select(p => p.RequestedBy).Where(u => u.HasValue).Select(u => u!.Value)
+            .Concat(assignedUserIds).Distinct().ToList();
+
+        var users = await _context.UserAccounts
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.UserID))
+            .ToDictionaryAsync(u => u.UserID);
 
         var result = list.Select(p =>
         {
@@ -91,6 +94,23 @@ public class ProductReceiptApiController : ControllerBase
             string orderDateStr = orderDt.ToString("dd/MM/yyyy");
             string deliveryDateStr = orderDt.ToString("dd/MM/yyyy");
 
+            // Thông tin từ Lệnh sản xuất (nếu có)
+            int? assignedTo = null;
+            string? assignedToName = null;
+            string? assignedToEmployeeCode = null;
+            string? requestCode = null;
+            prodRequests.TryGetValue(p.RequestId ?? 0, out var prq);
+            if (prq != null)
+            {
+                requestCode = prq.RequestCode;
+                assignedTo = prq.AssignedTo;
+                if (prq.AssignedTo.HasValue && users.TryGetValue(prq.AssignedTo.Value, out var au))
+                {
+                    assignedToName = !string.IsNullOrWhiteSpace(au.FullName) ? au.FullName : au.Username;
+                    assignedToEmployeeCode = $"NV{au.UserID:D4}";
+                }
+            }
+
             // Diễn giải
             string description = "";
             var firstDetailWithNote = pDetails.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Note));
@@ -98,7 +118,7 @@ public class ProductReceiptApiController : ControllerBase
             {
                 description = firstDetailWithNote.Note;
             }
-            else if (p.RequestId.HasValue && prodRequests.TryGetValue(p.RequestId.Value, out var prq))
+            else if (prq != null)
             {
                 description = $"Nhập thành phẩm từ lệnh sản xuất {prq.RequestCode ?? $"LSX#{prq.RequestId}"}";
             }
@@ -172,6 +192,10 @@ public class ProductReceiptApiController : ControllerBase
                 orderStatus = displayStatus,
                 statusType,
                 requestId = p.RequestId,
+                requestCode,
+                assignedTo,
+                assignedToName,
+                assignedToEmployeeCode,
                 totalItems = items.Count,
                 totalQuantity = items.Sum(i => i.quantity),
                 items
@@ -274,6 +298,29 @@ public class ProductReceiptApiController : ControllerBase
             };
         }).ToList();
 
+        int? assignedTo = null;
+        string? assignedToName = null;
+        string? assignedToEmployeeCode = null;
+        string? requestCode = null;
+        if (receipt.RequestId.HasValue)
+        {
+            var prq = await _context.ProductionRequests.FindAsync(receipt.RequestId.Value);
+            if (prq != null)
+            {
+                requestCode = prq.RequestCode;
+                assignedTo = prq.AssignedTo;
+                if (prq.AssignedTo.HasValue)
+                {
+                    var au = await _context.UserAccounts.FindAsync(prq.AssignedTo.Value);
+                    if (au != null)
+                    {
+                        assignedToName = !string.IsNullOrWhiteSpace(au.FullName) ? au.FullName : au.Username;
+                        assignedToEmployeeCode = $"NV{au.UserID:D4}";
+                    }
+                }
+            }
+        }
+
         var prodNames = items.Select(i => i.productName).Distinct().ToList();
         string productNameStr = prodNames.Count > 0 ? string.Join(", ", prodNames) : "Thành phẩm sản xuất";
 
@@ -296,6 +343,11 @@ public class ProductReceiptApiController : ControllerBase
             department = "Phân xưởng Sản xuất GMP",
             productName = productNameStr,
             description,
+            requestId = receipt.RequestId,
+            requestCode,
+            assignedTo,
+            assignedToName,
+            assignedToEmployeeCode,
             reqQtyColLabel = "SL Yêu cầu",
             actualQtyColLabel = "SL thực nhập",
             items

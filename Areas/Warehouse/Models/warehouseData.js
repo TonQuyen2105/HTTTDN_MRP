@@ -43,6 +43,12 @@ const WarehouseModel = (function () {
             section: 'middle'
         },
         {
+            id: 'yeu-cau-san-xuat',
+            title: 'Yêu cầu sản xuất',
+            icon: 'production',
+            section: 'middle'
+        },
+        {
             id: 'hoat-dong-kho',
             title: 'Hoạt động kho',
             icon: 'operations',
@@ -463,7 +469,18 @@ const WarehouseModel = (function () {
         activeVoucherModal: null,
         activeVoucherDocNo: null,
         activeVoucherMode: 'view',
-        inboundNewDraft: null
+        inboundNewDraft: null,
+        productionRequest: {
+            activeTab: 'tat-ca', // 'tat-ca' | 'cho-xu-ly' | 'dang-san-xuat' | 'hoan-thanh'
+            searchKeyword: '',
+            statusFilter: 'Tất cả',
+            assignmentFilter: 'Tất cả', // 'Tất cả' | 'Đã phân công' | 'Chưa phân công'
+            selectedRows: {},
+            isLoading: false
+        },
+        productionRequests: [],
+        assignableUsers: [],
+        productionRequestModal: null // { mode: 'create'|'edit'|'assign'|'detail', item: {...} }
     };
 
     // =========================================================================
@@ -809,6 +826,16 @@ const WarehouseModel = (function () {
                 await fetchImportReceiptsApi();
             } catch (e) {
                 console.warn('Lỗi tải Phiếu nhập kho NVL:', e);
+            }
+            try {
+                await fetchProductionRequestsApi();
+            } catch (e) {
+                console.warn('Lỗi tải Lệnh sản xuất:', e);
+            }
+            try {
+                await fetchAssignableUsersApi();
+            } catch (e) {
+                console.warn('Lỗi tải Danh sách phân công:', e);
             }
         },
 
@@ -1696,6 +1723,8 @@ const WarehouseModel = (function () {
                 state.outbound.activeTab = tabId;
             } else if (pageType === 'danh-muc-vthh') {
                 state.vthh.activeTab = tabId;
+            } else if (pageType === 'yeu-cau-san-xuat') {
+                state.productionRequest.activeTab = tabId;
             }
         },
 
@@ -1710,6 +1739,8 @@ const WarehouseModel = (function () {
                 } else {
                     state.vthh.ingredientsSearchKeyword = keyword || '';
                 }
+            } else if (pageType === 'yeu-cau-san-xuat') {
+                state.productionRequest.searchKeyword = keyword || '';
             }
         },
 
@@ -1718,6 +1749,8 @@ const WarehouseModel = (function () {
                 state.inbound.statusFilter = statusValue;
             } else if (pageType === 'xuat-kho') {
                 state.outbound.orderStatusFilter = statusValue;
+            } else if (pageType === 'yeu-cau-san-xuat') {
+                state.productionRequest.statusFilter = statusValue;
             }
         },
 
@@ -2255,6 +2288,296 @@ const WarehouseModel = (function () {
 
         async fetchProductDetailApi(id) {
             return fetchProductDetailApi(id);
+        },
+
+        async fetchProductionRequestsApi(params = {}) {
+            try {
+                const query = new URLSearchParams();
+                if (params.keyword) query.append('keyword', params.keyword);
+                if (params.status) query.append('status', params.status);
+                if (params.assignedTo !== undefined && params.assignedTo !== null) query.append('assignedTo', params.assignedTo);
+                if (params.productId) query.append('productId', params.productId);
+                const qs = query.toString();
+                const res = await fetch('/api/production-requests' + (qs ? `?${qs}` : ''));
+                if (!res.ok) throw new Error(`Lỗi tải danh sách lệnh sản xuất (${res.status})`);
+                const data = await res.json();
+                state.productionRequests = Array.isArray(data) ? data : [];
+                return state.productionRequests;
+            } catch (err) {
+                console.error('Lỗi khi nạp danh sách lệnh sản xuất:', err);
+                return state.productionRequests || [];
+            }
+        },
+
+        async fetchProductionRequestDetailApi(id) {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/production-requests/${numId}`);
+            if (!res.ok) throw new Error(`Lỗi tải chi tiết lệnh sản xuất (${res.status})`);
+            return await res.json();
+        },
+
+        async createProductionRequestApi(dto) {
+            const res = await fetch('/api/production-requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dto)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Tạo lệnh sản xuất thất bại.');
+            await this.fetchProductionRequestsApi();
+            return data;
+        },
+
+        async updateProductionRequestApi(id, dto) {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/production-requests/${numId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dto)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Cập nhật lệnh sản xuất thất bại.');
+            await this.fetchProductionRequestsApi();
+            return data;
+        },
+
+        async assignProductionRequest(id, assignedTo) {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/production-requests/${numId}/assign`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignedTo: assignedTo ? parseInt(assignedTo, 10) : null })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Lỗi cập nhật phân công lệnh sản xuất.');
+            await this.fetchProductionRequestsApi();
+            return data;
+        },
+
+        async updateProductionRequestStatusApi(id, status) {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/production-requests/${numId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Cập nhật trạng thái lệnh sản xuất thất bại.');
+            await this.fetchProductionRequestsApi();
+            return data;
+        },
+
+        async deleteProductionRequestApi(id) {
+            const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
+            const res = await fetch(`/api/production-requests/${numId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Xóa lệnh sản xuất thất bại.');
+            await this.fetchProductionRequestsApi();
+            return data;
+        },
+
+        async fetchAssignableUsersApi() {
+            try {
+                const res = await fetch('/api/production-requests/assignable-users');
+                if (!res.ok) throw new Error(`Lỗi tải danh sách nhân sự (${res.status})`);
+                const data = await res.json();
+                state.assignableUsers = Array.isArray(data) ? data : [];
+                return state.assignableUsers;
+            } catch (err) {
+                console.error('Lỗi nạp nhân sự phân công:', err);
+                return state.assignableUsers || [];
+            }
+        },
+
+        setPrTab(tabId) {
+            if (state.productionRequest) {
+                state.productionRequest.activeTab = tabId;
+            }
+        },
+
+        setPrStatusFilter(val) {
+            if (state.productionRequest) {
+                state.productionRequest.statusFilter = val;
+            }
+        },
+
+        setPrAssignmentFilter(val) {
+            if (state.productionRequest) {
+                state.productionRequest.assignmentFilter = val;
+            }
+        },
+
+        setPrSearchKeyword(kw) {
+            if (state.productionRequest) {
+                state.productionRequest.searchKeyword = kw || '';
+            }
+        },
+
+        getProductionRequestGridConfig() {
+            const prState = state.productionRequest || {
+                activeTab: 'tat-ca',
+                searchKeyword: '',
+                statusFilter: 'Tất cả',
+                assignmentFilter: 'Tất cả'
+            };
+
+            let rows = [...(state.productionRequests || [])];
+
+            // Phân loại theo tab
+            if (prState.activeTab === 'cho-xu-ly') {
+                rows = rows.filter(r => r.status === 'Pending' || r.status === 'Chờ xử lý');
+            } else if (prState.activeTab === 'dang-san-xuat') {
+                rows = rows.filter(r => r.status === 'In Production' || r.status === 'In Progress' || r.status === 'Đang sản xuất');
+            } else if (prState.activeTab === 'hoan-thanh') {
+                rows = rows.filter(r => r.status === 'Completed' || r.status === 'Đã hoàn thành');
+            }
+
+            // Lọc theo Status dropdown
+            if (prState.statusFilter && prState.statusFilter !== 'Tất cả') {
+                rows = rows.filter(r => r.status === prState.statusFilter);
+            }
+
+            // Lọc theo Assignment dropdown
+            if (prState.assignmentFilter === 'Đã phân công') {
+                rows = rows.filter(r => r.assignedTo != null);
+            } else if (prState.assignmentFilter === 'Chưa phân công') {
+                rows = rows.filter(r => r.assignedTo == null);
+            }
+
+            // Lọc theo từ khóa tìm kiếm
+            if (prState.searchKeyword && prState.searchKeyword.trim()) {
+                const kw = prState.searchKeyword.trim().toLowerCase();
+                rows = rows.filter(r =>
+                    (r.requestCode && r.requestCode.toLowerCase().includes(kw)) ||
+                    (r.orderNo && r.orderNo.toLowerCase().includes(kw)) ||
+                    (r.productName && r.productName.toLowerCase().includes(kw)) ||
+                    (r.productCode && r.productCode.toLowerCase().includes(kw)) ||
+                    (r.managerName && r.managerName.toLowerCase().includes(kw)) ||
+                    (r.managerEmployeeCode && r.managerEmployeeCode.toLowerCase().includes(kw)) ||
+                    (r.assignedToName && r.assignedToName.toLowerCase().includes(kw)) ||
+                    (r.assignedToEmployeeCode && r.assignedToEmployeeCode.toLowerCase().includes(kw))
+                );
+            }
+
+            const allRows = state.productionRequests || [];
+            const summaryStats = {
+                total: allRows.length,
+                pending: allRows.filter(r => r.status === 'Pending' || r.status === 'Chờ xử lý').length,
+                inProduction: allRows.filter(r => r.status === 'In Production' || r.status === 'In Progress' || r.status === 'Đang sản xuất').length,
+                completed: allRows.filter(r => r.status === 'Completed' || r.status === 'Đã hoàn thành').length,
+                unassigned: allRows.filter(r => r.assignedTo == null).length
+            };
+
+            const columns = [
+                { key: 'requestCode', label: 'Mã lệnh SX', width: '130px', isPrLink: true },
+                { key: 'createdDate', label: 'Ngày lập', width: '150px' },
+                { key: 'productCode', label: 'Mã SP', width: '90px' },
+                { key: 'productName', label: 'Tên thành phẩm sản xuất' },
+                { key: 'unit', label: 'ĐVT', width: '70px', align: 'center' },
+                { key: 'quantityRequired', label: 'Số lượng SX', width: '110px', align: 'right', isNumber: true },
+                { key: 'managerName', label: 'Người lập', width: '150px' },
+                { key: 'assignedToName', label: 'Người được phân công', width: '190px', isPrAssigned: true },
+                { key: 'status', label: 'Trạng thái', width: '130px', align: 'center', isPrStatus: true },
+                { key: 'actions', label: 'Thao tác', width: '130px', align: 'center', isPrActions: true }
+            ];
+
+            return {
+                pageType: 'yeu-cau-san-xuat',
+                tabs: [
+                    { id: 'tat-ca', label: `Tất cả (${summaryStats.total})` },
+                    { id: 'cho-xu-ly', label: `Chờ xử lý (${summaryStats.pending})` },
+                    { id: 'dang-san-xuat', label: `Đang sản xuất (${summaryStats.inProduction})` },
+                    { id: 'hoan-thanh', label: `Đã hoàn thành (${summaryStats.completed})` }
+                ],
+                activeTab: prState.activeTab,
+                filters: [
+                    {
+                        id: 'pr-status-filter',
+                        prefix: 'Trạng thái:',
+                        value: prState.statusFilter,
+                        options: ['Tất cả', 'Pending', 'In Production', 'Completed', 'Cancelled']
+                    },
+                    {
+                        id: 'pr-assign-filter',
+                        prefix: 'Phân công:',
+                        value: prState.assignmentFilter,
+                        options: ['Tất cả', 'Đã phân công', 'Chưa phân công']
+                    }
+                ],
+                searchValue: prState.searchKeyword || '',
+                searchKeyword: prState.searchKeyword || '',
+                columns,
+                rows,
+                totalRecords: rows.length,
+                rangeText: rows.length > 0 ? `1 - ${rows.length}` : '0 - 0',
+                showAddButton: true,
+                addButtonLabel: 'Lập yêu cầu sản xuất',
+                summaryStats
+            };
+        },
+
+        openCreatePrModal() {
+            const nextIdx = (state.productionRequests?.length || 0) + 1;
+            const code = 'LSX' + String(nextIdx).padStart(5, '0');
+            const defaultProd = vthhDatasets.products[0] || { id: 1, productName: 'Sản phẩm', unit: 'Hộp' };
+
+            state.productionRequestModal = {
+                mode: 'create',
+                item: {
+                    requestId: 0,
+                    requestCode: code,
+                    productId: defaultProd.id || defaultProd.productId || 1,
+                    productName: defaultProd.productName,
+                    unit: defaultProd.unit || 'Hộp',
+                    quantityRequired: 500,
+                    status: 'Pending',
+                    managerId: 24,
+                    managerName: 'Tôn Quyền',
+                    assignedTo: null
+                }
+            };
+        },
+
+        openEditPrModal(item) {
+            if (item.status !== 'Pending') {
+                throw new Error(`Lệnh sản xuất '${item.requestCode}' đang ở trạng thái '${item.status}', thông tin đã bị khóa không được chỉnh sửa. Chỉ lệnh ở trạng thái 'Pending' mới được chỉnh sửa.`);
+            }
+            state.productionRequestModal = {
+                mode: 'edit',
+                item: { ...item, status: 'Pending' }
+            };
+        },
+
+        openAssignPrModal(item) {
+            if (item.status !== 'Pending') {
+                throw new Error(`Lệnh sản xuất '${item.requestCode}' đang ở trạng thái '${item.status}', không thể thay đổi phân công. Chỉ lệnh ở trạng thái 'Pending' mới được phân công.`);
+            }
+            state.productionRequestModal = {
+                mode: 'assign',
+                item: { ...item }
+            };
+        },
+
+        openDetailPrModal(item) {
+            state.productionRequestModal = {
+                mode: 'detail',
+                item: { ...item }
+            };
+        },
+
+        closePrModal() {
+            state.productionRequestModal = null;
+        },
+
+        getPrModalData() {
+            if (!state.productionRequestModal) return null;
+            return {
+                ...state.productionRequestModal,
+                assignableUsers: state.assignableUsers || [],
+                products: vthhDatasets.products || []
+            };
         }
     };
 })();

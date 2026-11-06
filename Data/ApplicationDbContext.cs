@@ -44,6 +44,26 @@ public class ApplicationDbContext : DbContext
                   .HasDefaultValue("Active");
         });
 
+        // Cấu hình bảng productionrequest và foreign key assignedto
+        modelBuilder.Entity<ProductionRequest>(entity =>
+        {
+            entity.HasOne(p => p.AssignedToUser)
+                  .WithMany()
+                  .HasForeignKey(p => p.AssignedTo)
+                  .HasConstraintName("fk_productionrequest_assignedto")
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(p => p.Manager)
+                  .WithMany()
+                  .HasForeignKey(p => p.ManagerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Product)
+                  .WithMany()
+                  .HasForeignKey(p => p.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // Khóa chính phức hợp (Composite Primary Keys) cho các bảng chi tiết
         modelBuilder.Entity<ImportReceiptDetail>()
             .HasKey(d => new { d.IpReceiptId, d.IngrId });

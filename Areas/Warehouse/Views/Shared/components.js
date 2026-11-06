@@ -374,6 +374,19 @@ const WarehouseComponents = (function () {
             <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/>
             <path d="M6 18h12"/><path d="M6 14h12"/>
         </svg>`,
+        production: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+            <path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>
+        </svg>`,
+        userCheck: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>
+        </svg>`,
+        userPlus: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>`,
+        userClock: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="18" cy="12" r="3"/><polyline points="18 11 18 12 19 12"/>
+        </svg>`,
         operations: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="8" cy="20" r="2"/><circle cx="18" cy="20" r="2"/>
             <path d="M2 3h3l2.6 12.4a2 2 0 0 0 2 1.6h9.8"/>
@@ -1153,6 +1166,12 @@ const WarehouseComponents = (function () {
                                     <label class="wh-form-label">Bộ phận nhận</label>
                                     <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.department || 'Phân xưởng Viên nén GMP')}" readonly disabled />
                                 </div>
+                                ${cmd.assignedToName ? `
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label">Người được phân công</label>
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.assignedToName + (cmd.assignedToEmployeeCode ? ' (' + cmd.assignedToEmployeeCode + ')' : ''))}" readonly disabled />
+                                </div>
+                                ` : ''}
                                 <div class="wh-form-group wh-col-span-2">
                                     <label class="wh-form-label">Diễn giải / Mục đích xuất</label>
                                     <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.description || '')}" readonly />
@@ -2030,6 +2049,9 @@ const WarehouseComponents = (function () {
             const isProd = config.activeTab === 'san-pham';
             addBtnAction = `data-action="create-vthh-item" data-item-type="${isProd ? 'product' : 'ingredient'}"`;
             addBtnTitle = isProd ? 'Thêm mới sản phẩm' : 'Thêm mới nguyên vật liệu';
+        } else if (config.pageType === 'yeu-cau-san-xuat') {
+            addBtnAction = 'data-action="open-create-pr-modal"';
+            addBtnTitle = 'Lập yêu cầu sản xuất mới';
         }
 
         const addBtnHtml = config.showAddButton
@@ -2146,6 +2168,163 @@ const WarehouseComponents = (function () {
                             </td>`;
                         }
                         return `<td><a href="javascript:void(0)" class="wh-dg-link" onclick="return false;">${escapeHtml(val)}</a></td>`;
+                    }
+                    if (col.isPrLink) {
+                        return `<td>
+                            <a
+                                href="javascript:void(0)"
+                                onclick="return false;"
+                                class="wh-dg-link wh-pr-code-link"
+                                data-action="view-pr-item"
+                                data-pr-id="${escapeHtml(String(row.requestId || ''))}"
+                                title="Xem chi tiết lệnh sản xuất ${escapeHtml(val)}"
+                            >
+                                <strong>${escapeHtml(val)}</strong>
+                            </a>
+                        </td>`;
+                    }
+                    if (col.isNumber) {
+                        const numFormatted = formatVnNumber(row[col.key]);
+                        return `<td style="text-align:right;font-weight:600;color:#1e293b;">${escapeHtml(numFormatted)}</td>`;
+                    }
+                    if (col.isPrAssigned) {
+                        const isPending = (row.status || 'Pending') === 'Pending';
+                        const empCode = row.assignedToEmployeeCode ? ` (${row.assignedToEmployeeCode})` : '';
+
+                        if (!isPending) {
+                            if (row.assignedTo) {
+                                return `
+                                    <td>
+                                        <div class="wh-pr-assigned-badge is-locked" title="Lệnh '${escapeHtml(row.requestCode || '')}' đang ở trạng thái '${escapeHtml(row.status)}' - Phân công đã bị khóa">
+                                            <span style="font-size:12px;margin-right:2px;">🔒</span>
+                                            <span class="wh-pr-assigned-name">${escapeHtml((row.assignedToName || '') + empCode)}</span>
+                                        </div>
+                                    </td>
+                                `;
+                            }
+                            return `
+                                <td>
+                                    <span style="color:#94a3b8;font-size:12px;font-style:italic;" title="Phân công đã bị khóa">
+                                        🔒 Chưa phân công
+                                    </span>
+                                </td>
+                            `;
+                        }
+
+                        if (row.assignedTo) {
+                            return `
+                                <td>
+                                    <div class="wh-pr-assigned-badge" data-action="open-assign-pr-modal" data-pr-id="${escapeHtml(String(row.requestId))}" title="Nhấn để đổi người phân công">
+                                        ${Icons.userCheck || ''}
+                                        <span class="wh-pr-assigned-name">${escapeHtml((row.assignedToName || '') + empCode)}</span>
+                                    </div>
+                                </td>
+                            `;
+                        }
+                        return `
+                            <td>
+                                <button
+                                    type="button"
+                                    class="wh-pr-unassigned-btn"
+                                    data-action="open-assign-pr-modal"
+                                    data-pr-id="${escapeHtml(String(row.requestId))}"
+                                    title="Chưa phân công. Nhấn để phân công nhân sự thực hiện"
+                                >
+                                    ${Icons.userPlus || ''}
+                                    <span>Chưa phân công</span>
+                                </button>
+                            </td>
+                        `;
+                    }
+                    if (col.isPrStatus) {
+                        const st = row.status || 'Pending';
+                        let cls = 'wh-pr-badge-pending';
+                        let label = 'Chờ xử lý';
+                        if (st === 'In Production' || st === 'In Progress' || st === 'Đang sản xuất') {
+                            cls = 'wh-pr-badge-progress';
+                            label = 'Đang sản xuất';
+                        } else if (st === 'Completed' || st === 'Đã hoàn thành') {
+                            cls = 'wh-pr-badge-completed';
+                            label = 'Đã hoàn thành';
+                        } else if (st === 'Cancelled' || st === 'Từ chối' || st === 'Đã hủy') {
+                            cls = 'wh-pr-badge-cancelled';
+                            label = 'Đã hủy';
+                        }
+                        return `
+                            <td style="text-align:center;">
+                                <span class="wh-pr-status-badge ${cls}">${escapeHtml(label)}</span>
+                            </td>
+                        `;
+                    }
+                    if (col.isPrActions) {
+                        const prId = escapeHtml(String(row.requestId));
+                        const prCode = escapeHtml(String(row.requestCode || row.orderNo || ''));
+                        const isPending = (row.status || 'Pending') === 'Pending';
+
+                        return `
+                            <td class="wh-dg-action-cell" style="text-align:center;">
+                                <div class="wh-dg-action-group">
+                                    ${isPending ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-icon wh-btn-assign-pr"
+                                            data-action="open-assign-pr-modal"
+                                            data-pr-id="${prId}"
+                                            title="Phân công thực hiện lệnh ${prCode}"
+                                        >
+                                            ${Icons.userClock || Icons.userCheck}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-icon wh-btn-view-voucher"
+                                            data-action="view-pr-item"
+                                            data-pr-id="${prId}"
+                                            title="Xem chi tiết lệnh ${prCode}"
+                                        >
+                                            ${Icons.docFile || Icons.pencil}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-icon wh-btn-edit-row"
+                                            data-action="edit-pr-item"
+                                            data-pr-id="${prId}"
+                                            title="Chỉnh sửa lệnh ${prCode}"
+                                        >
+                                            ${Icons.penToSquare || Icons.pencil}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-icon wh-btn-delete-row"
+                                            data-action="delete-pr-item"
+                                            data-pr-id="${prId}"
+                                            data-pr-code="${prCode}"
+                                            title="Xóa lệnh ${prCode}"
+                                        >
+                                            ${Icons.trashRed}
+                                        </button>
+                                    ` : `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-icon wh-btn-view-voucher"
+                                            data-action="view-pr-item"
+                                            data-pr-id="${prId}"
+                                            title="Xem chi tiết lệnh ${prCode}"
+                                        >
+                                            ${Icons.docFile || Icons.pencil}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-icon"
+                                            disabled
+                                            style="opacity:0.35;cursor:not-allowed;"
+                                            title="Lệnh '${escapeHtml(row.status)}': các thông tin đã bị khóa, không được chỉnh sửa"
+                                        >
+                                            🔒
+                                        </button>
+                                    `}
+                                </div>
+                            </td>
+                        `;
                     }
                     if (col.isStatusLink) {
                         const cls = row.statusType === 'success' ? 'wh-dg-status-success' : 'wh-dg-status-info';
@@ -2417,11 +2596,47 @@ const WarehouseComponents = (function () {
             }).join('')
             : `<tr><td colspan="${totalColSpan}" class="wh-empty-row">Không có dữ liệu phù hợp</td></tr>`;
 
+        const summaryStatsHtml = config.summaryStats ? `
+            <div class="wh-pr-stats-bar">
+                <div class="wh-pr-stat-card is-total ${config.activeTab === 'tat-ca' ? 'is-active' : ''}" data-action="switch-op-tab" data-page-type="yeu-cau-san-xuat" data-tab-id="tat-ca" title="Xem tất cả yêu cầu">
+                    <div class="wh-pr-stat-info">
+                        <span class="wh-pr-stat-label">Tổng yêu cầu</span>
+                        <span class="wh-pr-stat-val">${config.summaryStats.total}</span>
+                    </div>
+                </div>
+                <div class="wh-pr-stat-card is-pending ${config.activeTab === 'cho-xu-ly' ? 'is-active' : ''}" data-action="switch-op-tab" data-page-type="yeu-cau-san-xuat" data-tab-id="cho-xu-ly" title="Xem các yêu cầu chờ xử lý">
+                    <div class="wh-pr-stat-info">
+                        <span class="wh-pr-stat-label">Chờ xử lý</span>
+                        <span class="wh-pr-stat-val text-warning">${config.summaryStats.pending}</span>
+                    </div>
+                </div>
+                <div class="wh-pr-stat-card is-progress ${config.activeTab === 'dang-san-xuat' ? 'is-active' : ''}" data-action="switch-op-tab" data-page-type="yeu-cau-san-xuat" data-tab-id="dang-san-xuat" title="Xem các yêu cầu đang sản xuất">
+                    <div class="wh-pr-stat-info">
+                        <span class="wh-pr-stat-label">Đang sản xuất</span>
+                        <span class="wh-pr-stat-val text-primary">${config.summaryStats.inProduction}</span>
+                    </div>
+                </div>
+                <div class="wh-pr-stat-card is-completed ${config.activeTab === 'hoan-thanh' ? 'is-active' : ''}" data-action="switch-op-tab" data-page-type="yeu-cau-san-xuat" data-tab-id="hoan-thanh" title="Xem các yêu cầu đã hoàn thành">
+                    <div class="wh-pr-stat-info">
+                        <span class="wh-pr-stat-label">Đã hoàn thành</span>
+                        <span class="wh-pr-stat-val text-success">${config.summaryStats.completed}</span>
+                    </div>
+                </div>
+                <div class="wh-pr-stat-card is-unassigned" data-action="filter-pr-unassigned" title="Lọc các yêu cầu chưa phân công">
+                    <div class="wh-pr-stat-info">
+                        <span class="wh-pr-stat-label">Chưa phân công</span>
+                        <span class="wh-pr-stat-val text-danger">${config.summaryStats.unassigned}</span>
+                    </div>
+                </div>
+            </div>
+        ` : '';
+
         return `
             <div class="wh-datagrid-page">
                 <div class="wh-tabs-bar">
                     ${tabsHtml}
                 </div>
+                ${summaryStatsHtml}
 
                 <div class="wh-datagrid-card">
                     <div class="wh-dg-toolbar">
@@ -3225,6 +3440,238 @@ const WarehouseComponents = (function () {
     }
 
     /**
+     * Sub-component: Modal Lập, Chỉnh sửa, Phân công và Xem chi tiết Yêu cầu sản xuất
+     */
+    function renderProductionRequestModal(modalData) {
+        if (!modalData || !modalData.item) return '';
+
+        const { mode, item, assignableUsers = [], products = [] } = modalData;
+        const isCreate = mode === 'create';
+        const isEdit = mode === 'edit';
+        const isAssign = mode === 'assign';
+        const isDetail = mode === 'detail';
+
+        const prId = item.requestId || 0;
+        const prCode = item.requestCode || `LSX${String(prId).padStart(5, '0')}`;
+        const prodName = item.productName || '';
+        const qty = item.quantityRequired || 0;
+        const unit = item.unit || 'Hộp';
+        const status = item.status || 'Pending';
+
+        if (isAssign) {
+            return `
+                <div class="wh-voucher-overlay" id="wh-voucher-overlay">
+                    <div class="wh-voucher-window" style="max-width:540px;">
+                        <div class="wh-voucher-topbar">
+                            <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
+                                <h2 class="wh-voucher-title">Phân công thực hiện: ${escapeHtml(prCode)}</h2>
+                                <span class="wh-vthh-mode-badge is-edit">Phân công</span>
+                            </div>
+                            <div class="wh-voucher-topbar-right">
+                                <button type="button" class="wh-voucher-win-btn" data-action="close-pr-modal" title="Đóng (Esc)">${Icons.closeX}</button>
+                            </div>
+                        </div>
+                        <div class="wh-voucher-body" style="padding:20px;">
+                            <div class="wh-pr-assign-summary-box" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin-bottom:16px;">
+                                <div style="font-weight:600;font-size:14px;color:#1e293b;margin-bottom:4px;">${escapeHtml(prodName)}</div>
+                                <div style="font-size:13px;color:#64748b;display:flex;gap:16px;">
+                                    <span>Mã lệnh: <strong>${escapeHtml(prCode)}</strong></span>
+                                    <span>Số lượng: <strong>${formatVnNumber(qty)} ${escapeHtml(unit)}</strong></span>
+                                </div>
+                            </div>
+                            <div class="wh-form-group" style="margin-bottom:16px;">
+                                <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Chọn nhân sự phân công <span class="wh-required">*</span></label>
+                                <select id="pr-quick-assign-select" class="wh-input-control" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;">
+                                    <option value="">-- Chưa phân công --</option>
+                                    ${assignableUsers.map(u => `
+                                        <option value="${u.userId}" ${u.userId === item.assignedTo ? 'selected' : ''}>
+                                            ${escapeHtml(u.employeeCode ? '[' + u.employeeCode + '] ' : '')}${escapeHtml(u.fullName || u.username)}${u.role ? ' (' + escapeHtml(u.role) + ')' : ''}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                                <p style="font-size:12px;color:#64748b;margin-top:6px;">Lệnh sẽ được giao cho nhân sự này phụ trách theo dõi và thực hiện quy trình sản xuất.</p>
+                            </div>
+                        </div>
+                        <div class="wh-voucher-footer" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+                            <div>
+                                ${item.assignedTo ? `
+                                    <button type="button" class="wh-btn-secondary" style="color:#dc2626;border-color:#fca5a5;" data-action="unassign-pr" data-pr-id="${prId}">
+                                        Hủy phân công
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <button type="button" class="wh-btn-secondary" data-action="close-pr-modal">Hủy</button>
+                                <button type="button" class="wh-btn-primary" data-action="save-assign-pr" data-pr-id="${prId}">Lưu phân công</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (isCreate || isEdit) {
+            const title = isCreate ? 'Lập yêu cầu sản xuất mới' : `Chỉnh sửa yêu cầu sản xuất: ${prCode}`;
+            return `
+                <div class="wh-voucher-overlay" id="wh-voucher-overlay">
+                    <div class="wh-voucher-window" style="max-width:680px;">
+                        <div class="wh-voucher-topbar">
+                            <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
+                                <h2 class="wh-voucher-title">${escapeHtml(title)}</h2>
+                                <span class="wh-vthh-mode-badge ${isCreate ? 'is-create' : 'is-edit'}">${isCreate ? 'Tạo mới' : 'Chỉnh sửa'}</span>
+                            </div>
+                            <div class="wh-voucher-topbar-right">
+                                <button type="button" class="wh-voucher-win-btn" data-action="close-pr-modal" title="Đóng (Esc)">${Icons.closeX}</button>
+                            </div>
+                        </div>
+                        <div class="wh-voucher-body" style="padding:20px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Mã lệnh sản xuất <span class="wh-required">*</span></label>
+                                    <input type="text" id="pr-form-code" class="wh-input-control is-readonly" value="${escapeHtml(prCode)}" readonly disabled style="width:100%;height:36px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;border-radius:4px;padding:0 10px;cursor:not-allowed;" />
+                                    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Mã lệnh được hệ thống tự động sinh và khóa cố định.</div>
+                                </div>
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Trạng thái</label>
+                                    <input type="text" id="pr-form-status" class="wh-input-control is-readonly" value="Pending" readonly disabled style="width:100%;height:36px;border:1px solid #e2e8f0;background:#fef3c7;color:#b45309;font-weight:600;border-radius:4px;padding:0 10px;cursor:not-allowed;" />
+                                    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Trạng thái luôn mặc định là Pending (khóa, chỉ thay đổi khi nhân viên tiếp nhận).</div>
+                                </div>
+                            </div>
+
+                            <div class="wh-form-group" style="margin-bottom:16px;">
+                                <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Thành phẩm sản xuất <span class="wh-required">*</span></label>
+                                <select id="pr-form-product" class="wh-input-control" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;">
+                                    ${products.map(p => `
+                                        <option value="${p.id || p.productId}" data-unit="${escapeHtml(p.unit || 'Hộp')}" ${(p.id === item.productId || p.productId === item.productId) ? 'selected' : ''}>
+                                            ${escapeHtml(p.productCode ? '[' + p.productCode + '] ' : '')}${escapeHtml(p.productName)} (ĐVT: ${escapeHtml(p.unit || 'Hộp')})
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Số lượng cần sản xuất <span class="wh-required">*</span></label>
+                                    <input type="number" id="pr-form-quantity" class="wh-input-control" min="1" step="1" value="${qty}" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;" />
+                                </div>
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Đơn vị tính</label>
+                                    <input type="text" id="pr-form-unit" class="wh-input-control is-readonly" value="${escapeHtml(unit)}" readonly disabled style="width:100%;height:36px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:4px;padding:0 10px;" />
+                                </div>
+                            </div>
+
+                            <div class="wh-form-group" style="margin-bottom:16px;">
+                                <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Người được phân công thực hiện</label>
+                                <select id="pr-form-assignee" class="wh-input-control" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;">
+                                    <option value="">-- Chưa phân công --</option>
+                                    ${assignableUsers.map(u => `
+                                        <option value="${u.userId}" ${u.userId === item.assignedTo ? 'selected' : ''}>
+                                            ${escapeHtml(u.employeeCode ? '[' + u.employeeCode + '] ' : '')}${escapeHtml(u.fullName || u.username)}${u.role ? ' (' + escapeHtml(u.role) + ')' : ''}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="wh-voucher-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+                            <button type="button" class="wh-btn-secondary" data-action="close-pr-modal">Hủy</button>
+                            <button type="button" class="wh-btn-primary" data-action="${isCreate ? 'save-create-pr' : 'save-edit-pr'}" data-pr-id="${prId}">
+                                ${isCreate ? 'Tạo yêu cầu' : 'Lưu thay đổi'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // isDetail mode
+        const isPending = status === 'Pending';
+        const isInProduction = (status === 'In Production' || status === 'In Progress');
+        const isCompleted = (status === 'Completed');
+
+        return `
+            <div class="wh-voucher-overlay" id="wh-voucher-overlay">
+                <div class="wh-voucher-window" style="max-width:800px;">
+                    <div class="wh-voucher-topbar">
+                        <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
+                            <h2 class="wh-voucher-title">Chi tiết yêu cầu sản xuất: ${escapeHtml(prCode)}</h2>
+                            <span class="wh-vthh-mode-badge is-view">Chỉ xem</span>
+                        </div>
+                        <div class="wh-voucher-topbar-right">
+                            <button type="button" class="wh-voucher-win-btn" data-action="close-pr-modal" title="Đóng (Esc)">${Icons.closeX}</button>
+                        </div>
+                    </div>
+
+                    <div class="wh-voucher-body" style="padding:20px;">
+                        ${isInProduction ? `
+                            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;color:#1e40af;font-size:13px;">
+                                <span style="font-size:18px;">🔒</span>
+                                <div><strong>Lệnh đang sản xuất (In Production):</strong> Toàn bộ thông tin phiếu và phân công đã được khóa cố định, không được phép chỉnh sửa cũng như thay đổi phân công.</div>
+                            </div>
+                        ` : isCompleted ? `
+                            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;color:#166534;font-size:13px;">
+                                <span style="font-size:18px;">✅</span>
+                                <div><strong>Lệnh sản xuất đã hoàn thành (Completed):</strong> Các quy trình sản xuất và nhập kho thành phẩm đã hoàn tất.</div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Master Card -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:16px;">
+                            <div>
+                                <div style="font-size:12px;color:#64748b;margin-bottom:2px;">Mã lệnh & Trạng thái</div>
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                                    <span style="font-size:16px;font-weight:700;color:#0f172a;">${escapeHtml(prCode)}</span>
+                                    <span class="wh-pr-status-badge ${status === 'In Production' || status === 'In Progress' ? 'wh-pr-badge-progress' : status === 'Completed' ? 'wh-pr-badge-completed' : 'wh-pr-badge-pending'}">${escapeHtml(status)}</span>
+                                </div>
+                                <div style="font-size:13px;color:#334155;line-height:1.7;">
+                                    <div>Ngày lập: <strong>${escapeHtml(item.createdDate || '-')}</strong></div>
+                                    <div>Người lập lệnh: <strong>${escapeHtml(item.managerName || 'Quản lý sản xuất')}</strong> ${item.managerEmployeeCode ? `(${escapeHtml(item.managerEmployeeCode)})` : ''}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size:12px;color:#64748b;margin-bottom:2px;">Thành phẩm sản xuất</div>
+                                <div style="font-size:15px;font-weight:600;color:#1e293b;margin-bottom:4px;">
+                                    ${escapeHtml(item.productCode ? '[' + item.productCode + '] ' : '')}${escapeHtml(prodName)}
+                                </div>
+                                <div style="font-size:14px;color:#0284c7;font-weight:600;margin-bottom:8px;">
+                                    Số lượng yêu cầu: ${formatVnNumber(qty)} ${escapeHtml(unit)}
+                                </div>
+                                <div style="font-size:13px;color:#334155;">
+                                    Người phụ trách:
+                                    ${item.assignedToName ? `
+                                        <span class="wh-pr-assigned-badge" style="display:inline-flex;margin-left:6px;">
+                                            ${Icons.userCheck || ''} <strong>${escapeHtml(item.assignedToName)}</strong> ${item.assignedToEmployeeCode ? `(${escapeHtml(item.assignedToEmployeeCode)})` : ''}
+                                        </span>
+                                    ` : `
+                                        <span style="color:#d97706;font-style:italic;margin-left:6px;">Chưa phân công</span>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wh-voucher-footer" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+                        <div>
+                            ${isPending ? `
+                                <button type="button" class="wh-btn-secondary" data-action="open-assign-pr-modal" data-pr-id="${prId}">
+                                    ${Icons.userClock || ''} ${item.assignedTo ? 'Phân công lại' : 'Phân công'}
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            ${isPending ? `
+                                <button type="button" class="wh-btn-primary" data-action="edit-pr-item" data-pr-id="${prId}">
+                                    ${Icons.penToSquare || ''} Chỉnh sửa
+                                </button>
+                            ` : ''}
+                            <button type="button" class="wh-btn-secondary" data-action="close-pr-modal">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
      * Điều phối render Modal Chứng từ theo loại (Đơn hàng / Lệnh kho / Phiếu kho)
      */
     function renderDocumentModal(docData) {
@@ -3267,6 +3714,13 @@ const WarehouseComponents = (function () {
                 return renderTabbedDataGrid(viewPayloads.vthhConfig, modalHtml);
             }
 
+            case 'yeu-cau-san-xuat': {
+                const prModalHtml = viewPayloads.prModalData
+                    ? renderProductionRequestModal(viewPayloads.prModalData)
+                    : '';
+                return renderTabbedDataGrid(viewPayloads.prConfig, prModalHtml);
+            }
+
             case 'nhap-kho':
                 return renderTabbedDataGrid(viewPayloads.inboundConfig, activeVoucherHtml);
 
@@ -3300,6 +3754,7 @@ const WarehouseComponents = (function () {
         renderStockVoucherModal,
         renderDocumentModal,
         renderVthhDetailModal,
+        renderProductionRequestModal,
         renderMainContent
     };
 })();

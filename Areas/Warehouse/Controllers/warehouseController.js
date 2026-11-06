@@ -49,6 +49,8 @@ const WarehouseController = (function (Model, View) {
             outboundConfig: Model.getOutboundGridConfig(),
             vthhConfig: Model.getVthhGridConfig ? Model.getVthhGridConfig() : null,
             vthhModalData: Model.getVthhModalData ? Model.getVthhModalData() : null,
+            prConfig: Model.getProductionRequestGridConfig ? Model.getProductionRequestGridConfig() : null,
+            prModalData: Model.getPrModalData ? Model.getPrModalData() : null,
             activeVoucherData: state.activeVoucherModal
                 ? Model.getVoucherData(state.activeVoucherModal)
                 : null
@@ -199,6 +201,13 @@ const WarehouseController = (function (Model, View) {
                             renderMainOnly();
                         } else if (menuId === 'xuat-kho') {
                             await Model.fetchMaterialReceiptsApi();
+                            renderMainOnly();
+                        } else if (menuId === 'yeu-cau-san-xuat') {
+                            await Promise.all([
+                                Model.fetchProductionRequestsApi(),
+                                Model.fetchAssignableUsersApi(),
+                                Model.loadProducts ? Model.loadProducts() : null
+                            ]);
                             renderMainOnly();
                         } else if (menuId === 'nhap-kho') {
                             await Model.fetchProductReceiptsApi();
@@ -960,6 +969,271 @@ const WarehouseController = (function (Model, View) {
                     break;
                 }
 
+                // --- CÁC THAO TÁC TRÊN YÊU CẦU SẢN XUẤT ---
+                case 'open-create-pr-modal': {
+                    e.preventDefault();
+                    Model.openCreatePrModal();
+                    renderMainOnly();
+                    break;
+                }
+
+                case 'close-pr-modal': {
+                    e.preventDefault();
+                    Model.closePrModal();
+                    renderMainOnly();
+                    break;
+                }
+
+                case 'save-create-pr': {
+                    e.preventDefault();
+                    const codeInput = document.getElementById('pr-form-code');
+                    const prodSelect = document.getElementById('pr-form-product');
+                    const qtyInput = document.getElementById('pr-form-quantity');
+                    const assigneeSelect = document.getElementById('pr-form-assignee');
+
+                    const requestCode = codeInput ? codeInput.value.trim() : '';
+                    const productId = prodSelect ? parseInt(prodSelect.value, 10) : 0;
+                    const quantityRequired = qtyInput ? parseInt(qtyInput.value, 10) : 0;
+                    const status = 'Pending'; // Trạng thái luôn luôn mặc định là Pending khi tạo mới
+                    const assignedTo = (assigneeSelect && assigneeSelect.value) ? parseInt(assigneeSelect.value, 10) : null;
+
+                    if (!productId || productId <= 0) {
+                        View.showNotification ? View.showNotification('Vui lòng chọn thành phẩm cần sản xuất.', 'warning') : alert('Vui lòng chọn thành phẩm.');
+                        return;
+                    }
+                    if (!quantityRequired || quantityRequired <= 0) {
+                        View.showNotification ? View.showNotification('Số lượng cần sản xuất phải lớn hơn 0.', 'warning') : alert('Số lượng phải lớn hơn 0.');
+                        return;
+                    }
+
+                    actionEl.disabled = true;
+                    try {
+                        await Model.createProductionRequestApi({
+                            requestCode,
+                            productId,
+                            quantityRequired,
+                            status,
+                            assignedTo,
+                            managerId: 24
+                        });
+                        Model.closePrModal();
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification(`Đã tạo lệnh sản xuất '${requestCode}' thành công!`, 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi khi tạo lệnh sản xuất.', 'error') : alert(err.message);
+                    } finally {
+                        actionEl.disabled = false;
+                    }
+                    break;
+                }
+
+                case 'edit-pr-item': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    const state = Model.getState();
+                    const item = (state.productionRequests || []).find(r => String(r.requestId) === String(prId));
+                    if (item) {
+                        if (item.status !== 'Pending') {
+                            View.showNotification
+                                ? View.showNotification(`Lệnh sản xuất '${item.requestCode}' đang ở trạng thái '${item.status}', thông tin đã bị khóa không được chỉnh sửa. Chỉ lệnh ở trạng thái 'Pending' mới được chỉnh sửa.`, 'warning')
+                                : alert(`Lệnh đang ở trạng thái '${item.status}', không thể chỉnh sửa.`);
+                            return;
+                        }
+                        try {
+                            Model.openEditPrModal(item);
+                            renderMainOnly();
+                        } catch (err) {
+                            View.showNotification ? View.showNotification(err.message, 'warning') : alert(err.message);
+                        }
+                    }
+                    break;
+                }
+
+                case 'save-edit-pr': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    const prodSelect = document.getElementById('pr-form-product');
+                    const qtyInput = document.getElementById('pr-form-quantity');
+                    const assigneeSelect = document.getElementById('pr-form-assignee');
+
+                    const productId = prodSelect ? parseInt(prodSelect.value, 10) : 0;
+                    const quantityRequired = qtyInput ? parseInt(qtyInput.value, 10) : 0;
+                    const status = 'Pending'; // Trạng thái trong trang chỉnh sửa luôn là Pending
+                    const assignedVal = assigneeSelect ? assigneeSelect.value : '';
+                    const assignedTo = assignedVal ? parseInt(assignedVal, 10) : 0;
+
+                    if (!productId || productId <= 0) {
+                        View.showNotification ? View.showNotification('Vui lòng chọn thành phẩm sản xuất.', 'warning') : alert('Vui lòng chọn thành phẩm.');
+                        return;
+                    }
+                    if (!quantityRequired || quantityRequired <= 0) {
+                        View.showNotification ? View.showNotification('Số lượng sản xuất phải lớn hơn 0.', 'warning') : alert('Số lượng phải lớn hơn 0.');
+                        return;
+                    }
+
+                    actionEl.disabled = true;
+                    try {
+                        await Model.updateProductionRequestApi(prId, {
+                            productId,
+                            quantityRequired,
+                            status,
+                            assignedTo
+                        });
+                        Model.closePrModal();
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification('Cập nhật lệnh sản xuất thành công!', 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi cập nhật lệnh sản xuất.', 'error') : alert(err.message);
+                    } finally {
+                        actionEl.disabled = false;
+                    }
+                    break;
+                }
+
+                case 'open-assign-pr-modal': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    const state = Model.getState();
+                    const item = (state.productionRequests || []).find(r => String(r.requestId) === String(prId));
+                    if (item) {
+                        if (item.status !== 'Pending') {
+                            View.showNotification
+                                ? View.showNotification(`Lệnh sản xuất '${item.requestCode}' đang ở trạng thái '${item.status}', không thể thay đổi phân công. Chỉ lệnh ở trạng thái 'Pending' mới được phân công.`, 'warning')
+                                : alert(`Lệnh đang ở trạng thái '${item.status}', không thể phân công.`);
+                            return;
+                        }
+                        try {
+                            Model.openAssignPrModal(item);
+                            renderMainOnly();
+                        } catch (err) {
+                            View.showNotification ? View.showNotification(err.message, 'warning') : alert(err.message);
+                        }
+                    }
+                    break;
+                }
+
+                case 'save-assign-pr': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    const selectEl = document.getElementById('pr-quick-assign-select');
+                    const assignedTo = selectEl && selectEl.value ? parseInt(selectEl.value, 10) : null;
+
+                    actionEl.disabled = true;
+                    try {
+                        const res = await Model.assignProductionRequest(prId, assignedTo);
+                        Model.closePrModal();
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification(res.message || 'Đã phân công thành công!', 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi phân công lệnh sản xuất.', 'error') : alert(err.message);
+                    } finally {
+                        actionEl.disabled = false;
+                    }
+                    break;
+                }
+
+                case 'unassign-pr': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    actionEl.disabled = true;
+                    try {
+                        const res = await Model.assignProductionRequest(prId, null);
+                        Model.closePrModal();
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification(res.message || 'Đã hủy phân công!', 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi hủy phân công.', 'error') : alert(err.message);
+                    } finally {
+                        actionEl.disabled = false;
+                    }
+                    break;
+                }
+
+                case 'accept-pr-production': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    if (!prId) return;
+                    actionEl.disabled = true;
+                    try {
+                        const res = await Model.updateProductionRequestStatusApi(prId, 'In Production');
+                        Model.closePrModal();
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification(res.message || 'Nhân viên đã tiếp nhận yêu cầu sản xuất! Trạng thái đã chuyển sang In Production và dữ liệu đã được khóa cố định.', 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi khi tiếp nhận yêu cầu sản xuất.', 'error') : alert(err.message);
+                    } finally {
+                        actionEl.disabled = false;
+                    }
+                    break;
+                }
+
+                case 'complete-pr-production': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    if (!prId) return;
+                    if (!confirm('Bạn có chắc chắn muốn xác nhận HOÀN THÀNH lệnh sản xuất này?')) {
+                        return;
+                    }
+                    actionEl.disabled = true;
+                    try {
+                        const res = await Model.updateProductionRequestStatusApi(prId, 'Completed');
+                        Model.closePrModal();
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification(res.message || 'Đã xác nhận hoàn thành lệnh sản xuất!', 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi khi cập nhật trạng thái hoàn thành.', 'error') : alert(err.message);
+                    } finally {
+                        actionEl.disabled = false;
+                    }
+                    break;
+                }
+
+                case 'view-pr-item': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    try {
+                        const detail = await Model.fetchProductionRequestDetailApi(prId);
+                        Model.openDetailPrModal(detail);
+                        renderMainOnly();
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Lỗi tải chi tiết lệnh sản xuất.', 'error') : alert(err.message);
+                    }
+                    break;
+                }
+
+                case 'delete-pr-item': {
+                    e.preventDefault();
+                    const prId = actionEl.getAttribute('data-pr-id');
+                    const prCode = actionEl.getAttribute('data-pr-code') || prId;
+                    const state = Model.getState();
+                    const item = (state.productionRequests || []).find(r => String(r.requestId) === String(prId));
+                    if (item && item.status !== 'Pending') {
+                        View.showNotification
+                            ? View.showNotification(`Lệnh sản xuất '${prCode}' đang ở trạng thái '${item.status}', không thể xóa. Chỉ lệnh ở trạng thái 'Pending' mới được phép xóa.`, 'warning')
+                            : alert(`Lệnh đang ở trạng thái '${item.status}', không thể xóa.`);
+                        return;
+                    }
+                    if (!confirm(`Bạn có chắc chắn muốn xóa lệnh sản xuất '${prCode}' không?`)) {
+                        return;
+                    }
+                    try {
+                        const res = await Model.deleteProductionRequestApi(prId);
+                        renderMainOnly();
+                        View.showNotification ? View.showNotification(res.message || `Đã xóa lệnh sản xuất '${prCode}'!`, 'success') : null;
+                    } catch (err) {
+                        View.showNotification ? View.showNotification(err.message || 'Không thể xóa lệnh sản xuất.', 'error') : alert(err.message);
+                    }
+                    break;
+                }
+
+                case 'filter-pr-unassigned': {
+                    e.preventDefault();
+                    Model.setPrAssignmentFilter('Chưa phân công');
+                    Model.setPrTab('tat-ca');
+                    renderMainOnly();
+                    break;
+                }
+
                 case 'refresh-datagrid': {
                     e.preventDefault();
                     actionEl.classList.add('spinning');
@@ -981,6 +1255,12 @@ const WarehouseController = (function (Model, View) {
                             await Promise.all([Model.fetchProductReceiptsApi(), Model.fetchImportReceiptsApi()]);
                         } catch (err) {
                             console.error('Lỗi làm mới nhập kho:', err);
+                        }
+                    } else if (curMenu === 'yeu-cau-san-xuat') {
+                        try {
+                            await Promise.all([Model.fetchProductionRequestsApi(), Model.fetchAssignableUsersApi()]);
+                        } catch (err) {
+                            console.error('Lỗi làm mới yêu cầu sản xuất:', err);
                         }
                     }
                     setTimeout(function () {
@@ -1008,10 +1288,13 @@ const WarehouseController = (function (Model, View) {
             }
         });
 
-        // Đóng Phiếu Nhập / Xuất hoặc Modal VTHH khi bấm phím Escape
+        // Đóng Phiếu Nhập / Xuất hoặc Modal VTHH / Lệnh SX khi bấm phím Escape
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
-                if (Model.getState().vthhModal) {
+                if (Model.getState().productionRequestModal) {
+                    Model.closePrModal();
+                    renderMainOnly();
+                } else if (Model.getState().vthhModal) {
                     Model.closeVthhModal();
                     renderMainOnly();
                 } else if (Model.getState().activeVoucherModal) {
@@ -1024,6 +1307,14 @@ const WarehouseController = (function (Model, View) {
         document.addEventListener('change', function (e) {
             const target = e.target;
             if (!target) return;
+
+            if (target.id === 'pr-form-product') {
+                const selectedOpt = target.options[target.selectedIndex];
+                const unit = selectedOpt ? selectedOpt.getAttribute('data-unit') : 'Hộp';
+                const unitInput = document.getElementById('pr-form-unit');
+                if (unitInput) unitInput.value = unit || 'Hộp';
+                return;
+            }
 
             if (target.id === 'wh-param-days-select') {
                 Model.setPendingDaysParam(target.value);
@@ -1055,7 +1346,13 @@ const WarehouseController = (function (Model, View) {
             }
 
             const filterId = target.getAttribute('data-filter-id');
-            if (filterId === 'inbound-status-filter') {
+            if (filterId === 'pr-status-filter') {
+                Model.setPrStatusFilter(target.value);
+                renderMainOnly();
+            } else if (filterId === 'pr-assign-filter') {
+                Model.setPrAssignmentFilter(target.value);
+                renderMainOnly();
+            } else if (filterId === 'inbound-status-filter') {
                 Model.setOperationStatusFilter('nhap-kho', target.value);
                 renderMainOnly();
             } else if (filterId === 'outbound-status-filter') {

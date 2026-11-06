@@ -57,6 +57,18 @@ public class MaterialReceiptApiController : ControllerBase
             .GroupBy(b => b.IngrId)
             .ToDictionaryAsync(g => g.Key, g => g.First().ExpiredDate);
 
+        var reqIds = list.Select(m => m.RequestId).Where(r => r.HasValue).Select(r => r!.Value).Distinct().ToList();
+        var prodRequests = await _context.ProductionRequests
+            .AsNoTracking()
+            .Where(r => reqIds.Contains(r.RequestId))
+            .ToDictionaryAsync(r => r.RequestId);
+
+        var assignedUserIds = prodRequests.Values.Select(r => r.AssignedTo).Where(u => u.HasValue).Select(u => u!.Value).Distinct().ToList();
+        var assignedUsers = await _context.UserAccounts
+            .AsNoTracking()
+            .Where(u => assignedUserIds.Contains(u.UserID))
+            .ToDictionaryAsync(u => u.UserID);
+
         var now = DateTime.UtcNow;
 
         var result = list.Select(m =>
@@ -93,6 +105,21 @@ public class MaterialReceiptApiController : ControllerBase
             string displayStatus = "Chờ xuất kho";
             if (m.Status == "Approved" || m.Status == "Đã xuất kho" || m.Status == "Completed") displayStatus = "Đã xuất kho";
             else if (m.Status == "Rejected" || m.Status == "Từ chối") displayStatus = "Từ chối";
+
+            int? assignedTo = null;
+            string? assignedToName = null;
+            string? assignedToEmployeeCode = null;
+            string? requestCode = null;
+            if (m.RequestId.HasValue && prodRequests.TryGetValue(m.RequestId.Value, out var prq))
+            {
+                requestCode = prq.RequestCode;
+                assignedTo = prq.AssignedTo;
+                if (prq.AssignedTo.HasValue && assignedUsers.TryGetValue(prq.AssignedTo.Value, out var au))
+                {
+                    assignedToName = !string.IsNullOrWhiteSpace(au.FullName) ? au.FullName : au.Username;
+                    assignedToEmployeeCode = $"NV{au.UserID:D4}";
+                }
+            }
 
             var items = receiptDetails.Select(d =>
             {
@@ -197,6 +224,10 @@ public class MaterialReceiptApiController : ControllerBase
                 employeeName = "Nguyễn Tiến Huy",
                 employeeCode = "NV0005",
                 requestId = m.RequestId,
+                requestCode,
+                assignedTo,
+                assignedToName,
+                assignedToEmployeeCode,
                 totalItems = items.Count,
                 totalQuantity = items.Sum(i => i.quantity),
                 totalAmount = items.Sum(i => i.amount),
@@ -268,6 +299,29 @@ public class MaterialReceiptApiController : ControllerBase
             .OrderBy(b => b.ExpiredDate)
             .GroupBy(b => b.IngrId)
             .ToDictionaryAsync(g => g.Key, g => g.First().ExpiredDate);
+
+        int? assignedTo = null;
+        string? assignedToName = null;
+        string? assignedToEmployeeCode = null;
+        string? requestCode = null;
+        if (receipt.RequestId.HasValue)
+        {
+            var prq = await _context.ProductionRequests.FindAsync(receipt.RequestId.Value);
+            if (prq != null)
+            {
+                requestCode = prq.RequestCode;
+                assignedTo = prq.AssignedTo;
+                if (prq.AssignedTo.HasValue)
+                {
+                    var au = await _context.UserAccounts.FindAsync(prq.AssignedTo.Value);
+                    if (au != null)
+                    {
+                        assignedToName = !string.IsNullOrWhiteSpace(au.FullName) ? au.FullName : au.Username;
+                        assignedToEmployeeCode = $"NV{au.UserID:D4}";
+                    }
+                }
+            }
+        }
 
         var now = DateTime.UtcNow;
 
@@ -363,6 +417,10 @@ public class MaterialReceiptApiController : ControllerBase
             receipt.CreatedDate,
             receipt.Status,
             receipt.RequestId,
+            requestCode,
+            assignedTo,
+            assignedToName,
+            assignedToEmployeeCode,
             canApprove,
             hasStockIssue,
             hasExpiryIssue,

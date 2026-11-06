@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using httt.Models;
 
 namespace httt.Areas.Warehouse.Models;
 
@@ -148,6 +150,21 @@ public class ProductionRequest
 
     [Column("requestcode")]
     public string? RequestCode { get; set; }
+
+    [Column("assignedto")]
+    public int? AssignedTo { get; set; }
+
+    [JsonIgnore]
+    [ForeignKey("AssignedTo")]
+    public virtual UserAccount? AssignedToUser { get; set; }
+
+    [JsonIgnore]
+    [ForeignKey("ManagerId")]
+    public virtual UserAccount? Manager { get; set; }
+
+    [JsonIgnore]
+    [ForeignKey("ProductId")]
+    public virtual Product? Product { get; set; }
 }
 
 [Table("importreceipt")]

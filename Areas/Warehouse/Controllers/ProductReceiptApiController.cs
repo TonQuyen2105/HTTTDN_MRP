@@ -102,7 +102,7 @@ public class ProductReceiptApiController : ControllerBase
             prodRequests.TryGetValue(p.RequestId ?? 0, out var prq);
             if (prq != null)
             {
-                requestCode = prq.RequestCode;
+                requestCode = !string.IsNullOrWhiteSpace(prq.RequestCode) ? prq.RequestCode : $"LSX{prq.RequestId:D5}";
                 assignedTo = prq.AssignedTo;
                 if (prq.AssignedTo.HasValue && users.TryGetValue(prq.AssignedTo.Value, out var au))
                 {
@@ -193,6 +193,7 @@ public class ProductReceiptApiController : ControllerBase
                 statusType,
                 requestId = p.RequestId,
                 requestCode,
+                productionRequestCode = requestCode,
                 assignedTo,
                 assignedToName,
                 assignedToEmployeeCode,
@@ -214,30 +215,6 @@ public class ProductReceiptApiController : ControllerBase
         }
 
         return Ok(result.ToList());
-    }
-
-    /// <summary>
-    /// GET /api/warehouse/product-receipts/pending : Danh sách phiếu bàn giao thành phẩm từ xưởng chờ duyệt
-    /// </summary>
-    [HttpGet("pending")]
-    public async Task<IActionResult> GetPendingProductReceipts()
-    {
-        var list = await _context.ProductReceipts
-            .AsNoTracking()
-            .Where(p => p.Status == "Pending" || p.Status == "Chờ nhập kho")
-            .OrderByDescending(p => p.CreatedDate)
-            .ToListAsync();
-
-        var result = list.Select(p => new
-        {
-            productReceiptId = p.ProductReceiptId,
-            receiptCode = p.ReceiptCode ?? $"PNK_TP{p.ProductReceiptId:D4}",
-            createdDate = p.CreatedDate.HasValue ? p.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
-            status = p.Status,
-            requestId = p.RequestId
-        }).ToList();
-
-        return Ok(result);
     }
 
     /// <summary>
@@ -307,7 +284,7 @@ public class ProductReceiptApiController : ControllerBase
             var prq = await _context.ProductionRequests.FindAsync(receipt.RequestId.Value);
             if (prq != null)
             {
-                requestCode = prq.RequestCode;
+                requestCode = !string.IsNullOrWhiteSpace(prq.RequestCode) ? prq.RequestCode : $"LSX{prq.RequestId:D5}";
                 assignedTo = prq.AssignedTo;
                 if (prq.AssignedTo.HasValue)
                 {
@@ -345,6 +322,7 @@ public class ProductReceiptApiController : ControllerBase
             description,
             requestId = receipt.RequestId,
             requestCode,
+            productionRequestCode = requestCode,
             assignedTo,
             assignedToName,
             assignedToEmployeeCode,

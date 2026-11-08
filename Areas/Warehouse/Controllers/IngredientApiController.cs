@@ -83,7 +83,7 @@ public class IngredientApiController : ControllerBase
                                voucherNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
                                orderNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
                                importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
-                                   ? (r.CreatedDate ?? d.CreatedDate).Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                   ? (r.CreatedDate ?? d.CreatedDate)!.Value.ToString("dd/MM/yyyy HH:mm:ss")
                                    : "",
                                supplierId = r.SupplierId,
                                supplierCode = s != null ? $"NCC{s.SupplierId:D4}" : "",
@@ -150,7 +150,7 @@ public class IngredientApiController : ControllerBase
                                voucherNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
                                orderNo = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}",
                                importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
-                                   ? (r.CreatedDate ?? d.CreatedDate).Value.ToString("dd/MM/yyyy HH:mm:ss")
+                                   ? (r.CreatedDate ?? d.CreatedDate)!.Value.ToString("dd/MM/yyyy HH:mm:ss")
                                    : "",
                                supplierId = r.SupplierId,
                                supplierCode = s != null ? $"NCC{s.SupplierId:D4}" : "",

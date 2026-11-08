@@ -112,7 +112,7 @@ public class MaterialReceiptApiController : ControllerBase
             string? requestCode = null;
             if (m.RequestId.HasValue && prodRequests.TryGetValue(m.RequestId.Value, out var prq))
             {
-                requestCode = prq.RequestCode;
+                requestCode = !string.IsNullOrWhiteSpace(prq.RequestCode) ? prq.RequestCode : $"LSX{prq.RequestId:D5}";
                 assignedTo = prq.AssignedTo;
                 if (prq.AssignedTo.HasValue && assignedUsers.TryGetValue(prq.AssignedTo.Value, out var au))
                 {
@@ -225,6 +225,7 @@ public class MaterialReceiptApiController : ControllerBase
                 employeeCode = "NV0005",
                 requestId = m.RequestId,
                 requestCode,
+                productionRequestCode = requestCode,
                 assignedTo,
                 assignedToName,
                 assignedToEmployeeCode,
@@ -249,30 +250,6 @@ public class MaterialReceiptApiController : ControllerBase
                 (r.orderStatus != null && r.orderStatus.ToLower().Contains(kw))
             ).ToList();
         }
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// GET /api/warehouse/material-receipts/pending : Danh sách phiếu xin vật tư từ xưởng chờ duyệt
-    /// </summary>
-    [HttpGet("pending")]
-    public async Task<IActionResult> GetPendingMaterialReceipts()
-    {
-        var list = await _context.MaterialReceipts
-            .AsNoTracking()
-            .Where(m => m.Status == "Pending" || m.Status == "Chờ xuất kho")
-            .OrderByDescending(m => m.CreatedDate)
-            .ToListAsync();
-
-        var result = list.Select(m => new
-        {
-            expReceiptId = m.ExpReceiptId,
-            expReceiptCode = m.ExpReceiptCode ?? $"PXK{m.ExpReceiptId:D5}",
-            createdDate = m.CreatedDate.HasValue ? m.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
-            status = m.Status,
-            requestId = m.RequestId
-        }).ToList();
 
         return Ok(result);
     }
@@ -309,7 +286,7 @@ public class MaterialReceiptApiController : ControllerBase
             var prq = await _context.ProductionRequests.FindAsync(receipt.RequestId.Value);
             if (prq != null)
             {
-                requestCode = prq.RequestCode;
+                requestCode = !string.IsNullOrWhiteSpace(prq.RequestCode) ? prq.RequestCode : $"LSX{prq.RequestId:D5}";
                 assignedTo = prq.AssignedTo;
                 if (prq.AssignedTo.HasValue)
                 {
@@ -418,6 +395,7 @@ public class MaterialReceiptApiController : ControllerBase
             receipt.Status,
             receipt.RequestId,
             requestCode,
+            productionRequestCode = requestCode,
             assignedTo,
             assignedToName,
             assignedToEmployeeCode,

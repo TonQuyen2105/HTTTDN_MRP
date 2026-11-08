@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj": {}
+    "C:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj": {}
   },
   "projects": {
-    "c:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj": {
+    "C:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj",
+        "projectUniqueName": "C:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj",
         "projectName": "httt",
-        "projectPath": "c:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj",
+        "projectPath": "C:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\httt.csproj",
         "packagesPath": "C:\\Users\\MSI\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\obj\\",
+        "outputPath": "C:\\Users\\MSI\\Desktop\\HTTTDN_MRP\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

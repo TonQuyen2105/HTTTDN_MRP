@@ -378,6 +378,10 @@ const WarehouseComponents = (function () {
             <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
             <path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>
         </svg>`,
+        supplier: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/>
+            <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/>
+        </svg>`,
         userCheck: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>
         </svg>`,
@@ -442,66 +446,75 @@ const WarehouseComponents = (function () {
                         <span class="wh-brand-logo">${Icons.brandWarehouse}</span>
                         <span class="wh-brand-title">Kho hàng</span>
                     </a>
-                    <div class="wh-search-box">
-                        <span class="wh-search-icon">${Icons.search}</span>
-                        <input
-                            type="text"
-                            id="wh-global-search"
-                            class="wh-search-input"
-                            placeholder="Tìm kiếm"
-                            value="${escapeHtml(state.searchKeyword)}"
-                        />
-                    </div>
                 </div>
 
                 <div class="wh-header-right">
-                    <a
-                        href="/swagger"
-                        target="_blank"
-                        class="wh-swagger-link"
-                        title="Xem tài liệu và kiểm thử trực tiếp Web API qua Swagger UI"
-                        style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:6px; background:#0284c7; color:#ffffff; font-size:12px; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.08);"
-                    >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        <span>Web API</span>
-                    </a>
-                    <button
-                        type="button"
-                        class="wh-data-mode-btn"
-                        data-action="toggle-data-mode"
-                        title="Chuyển đổi giữa dữ liệu mẫu theo ảnh và dữ liệu mở rộng Dược phẩm MRP"
-                    >
-                        ${state.usePharmaFullData ? 'Dữ liệu: MRP Dược phẩm' : 'Dữ liệu: Theo ảnh mẫu'}
-                    </button>
-                    <button type="button" class="wh-icon-btn" title="Thiết lập">
-                        ${Icons.settings}
-                    </button>
-                    <span class="wh-header-divider"></span>
-                    <button type="button" class="wh-icon-btn" title="Tài liệu kho">
-                        ${Icons.folderDoc}
-                        <span class="wh-badge-dot"></span>
-                    </button>
-                    <button type="button" class="wh-icon-btn" title="Trao đổi nội bộ">
-                        ${Icons.chat}
-                        <span class="wh-badge-danger">29</span>
-                    </button>
-                    <button type="button" class="wh-icon-btn" title="Thông báo">
-                        ${Icons.bell}
-                    </button>
-                    <button type="button" class="wh-icon-btn" title="Trợ giúp">
-                        ${Icons.helpCircle}
-                    </button>
-                    <button type="button" class="wh-icon-btn" title="Tiện ích khác">
-                        ${Icons.moreCircle}
-                    </button>
-                    <button type="button" class="wh-icon-btn" title="Gợi ý tối ưu tồn kho">
-                        ${Icons.ideaBulb}
-                    </button>
-                    <button type="button" class="wh-avatar-btn" title="Tài khoản Thủ kho Dược">
-                        <img src="${avatarSvg}" alt="User Avatar" />
-                    </button>
+                    <div class="wh-user-profile-menu-container">
+                        <button
+                            type="button"
+                            class="wh-avatar-btn ${state.isUserDropdownOpen ? 'active' : ''}"
+                            data-action="toggle-user-dropdown"
+                            title="Tài khoản cá nhân: ${escapeHtml(state.currentUser?.fullName || 'DS. Phan Thanh Hà')}"
+                        >
+                            <img src="${avatarSvg}" alt="User Avatar" />
+                        </button>
+                        ${renderUserDropdown(state)}
+                    </div>
                 </div>
             </header>
+        `;
+    }
+
+    /**
+     * Component Dropdown Thông tin nhân viên trên Header
+     */
+    function renderUserDropdown(state) {
+        if (!state.isUserDropdownOpen) return '';
+
+        const user = state.currentUser || {
+            userId: 9,
+            username: 'thanhha',
+            fullName: 'DS. Phan Thanh Hà',
+            role: 'Employee',
+            phone: '0904 112 334',
+            status: 'Active'
+        };
+
+        const avatarSvg = `data:image/svg+xml;utf8,` + encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                <rect width="64" height="64" fill="#cbd5e1"/>
+                <circle cx="32" cy="24" r="12" fill="#475569"/>
+                <path d="M12 56c0-11 9-20 20-20s20 9 20 20" fill="#475569"/>
+            </svg>`
+        );
+
+        return `
+            <div class="wh-user-dropdown" id="wh-user-dropdown">
+                <div class="wh-user-dropdown-header">
+                    <div class="wh-user-dropdown-avatar">
+                        <img src="${avatarSvg}" alt="Avatar" />
+                    </div>
+                    <div class="wh-user-dropdown-info">
+                        <div class="wh-user-dropdown-name">${escapeHtml(user.fullName)}</div>
+                        <div class="wh-user-dropdown-code">
+                            <span class="wh-badge-code">ID: ${escapeHtml(user.userId)}</span>
+                            <span class="wh-user-dropdown-username">@${escapeHtml(user.username)}</span>
+                        </div>
+                        <div class="wh-user-dropdown-role">${escapeHtml(user.role || 'Thủ kho')} • ${escapeHtml(user.status || 'Active')}</div>
+                    </div>
+                </div>
+                <div class="wh-user-dropdown-divider"></div>
+                <div class="wh-user-dropdown-actions">
+                    <button type="button" class="wh-user-dropdown-item" data-action="view-employee-profile">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span>Xem chi tiết</span>
+                    </button>
+                    <button type="button" class="wh-user-dropdown-item wh-user-logout-btn" data-action="logout-user">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <span>Đăng xuất</span>
+                    </button>
+                </div>
+            </div>
         `;
     }
 
@@ -682,11 +695,6 @@ const WarehouseComponents = (function () {
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                <div class="wh-card-footer">
-                    <span>Số liệu tính đến: <strong style="font-weight:500;">${escapeHtml(cardConfig.lastUpdated)}</strong></span>
-                    <a href="javascript:void(0)" onclick="return false;" class="wh-reload-link" data-action="refresh-card" data-card-id="${cardConfig.id}">Tải lại</a>
                 </div>
             </section>
         `;
@@ -1128,6 +1136,12 @@ const WarehouseComponents = (function () {
             else if (hasExpiryIssue) blockReason = 'Có nguyên vật liệu hạn sử dụng chỉ còn 1 ngày hoặc đã hết hạn!';
         }
 
+        const rawReqCode = cmd.requestCode || cmd.productionRequestCode;
+        const prodReqCodeDisplay = (rawReqCode && String(rawReqCode).trim())
+            ? String(rawReqCode).trim()
+            : (cmd.requestId ? `LSX${String(cmd.requestId).padStart(5, '0')}` : '-');
+        const hasProdReq = prodReqCodeDisplay !== '-';
+
         return `
             <div class="wh-voucher-overlay" id="wh-voucher-overlay">
                 <div class="wh-voucher-window" style="max-width:1060px;">
@@ -1181,11 +1195,29 @@ const WarehouseComponents = (function () {
                             <!-- Khối bên phải -->
                             <div class="wh-voucher-master-right">
                                 <div class="wh-form-group">
-                                    <label class="wh-form-label">${escapeHtml(cmd.commandNoLabel || 'Số lệnh')}</label>
-                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.commandNo)}" readonly disabled />
+                                    <label class="wh-form-label">${escapeHtml(cmd.commandNoLabel || (isOutbound ? 'Số phiếu xuất kho' : 'Số phiếu nhập kho'))}</label>
+                                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.commandNo)}" readonly disabled style="font-weight: 600;" />
                                 </div>
                                 <div class="wh-form-group">
-                                    <label class="wh-form-label">${escapeHtml(cmd.dueDateLabel || 'Hạn xuất kho')}</label>
+                                    <label class="wh-form-label">Mã yêu cầu sản xuất</label>
+                                    <div class="wh-input-group">
+                                        <input
+                                            type="text"
+                                            class="wh-input-control is-readonly"
+                                            value="${escapeHtml(prodReqCodeDisplay)}"
+                                            readonly
+                                            disabled
+                                            style="font-weight: 600; color: ${hasProdReq ? '#1d4ed8' : '#6b7280'};"
+                                        />
+                                        ${hasProdReq ? `
+                                            <span class="wh-input-addon-btn" title="Mã yêu cầu sản xuất: ${escapeHtml(prodReqCodeDisplay)}" style="cursor:default;color:#2563eb;">
+                                                ${Icons.docFile}
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label">${escapeHtml(cmd.dueDateLabel || (isOutbound ? 'Hạn xuất kho' : 'Hạn nhập kho'))}</label>
                                     <div class="wh-input-group">
                                         <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.dueDate)}" readonly disabled />
                                         <button type="button" class="wh-input-addon-btn" title="Chọn hạn" disabled>${Icons.calendar}</button>
@@ -1413,6 +1445,7 @@ const WarehouseComponents = (function () {
      */
     function renderStockVoucherModal(voucher) {
         const isInbound = voucher.voucherType === 'inbound';
+        const isOutboundProduct = voucher.voucherType === 'outbound';
         const isCreate = voucher.mode === 'create';
         const suppliersList = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getSuppliersList) ? WarehouseModel.getSuppliersList() : [];
         const ingredientsList = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getIngredientsList) ? WarehouseModel.getIngredientsList() : [];
@@ -1420,6 +1453,8 @@ const WarehouseComponents = (function () {
         let fullTitle = `Phiếu ${voucher.selectedSubType ? voucher.selectedSubType.toLowerCase() : (isInbound ? 'nhập kho' : 'xuất kho')} ${voucher.voucherNo}`;
         if (isInbound && isCreate) {
             fullTitle = `Lập phiếu nhập kho nguyên vật liệu - ${voucher.voucherNo}`;
+        } else if (isOutboundProduct) {
+            fullTitle = `Phiếu xuất kho thành phẩm - ${voucher.voucherNo}`;
         }
 
         const totalQuantity = voucher.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
@@ -1496,63 +1531,93 @@ const WarehouseComponents = (function () {
                     </div>
                 `;
             }
-        } else {
-            // Phiếu Xuất (giữ nguyên mẫu)
+        } else if (isOutboundProduct) {
+            // Phiếu Xuất kho thành phẩm (Xem chi tiết - Khóa tất cả trường)
             masterLeftFieldsHtml = `
-                <!-- Dòng 1 (Phiếu Xuất): Mã đối tượng + Tên đối tượng nhận hàng + Kho xuất * -->
+                <!-- Dòng 1: Mã nhân viên + Tên nhân viên lập phiếu -->
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Mã nhân viên</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || 'NV0005')}" readonly disabled />
+                </div>
+                <div class="wh-form-group wh-col-span-2">
+                    <label class="wh-form-label">Tên nhân viên lập phiếu</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || voucher.creatorName || 'DS. Phan Thanh Hà')}" readonly disabled />
+                </div>
+
+                <!-- Dòng 2: Khách hàng / Đại lý + SĐT -->
+                <div class="wh-form-group wh-col-span-2">
+                    <label class="wh-form-label">Khách hàng / Đại lý nhận hàng</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.customer || voucher.partnerName || '')}" readonly disabled style="font-weight:600;" />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Số điện thoại</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.customerPhone || 'Chưa cập nhật')}" readonly disabled />
+                </div>
+
+                <!-- Dòng 3: Địa chỉ nhận hàng + Diễn giải -->
+                <div class="wh-form-group wh-col-span-2">
+                    <label class="wh-form-label">Địa chỉ giao hàng</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.shippingAddress || voucher.deliveryAddress || '')}" readonly disabled />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Diễn giải / Lý do xuất</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.description || 'Xuất bán hàng dược phẩm')}" readonly disabled />
+                </div>
+            `;
+        } else {
+            // Phiếu Xuất khác
+            masterLeftFieldsHtml = `
                 <div class="wh-form-group">
                     <label class="wh-form-label">Mã đối tượng</label>
                     <select class="wh-select-control">
-                        ${voucher.partnerCodeOptions.map(opt => `
+                        ${(voucher.partnerCodeOptions || []).map(opt => `
                             <option value="${escapeHtml(opt)}" ${opt === voucher.partnerCode ? 'selected' : ''}>${escapeHtml(opt)}</option>
                         `).join('')}
                     </select>
                 </div>
                 <div class="wh-form-group">
                     <label class="wh-form-label">Tên đối tượng nhận hàng</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.partnerName)}" />
+                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.partnerName || '')}" />
                 </div>
                 <div class="wh-form-group">
                     <label class="wh-form-label">Kho xuất <span class="wh-req">*</span></label>
                     <select class="wh-select-control">
-                        ${voucher.warehouseOptions.map(opt => `
+                        ${(voucher.warehouseOptions || []).map(opt => `
                             <option value="${escapeHtml(opt)}" ${opt === voucher.warehouse ? 'selected' : ''}>${escapeHtml(opt)}</option>
                         `).join('')}
                     </select>
                 </div>
-
-                <!-- Dòng 2 (Phiếu Xuất): Chi nhánh + Người nhận + Địa chỉ giao hàng -->
                 <div class="wh-form-group">
                     <label class="wh-form-label">Chi nhánh</label>
                     <select class="wh-select-control">
-                        ${voucher.branchOptions.map(opt => `
+                        ${(voucher.branchOptions || []).map(opt => `
                             <option value="${escapeHtml(opt)}" ${opt === voucher.branch ? 'selected' : ''}>${escapeHtml(opt)}</option>
                         `).join('')}
                     </select>
                 </div>
                 <div class="wh-form-group">
                     <label class="wh-form-label">Người nhận</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.receiver)}" />
+                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.receiver || '')}" />
                 </div>
                 <div class="wh-form-group">
                     <label class="wh-form-label">Địa chỉ giao hàng</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.deliveryAddress)}" />
+                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.deliveryAddress || '')}" />
                 </div>
-
-                <!-- Dòng 3 (Phiếu Xuất): Diễn giải + Tham chiếu -->
                 <div class="wh-form-group wh-col-span-2">
                     <label class="wh-form-label">Diễn giải</label>
-                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.description)}" />
+                    <input type="text" class="wh-input-control" value="${escapeHtml(voucher.description || '')}" />
                 </div>
                 <div class="wh-form-group">
                     <label class="wh-form-label">Tham chiếu</label>
                     <div class="wh-input-group">
-                        <input type="text" class="wh-input-control" value="${escapeHtml(voucher.reference)}" />
+                        <input type="text" class="wh-input-control" value="${escapeHtml(voucher.reference || '')}" />
                         <button type="button" class="wh-input-addon-btn" title="Chọn chứng từ tham chiếu">${Icons.search}</button>
                     </div>
                 </div>
             `;
         }
+
+        const voucherReqCode = voucher.requestCode || voucher.productionRequestCode || (voucher.requestId ? `LSX${String(voucher.requestId).padStart(5, '0')}` : null);
 
         const masterRightFieldsHtml = isInbound
             ? `
@@ -1562,11 +1627,40 @@ const WarehouseComponents = (function () {
                     </label>
                     <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.voucherNo)}" readonly disabled style="font-weight: 600;" />
                 </div>
+                ${voucherReqCode ? `
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Mã yêu cầu sản xuất</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucherReqCode)}" readonly disabled style="font-weight: 600; color: #1d4ed8;" />
+                </div>
+                ` : ''}
                 <div class="wh-form-group">
                     <label class="wh-form-label">
                         Ngày nhập kho <span class="wh-req">*</span>
                     </label>
                     <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.voucherDate)}" readonly disabled />
+                </div>
+            `
+            : isOutboundProduct
+            ? `
+                <div class="wh-form-group">
+                    <label class="wh-form-label">
+                        Số phiếu xuất kho <span class="wh-req">*</span>
+                    </label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.voucherNo)}" readonly disabled style="font-weight: 600;" />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Đơn bán hàng liên kết</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.orderCode || 'Đơn bán hàng lẻ')}" readonly disabled style="font-weight: 600; color: #1d4ed8;" />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">
+                        Ngày lập phiếu <span class="wh-req">*</span>
+                    </label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.voucherDate)}" readonly disabled />
+                </div>
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Kho xuất</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.warehouse || 'Kho thành phẩm GMP')}" readonly disabled />
                 </div>
             `
             : `
@@ -1576,6 +1670,12 @@ const WarehouseComponents = (function () {
                     </label>
                     <input type="text" class="wh-input-control" value="${escapeHtml(voucher.voucherNo)}" />
                 </div>
+                ${voucherReqCode ? `
+                <div class="wh-form-group">
+                    <label class="wh-form-label">Mã yêu cầu sản xuất</label>
+                    <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucherReqCode)}" readonly disabled style="font-weight: 600; color: #1d4ed8;" />
+                </div>
+                ` : ''}
                 <div class="wh-form-group">
                     <label class="wh-form-label">
                         Ngày xuất kho <span class="wh-req">*</span>
@@ -1589,11 +1689,16 @@ const WarehouseComponents = (function () {
 
         return `
             <div class="wh-voucher-overlay" id="wh-voucher-overlay">
-                <div class="wh-voucher-window">
+                <div class="wh-voucher-window" style="${isOutboundProduct ? 'max-width: 1080px;' : ''}">
                     <!-- Thanh tiêu đề trên cùng của Phiếu -->
                     <div class="wh-voucher-topbar">
-                        <div class="wh-voucher-topbar-left">
+                        <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
                             <h2 class="wh-voucher-title">${escapeHtml(fullTitle)}</h2>
+                            ${isOutboundProduct ? `
+                                <span class="wh-vthh-mode-badge ${voucher.status === 'Đã xuất kho' ? 'is-view' : voucher.status === 'Từ chối' ? '' : 'is-edit'}" style="${voucher.status === 'Đã xuất kho' ? 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;' : voucher.status === 'Từ chối' ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;' : 'background:#fef3c7;color:#b45309;border:1px solid #fde68a;'}">
+                                    ${escapeHtml(voucher.status || 'Chờ xuất kho')}
+                                </span>
+                            ` : ''}
                         </div>
 
                         <div class="wh-voucher-topbar-right">
@@ -1617,9 +1722,20 @@ const WarehouseComponents = (function () {
                             </div>
                         </div>
 
+                        ${isOutboundProduct && (voucher.status === 'Chờ xuất kho' || voucher.status === 'Pending') && (voucher.hasStockIssue || !voucher.canApprove) ? `
+                            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;color:#991b1b;font-size:12.5px;font-weight:500;">
+                                <div style="flex-shrink:0;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                </div>
+                                <div>
+                                    <strong style="color:#b91c1c;">Cảnh báo an toàn tồn kho:</strong> Phiếu này hiện <strong>không thể duyệt xuất kho</strong> do: ${escapeHtml(voucher.approvalBlockReason || 'Có sản phẩm không đủ tồn kho để xuất')}. Vui lòng kiểm tra lại tồn kho thành phẩm trước khi xuất hàng.
+                                </div>
+                            </div>
+                        ` : ''}
+
                         <!-- Vùng Chi tiết Hàng hóa / Nguyên vật liệu -->
                         <div class="wh-voucher-detail">
-                            <h3 class="wh-voucher-section-title">${isInbound ? 'Nguyên vật liệu' : 'Hàng hóa'}</h3>
+                            <h3 class="wh-voucher-section-title">${isInbound ? 'Nguyên vật liệu' : isOutboundProduct ? 'Thành phẩm xuất kho' : 'Hàng hóa'}</h3>
 
                             <div class="wh-vtable-wrap">
                                 ${isInbound ? (isCreate ? `
@@ -1779,7 +1895,72 @@ const WarehouseComponents = (function () {
                                             </tr>
                                         </tfoot>
                                     </table>
-                                `) : `
+                                `) : isOutboundProduct ? `
+                                    <!-- Bảng chi tiết Thành phẩm xuất kho -->
+                                    <table class="wh-vtable">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 45px; text-align: center;">#</th>
+                                                <th style="width: 120px;">${Icons.pin}Mã SP</th>
+                                                <th>Tên sản phẩm thành phẩm</th>
+                                                <th style="width: 75px; text-align: center;">ĐVT</th>
+                                                <th style="width: 105px;" class="wh-text-right">SL xuất</th>
+                                                <th style="width: 120px;" class="wh-text-right">Tồn kho hiện có</th>
+                                                <th style="width: 130px;" class="wh-text-right">Đơn giá (VNĐ)</th>
+                                                <th style="width: 145px;" class="wh-text-right">Thành tiền (VNĐ)</th>
+                                                <th style="width: 130px; text-align: center;">Kiểm tra tồn</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${voucher.items.length > 0 ? voucher.items.map((row, idx) => {
+                                                const qty = Number(row.quantity) || 0;
+                                                const price = Number(row.price) || 0;
+                                                const amount = (row.amount !== undefined && row.amount !== null) ? Number(row.amount) : (qty * price);
+                                                const stockQty = row.stockQty !== undefined ? Number(row.stockQty) : null;
+                                                const isOutOfStock = row.isOutOfStock || (stockQty !== null && stockQty < qty);
+                                                return `
+                                                    <tr>
+                                                        <td style="text-align: center;">${idx + 1}</td>
+                                                        <td><strong>${escapeHtml(row.itemCode || '')}</strong></td>
+                                                        <td><span style="font-weight: 500;">${escapeHtml(row.itemName || '')}</span></td>
+                                                        <td style="text-align: center;">${escapeHtml(row.unit || 'Hộp')}</td>
+                                                        <td class="wh-text-right"><strong>${formatVnNumber(qty)}</strong></td>
+                                                        <td class="wh-text-right" style="color: ${isOutOfStock ? '#dc2626' : '#15803d'}; font-weight: 600;">
+                                                            ${stockQty !== null ? formatVnNumber(stockQty) : '-'}
+                                                        </td>
+                                                        <td class="wh-text-right">${formatVnCurrency(price)}</td>
+                                                        <td class="wh-text-right" style="font-weight: 600; color: #1e3a8a;">${formatVnCurrency(amount)}</td>
+                                                        <td style="text-align: center;">
+                                                            ${isOutOfStock ? `
+                                                                <span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; background:#fee2e2; color:#b91c1c; font-size:11.5px; font-weight:600;">
+                                                                    ⚠️ Thiếu ${stockQty !== null ? formatVnNumber(qty - stockQty) : ''}
+                                                                </span>
+                                                            ` : `
+                                                                <span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; background:#dcfce7; color:#15803d; font-size:11.5px; font-weight:600;">
+                                                                    ✓ Đủ tồn kho
+                                                                </span>
+                                                            `}
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('') : `
+                                                <tr>
+                                                    <td colspan="9" class="wh-empty-row">Chưa có dòng sản phẩm nào.</td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="4" style="text-align: right; font-weight: 700; color: #374151;">Tổng cộng:</td>
+                                                <td class="wh-text-right" style="font-weight: 700;">${formatVnNumber(totalQuantity)}</td>
+                                                <td></td>
+                                                <td></td>
+                                                <td class="wh-text-right" style="font-weight: 700; color: #1d4ed8; font-size: 13.5px;">${formatVnCurrency(totalAmount)}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                ` : `
                                     <!-- Bảng chi tiết Hàng hóa (Phiếu Xuất) -->
                                     <table class="wh-vtable">
                                         <thead>
@@ -1888,7 +2069,14 @@ const WarehouseComponents = (function () {
                                         Tổng số dòng: <strong>${voucher.items.length}</strong>
                                     </div>
                                 </div>
-                            `) : `
+                            `) : isOutboundProduct ? `
+                                <!-- Phiếu Xuất kho thành phẩm: Chỉ hiển thị tổng số dòng -->
+                                <div class="wh-voucher-subfooter" style="padding-top: 10px; margin-bottom: 0;">
+                                    <div class="wh-voucher-total-count">
+                                        Tổng số mặt hàng: <strong>${voucher.items.length}</strong>
+                                    </div>
+                                </div>
+                            ` : `
                                 <!-- Cụm nút Thêm dòng / Xóa hết dòng / Thêm ghi chú + Đính kèm (Phiếu Xuất) -->
                                 <div class="wh-voucher-subfooter">
                                     <div class="wh-voucher-total-count">
@@ -1997,7 +2185,54 @@ const WarehouseComponents = (function () {
                                     <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Đóng</button>
                                 </div>
                             </div>
-                        `) : `
+                        `) : isOutboundProduct ? `
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                <div style="color: #64748b; font-size: 12.5px;">
+                                    ${(voucher.status === 'Đã xuất kho' || voucher.status === 'Approved' || voucher.status === 'Completed')
+                                        ? `<span style="color:#16a34a;font-weight:600;">✓ Phiếu xuất kho này đã được duyệt và trừ số lượng trong kho thành phẩm.</span>`
+                                        : (voucher.status === 'Từ chối' || voucher.status === 'Rejected')
+                                            ? `<span style="color:#ef4444;font-weight:600;">✕ Phiếu xuất kho này đã bị từ chối xuất bán.</span>`
+                                            : (voucher.canApprove !== false && !voucher.hasStockIssue)
+                                                ? `<span style="color:#16a34a;font-weight:600;">✓ Tất cả sản phẩm đều đủ tồn kho thực tế. Sẵn sàng duyệt xuất kho bán hàng.</span>`
+                                                : `<span style="color:#dc2626;font-weight:600;">⚠️ Không thể duyệt xuất: ${escapeHtml(voucher.approvalBlockReason || 'Có sản phẩm vượt quá tồn kho hiện tại!')}</span>`
+                                    }
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    ${(voucher.status === 'Chờ xuất kho' || voucher.status === 'Pending') ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound ${voucher.canApprove !== false && !voucher.hasStockIssue ? '' : 'is-disabled'}"
+                                            style="height:32px;padding:0 14px;font-size:12px;font-weight:600;${voucher.canApprove !== false && !voucher.hasStockIssue ? '' : 'opacity:0.65;cursor:not-allowed;background:#94a3b8;color:#fff;border-color:#94a3b8;'}"
+                                            data-action="approve-product-export-modal"
+                                            data-receipt-id="${escapeHtml(String(voucher.exportReceiptId || voucher.id || ''))}"
+                                            data-voucher-no="${escapeHtml(voucher.voucherNo || '')}"
+                                            data-can-approve="${voucher.canApprove !== false && !voucher.hasStockIssue ? 'true' : 'false'}"
+                                            data-block-reason="${escapeHtml(voucher.approvalBlockReason || '')}"
+                                        >
+                                            ${Icons.checkBlue || ''} Duyệt xuất kho
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            style="height:32px;padding:0 14px;font-size:12px;font-weight:600;"
+                                            data-action="reject-product-export-modal"
+                                            data-receipt-id="${escapeHtml(String(voucher.exportReceiptId || voucher.id || ''))}"
+                                            data-voucher-no="${escapeHtml(voucher.voucherNo || '')}"
+                                        >
+                                            ${Icons.closeX || ''} Từ chối
+                                        </button>
+                                    ` : ''}
+                                    <button
+                                        type="button"
+                                        class="wh-btn wh-btn-cancel"
+                                        style="height:32px;padding:0 16px;border-radius:4px;font-size:12px;"
+                                        data-action="close-voucher-modal"
+                                    >
+                                        Đóng
+                                    </button>
+                                </div>
+                            </div>
+                        ` : `
                             <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Hủy</button>
                             <button type="button" class="wh-btn wh-btn-cancel" data-action="close-voucher-modal">Lưu và Thêm</button>
                             <button type="button" class="wh-btn wh-btn-apply" data-action="close-voucher-modal">Lưu</button>
@@ -2052,6 +2287,9 @@ const WarehouseComponents = (function () {
         } else if (config.pageType === 'yeu-cau-san-xuat') {
             addBtnAction = 'data-action="open-create-pr-modal"';
             addBtnTitle = 'Lập yêu cầu sản xuất mới';
+        } else if (config.pageType === 'nha-cung-cap') {
+            addBtnAction = 'data-action="open-create-supplier-modal"';
+            addBtnTitle = 'Thêm mới nhà cung cấp';
         }
 
         const addBtnHtml = config.showAddButton
@@ -2326,6 +2564,58 @@ const WarehouseComponents = (function () {
                             </td>
                         `;
                     }
+                    if (col.isSupplierCode) {
+                        return `<td>
+                            <a
+                                href="javascript:void(0)"
+                                onclick="return false;"
+                                class="wh-dg-link"
+                                data-action="view-supplier-detail"
+                                data-supplier-id="${escapeHtml(String(row.supplierId || row.id || ''))}"
+                                title="Xem chi tiết nhà cung cấp ${escapeHtml(val)}"
+                            >
+                                <strong style="color:#2563eb;">${escapeHtml(val)}</strong>
+                            </a>
+                        </td>`;
+                    }
+                    if (col.isSupplierActions) {
+                        const supId = escapeHtml(String(row.supplierId || row.id || ''));
+                        const supName = escapeHtml(String(row.supplierName || row.name || ''));
+                        return `
+                            <td class="wh-dg-action-cell" style="text-align:center;">
+                                <div class="wh-dg-action-group">
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-view-voucher"
+                                        data-action="view-supplier-detail"
+                                        data-supplier-id="${supId}"
+                                        title="Xem chi tiết nhà cung cấp ${supName}"
+                                    >
+                                        ${Icons.docFile || Icons.pencil}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-edit-row"
+                                        data-action="edit-supplier-item"
+                                        data-supplier-id="${supId}"
+                                        title="Chỉnh sửa thông tin ${supName}"
+                                    >
+                                        ${Icons.penToSquare || Icons.pencil}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-delete-row"
+                                        data-action="delete-supplier-item"
+                                        data-supplier-id="${supId}"
+                                        data-supplier-name="${supName}"
+                                        title="Xóa nhà cung cấp ${supName}"
+                                    >
+                                        ${Icons.trashRed}
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                    }
                     if (col.isStatusLink) {
                         const cls = row.statusType === 'success' ? 'wh-dg-status-success' : 'wh-dg-status-info';
                         return `<td><span class="${cls}">${escapeHtml(val)}</span></td>`;
@@ -2582,6 +2872,67 @@ const WarehouseComponents = (function () {
                                         data-doc-no="${escapeHtml(orderNo)}"
                                         data-receipt-id="${escapeHtml(String(receiptId))}"
                                         title="Xem chi tiết ${escapeHtml(orderNo)}"
+                                    >
+                                        ${Icons.docFile || Icons.pencil}
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                    }
+                    if (col.isActionProductExport) {
+                        const status = row.status || row.orderStatus || '';
+                        const isPending = status === 'Chờ xuất kho' || status === 'Pending';
+                        const isApproved = status === 'Đã xuất kho' || status === 'Approved' || status === 'Completed';
+                        const isRejected = status === 'Từ chối' || status === 'Rejected';
+                        const voucherNo = row.voucherNo || row.orderNo || '';
+                        const exportReceiptId = row.exportReceiptId || row.id || '';
+                        const canApprove = row.canApprove !== false && !row.hasStockIssue;
+                        const blockReason = row.approvalBlockReason || (row.hasStockIssue ? 'Có sản phẩm không đủ tồn kho để xuất' : '');
+
+                        return `
+                            <td class="wh-dg-action-cell" style="text-align:center;">
+                                <div class="wh-dg-action-group">
+                                    ${isPending ? `
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-approve-outbound ${canApprove ? '' : 'is-disabled'}"
+                                            style="${canApprove ? '' : 'opacity:0.65; cursor:not-allowed; background:#94a3b8; color:#fff; border-color:#94a3b8;'}"
+                                            data-action="approve-product-export"
+                                            data-can-approve="${canApprove ? 'true' : 'false'}"
+                                            data-block-reason="${escapeHtml(blockReason)}"
+                                            data-receipt-id="${escapeHtml(String(exportReceiptId))}"
+                                            data-voucher-no="${escapeHtml(voucherNo)}"
+                                            title="${canApprove ? `Duyệt xuất kho cho phiếu ${escapeHtml(voucherNo)}` : `Không thể duyệt: ${escapeHtml(blockReason)}`}"
+                                        >
+                                            ${Icons.checkBlue || ''} Duyệt
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="wh-btn-action-sm wh-btn-reject-outbound"
+                                            data-action="reject-product-export"
+                                            data-receipt-id="${escapeHtml(String(exportReceiptId))}"
+                                            data-voucher-no="${escapeHtml(voucherNo)}"
+                                            title="Từ chối xuất kho thành phẩm"
+                                        >
+                                            ${Icons.closeX || ''} Từ chối
+                                        </button>
+                                    ` : isApproved ? `
+                                        <span class="wh-action-status-badge is-approved" title="Đã duyệt xuất kho">
+                                            ✓ Đã xuất
+                                        </span>
+                                    ` : isRejected ? `
+                                        <span class="wh-action-status-badge is-rejected" title="Đã từ chối xuất kho">
+                                            ✕ Từ chối
+                                        </span>
+                                    ` : ''}
+                                    <button
+                                        type="button"
+                                        class="wh-btn-action-icon wh-btn-view-voucher"
+                                        data-action="open-voucher-modal"
+                                        data-voucher-type="outbound"
+                                        data-doc-no="${escapeHtml(voucherNo)}"
+                                        data-receipt-id="${escapeHtml(String(exportReceiptId))}"
+                                        title="Xem chi tiết phiếu ${escapeHtml(voucherNo)}"
                                     >
                                         ${Icons.docFile || Icons.pencil}
                                     </button>
@@ -3512,6 +3863,19 @@ const WarehouseComponents = (function () {
 
         if (isCreate || isEdit) {
             const title = isCreate ? 'Lập yêu cầu sản xuất mới' : `Chỉnh sửa yêu cầu sản xuất: ${prCode}`;
+            
+            let selectedProd = null;
+            if (item.productId) {
+                selectedProd = products.find(p => (p.id || p.productId) === item.productId);
+            }
+            if (!selectedProd && products.length > 0) {
+                selectedProd = products[0];
+            }
+            const currentProdId = selectedProd ? (selectedProd.id || selectedProd.productId) : (item.productId || '');
+            const currentProdCode = selectedProd ? (selectedProd.productCode || item.productCode || '') : (item.productCode || '');
+            const currentProdName = selectedProd ? (selectedProd.productName || item.productName || '') : (item.productName || '');
+            const currentUnit = selectedProd ? (selectedProd.unit || item.unit || 'Hộp') : (item.unit || 'Hộp');
+
             return `
                 <div class="wh-voucher-overlay" id="wh-voucher-overlay">
                     <div class="wh-voucher-window" style="max-width:680px;">
@@ -3538,15 +3902,68 @@ const WarehouseComponents = (function () {
                                 </div>
                             </div>
 
-                            <div class="wh-form-group" style="margin-bottom:16px;">
-                                <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Thành phẩm sản xuất <span class="wh-required">*</span></label>
-                                <select id="pr-form-product" class="wh-input-control" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;">
-                                    ${products.map(p => `
-                                        <option value="${p.id || p.productId}" data-unit="${escapeHtml(p.unit || 'Hộp')}" ${(p.id === item.productId || p.productId === item.productId) ? 'selected' : ''}>
-                                            ${escapeHtml(p.productCode ? '[' + p.productCode + '] ' : '')}${escapeHtml(p.productName)} (ĐVT: ${escapeHtml(p.unit || 'Hộp')})
-                                        </option>
-                                    `).join('')}
-                                </select>
+                            <!-- Tách riêng 2 trường: Mã thành phẩm và Tên thành phẩm -->
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                                <div class="wh-form-group">
+                                    <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Mã thành phẩm</label>
+                                    <input type="text" id="pr-form-product-code" class="wh-input-control is-readonly" value="${escapeHtml(currentProdCode)}" readonly disabled style="width:100%;height:36px;border:1px solid #e2e8f0;background:#f8fafc;color:#1e293b;font-weight:600;border-radius:4px;padding:0 10px;cursor:not-allowed;" />
+                                    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Tự động cập nhật theo thành phẩm được chọn.</div>
+                                </div>
+                                <div class="wh-form-group" style="position:relative;">
+                                    <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Tên thành phẩm <span class="wh-required">*</span></label>
+                                    
+                                    <!-- Nút trigger mở dropdown danh sách chọn thành phẩm -->
+                                    <div id="pr-product-picker-trigger" class="wh-input-control" data-action="toggle-pr-product-picker" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;background:#fff;cursor:pointer;user-select:none;">
+                                        <span id="pr-product-selected-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:#1e293b;font-weight:500;">
+                                            ${escapeHtml(currentProdName || '-- Chọn thành phẩm sản xuất --')}
+                                        </span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-left:6px;"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </div>
+
+                                    <!-- Hidden select giữ ID cho logic submit và backward compatibility -->
+                                    <select id="pr-form-product" style="display:none;">
+                                        ${products.map(p => {
+                                            const pid = p.id || p.productId;
+                                            return `<option value="${pid}" data-code="${escapeHtml(p.productCode || '')}" data-name="${escapeHtml(p.productName || '')}" data-unit="${escapeHtml(p.unit || 'Hộp')}" ${pid == currentProdId ? 'selected' : ''}>${escapeHtml(p.productName)}</option>`;
+                                        }).join('')}
+                                    </select>
+
+                                    <!-- Dropdown menu có thanh tìm kiếm -->
+                                    <div id="pr-product-picker-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);z-index:999999;flex-direction:column;overflow:hidden;">
+                                        <!-- Thanh tìm kiếm trong list -->
+                                        <div style="padding:8px;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
+                                            <div style="position:relative;display:flex;align-items:center;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:8px;pointer-events:none;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                                <input type="text" id="pr-product-search-input" placeholder="Tìm theo mã hoặc tên thành phẩm..." style="width:100%;height:32px;border:1px solid #cbd5e1;border-radius:4px;padding:0 8px 0 28px;font-size:12px;outline:none;" autocomplete="off" />
+                                            </div>
+                                        </div>
+                                        <!-- Danh sách thành phẩm cuộn -->
+                                        <div id="pr-product-picker-list" style="max-height:220px;overflow-y:auto;padding:4px 0;">
+                                            ${products.map(p => {
+                                                const pid = p.id || p.productId;
+                                                const isSel = pid == currentProdId;
+                                                return `
+                                                    <div class="wh-product-picker-item ${isSel ? 'is-selected' : ''}"
+                                                         data-action="select-pr-product-item"
+                                                         data-id="${pid}"
+                                                         data-code="${escapeHtml(p.productCode || '')}"
+                                                         data-name="${escapeHtml(p.productName || '')}"
+                                                         data-unit="${escapeHtml(p.unit || 'Hộp')}"
+                                                         style="padding:8px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f8fafc;font-size:13px;transition:background 0.15s;${isSel ? 'background:#eff6ff;color:#1d4ed8;font-weight:600;' : 'color:#1e293b;'}">
+                                                        <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+                                                            <span style="font-weight:700;color:#2563eb;font-size:11px;background:#e0e7ff;padding:2px 6px;border-radius:4px;flex-shrink:0;">${escapeHtml(p.productCode || 'SP')}</span>
+                                                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.productName)}</span>
+                                                        </div>
+                                                        <span style="font-size:11px;color:#64748b;background:#f1f5f9;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-left:8px;">${escapeHtml(p.unit || 'Hộp')}</span>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                            <div id="pr-product-no-result" style="display:none;padding:16px;text-align:center;font-size:12px;color:#94a3b8;">
+                                                Không tìm thấy thành phẩm phù hợp
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
@@ -3672,6 +4089,96 @@ const WarehouseComponents = (function () {
     }
 
     /**
+     * Sub-component: Modal Thêm mới, Chỉnh sửa và Xem chi tiết Nhà cung cấp
+     */
+    function renderSupplierModal(modalData) {
+        if (!modalData || !modalData.item) return '';
+
+        const { mode, item } = modalData;
+        const isCreate = mode === 'create';
+        const isEdit = mode === 'edit';
+        const isDetail = mode === 'detail';
+
+        const supId = item.supplierId || item.id || 0;
+        const supCode = item.code || (isCreate ? 'Tự động sinh (NCC...)' : `NCC${String(supId).padStart(4, '0')}`);
+        const supName = item.supplierName || item.name || '';
+        const phone = item.phone || '';
+        const mail = item.mail || '';
+        const address = item.address || '';
+
+        const title = isCreate
+            ? 'Thêm mới nhà cung cấp'
+            : isEdit
+                ? `Chỉnh sửa nhà cung cấp: ${supCode}`
+                : `Chi tiết nhà cung cấp: ${supCode}`;
+
+        const badgeHtml = isCreate
+            ? `<span class="wh-vthh-mode-badge is-create">Tạo mới</span>`
+            : isEdit
+                ? `<span class="wh-vthh-mode-badge is-edit">Chỉnh sửa</span>`
+                : `<span class="wh-vthh-mode-badge is-view">Chỉ xem</span>`;
+
+        return `
+            <div class="wh-voucher-overlay" id="wh-voucher-overlay">
+                <div class="wh-voucher-window" style="max-width:640px;">
+                    <div class="wh-voucher-topbar">
+                        <div class="wh-voucher-topbar-left" style="display:flex;align-items:center;gap:10px;">
+                            <h2 class="wh-voucher-title">${escapeHtml(title)}</h2>
+                            ${badgeHtml}
+                        </div>
+                        <div class="wh-voucher-topbar-right">
+                            <button type="button" class="wh-voucher-win-btn" data-action="close-supplier-modal" title="Đóng (Esc)">${Icons.closeX}</button>
+                        </div>
+                    </div>
+
+                    <div class="wh-voucher-body" style="padding:20px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                            <div class="wh-form-group">
+                                <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Mã nhà cung cấp</label>
+                                <input type="text" id="supplier-form-code" class="wh-input-control is-readonly" value="${escapeHtml(supCode)}" readonly disabled style="width:100%;height:36px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-weight:600;border-radius:4px;padding:0 10px;cursor:not-allowed;" />
+                                <div style="font-size:11px;color:#94a3b8;margin-top:4px;">${isCreate ? 'Hệ thống tự động sinh mã sau khi lưu.' : 'Mã định danh duy nhất trong hệ thống.'}</div>
+                            </div>
+                            <div class="wh-form-group">
+                                <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Số điện thoại</label>
+                                <input type="text" id="supplier-form-phone" class="wh-input-control" value="${escapeHtml(phone)}" ${isDetail ? 'readonly disabled style="background:#f8fafc;cursor:not-allowed;"' : ''} placeholder="VD: 024 3829 0486..." style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;" />
+                            </div>
+                        </div>
+
+                        <div class="wh-form-group" style="margin-bottom:16px;">
+                            <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Tên nhà cung cấp <span class="wh-required">*</span></label>
+                            <input type="text" id="supplier-form-name" class="wh-input-control" value="${escapeHtml(supName)}" ${isDetail ? 'readonly disabled style="background:#f8fafc;cursor:not-allowed;"' : ''} placeholder="Nhập tên đầy đủ của đơn vị cung cấp..." style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;" />
+                        </div>
+
+                        <div class="wh-form-group" style="margin-bottom:16px;">
+                            <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Email liên hệ</label>
+                            <input type="email" id="supplier-form-mail" class="wh-input-control" value="${escapeHtml(mail)}" ${isDetail ? 'readonly disabled style="background:#f8fafc;cursor:not-allowed;"' : ''} placeholder="VD: supply@cpc1.com.vn..." style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:4px;padding:0 10px;" />
+                        </div>
+
+                        <div class="wh-form-group" style="margin-bottom:16px;">
+                            <label class="wh-form-label" style="font-weight:600;margin-bottom:6px;display:block;">Địa chỉ</label>
+                            <textarea id="supplier-form-address" class="wh-input-control" rows="3" ${isDetail ? 'readonly disabled style="background:#f8fafc;cursor:not-allowed;"' : ''} placeholder="VD: 356A Giải Phóng, Thanh Xuân, Hà Nội..." style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:8px 10px;resize:vertical;font-family:inherit;">${escapeHtml(address)}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="wh-voucher-footer" style="display:flex;justify-content:${isDetail ? 'space-between' : 'flex-end'};gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+                        ${isDetail ? `
+                            <button type="button" class="wh-btn-secondary" style="color:#2563eb;border-color:#bfdbfe;" data-action="edit-supplier-item" data-supplier-id="${supId}">
+                                Chuyển sang chỉnh sửa
+                            </button>
+                            <button type="button" class="wh-btn-primary" data-action="close-supplier-modal">Đóng</button>
+                        ` : `
+                            <button type="button" class="wh-btn-secondary" data-action="close-supplier-modal">Hủy</button>
+                            <button type="button" class="wh-btn-primary" data-action="${isCreate ? 'save-create-supplier' : 'save-edit-supplier'}" data-supplier-id="${supId}">
+                                ${isCreate ? 'Thêm nhà cung cấp' : 'Lưu thay đổi'}
+                            </button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
      * Điều phối render Modal Chứng từ theo loại (Đơn hàng / Lệnh kho / Phiếu kho)
      */
     function renderDocumentModal(docData) {
@@ -3686,6 +4193,470 @@ const WarehouseComponents = (function () {
     }
 
     /**
+     * Component hiển thị Thẻ kho chi tiết (Stock Card Modal)
+     */
+    function renderStockCardModal(data) {
+        if (!data) return '';
+        const transactions = data.transactions || [];
+        const isIngr = (data.itemCode || '').startsWith('NVL');
+
+        return `
+            <div class="wh-voucher-overlay" style="z-index: 9999;">
+                <div class="wh-voucher-window" style="max-width: 960px; width: 95%;">
+                    <div class="wh-voucher-topbar">
+                        <div class="wh-voucher-topbar-left" style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h2 class="wh-voucher-title" style="margin:0;">Thẻ kho: [${escapeHtml(data.itemCode)}] ${escapeHtml(data.itemName)}</h2>
+                                <span class="wh-report-badge is-${isIngr ? 'ingredient' : 'product'}">
+                                    ${isIngr ? 'Nguyên vật liệu' : 'Thành phẩm'}
+                                </span>
+                            </div>
+                            <div style="font-size:12px; color:#64748b;">
+                                Đơn vị tính: <strong>${escapeHtml(data.unit || '')}</strong> &bull; 
+                                Tồn kho hiện tại: <strong style="color:#0284c7;">${(Number(data.currentStock) || 0).toLocaleString('vi-VN')} ${escapeHtml(data.unit || '')}</strong> &bull; 
+                                Tổng số phát sinh: <strong>${transactions.length} giao dịch</strong>
+                            </div>
+                        </div>
+                        <div class="wh-voucher-topbar-right">
+                            <button type="button" class="wh-voucher-icon-btn" data-action="close-stock-card-modal" title="Đóng">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="max-height: 60vh; overflow-y: auto; padding: 16px;">
+                        <table class="wh-report-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;">STT</th>
+                                    <th style="width: 130px;">Ngày chứng từ</th>
+                                    <th style="width: 110px;">Số chứng từ</th>
+                                    <th>Loại giao dịch</th>
+                                    <th style="width: 100px; text-align: right;">SL Nhập</th>
+                                    <th style="width: 100px; text-align: right;">SL Xuất</th>
+                                    <th style="width: 110px; text-align: right;">Đơn giá</th>
+                                    <th style="width: 110px; text-align: center;">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${transactions.length === 0 ? `
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                            Chưa ghi nhận giao dịch nhập/xuất kho nào cho mặt hàng này.
+                                        </td>
+                                    </tr>
+                                ` : transactions.map((t, idx) => `
+                                    <tr>
+                                        <td style="text-align: center; color: #64748b;">${idx + 1}</td>
+                                        <td>${t.transDate ? new Date(t.transDate).toLocaleString('vi-VN') : '-'}</td>
+                                        <td><strong style="color: #0284c7;">${escapeHtml(t.voucherNo || '-')}</strong></td>
+                                        <td>${escapeHtml(t.transType || '-')}</td>
+                                        <td style="text-align: right; color: ${t.inQty > 0 ? '#0284c7' : '#94a3b8'}; font-weight: ${t.inQty > 0 ? '600' : 'normal'};">
+                                            ${t.inQty > 0 ? `+${Number(t.inQty).toLocaleString('vi-VN')}` : '-'}
+                                        </td>
+                                        <td style="text-align: right; color: ${t.outQty > 0 ? '#d97706' : '#94a3b8'}; font-weight: ${t.outQty > 0 ? '600' : 'normal'};">
+                                            ${t.outQty > 0 ? `-${Number(t.outQty).toLocaleString('vi-VN')}` : '-'}
+                                        </td>
+                                        <td style="text-align: right; color: #475569;">
+                                            ${t.cost ? `${Number(t.cost).toLocaleString('vi-VN')} đ` : '-'}
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="wh-dg-status-badge wh-dg-status-${t.status === 'Completed' || t.status === 'Approve' || t.status === 'Đã xuất kho' ? 'success' : 'info'}">
+                                                ${escapeHtml(t.status || 'Hoàn thành')}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="wh-voucher-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                        <button type="button" class="wh-btn-secondary" data-action="close-stock-card-modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Component hiển thị Trang Báo cáo thống kê Nhập - Xuất - Tồn & Lưu kho
+     */
+    function renderReportPage(config) {
+        if (!config) {
+            return `
+                <div class="wh-report-container" style="padding: 24px; text-align: center;">
+                    <div style="font-size: 16px; color: #64748b;">Đang tải dữ liệu báo cáo thống kê...</div>
+                </div>
+            `;
+        }
+
+        const period = config.period || {};
+        const summary = config.summary || {};
+        const chartData = config.chartData || [];
+        const items = config.items || [];
+        const filters = config.filters || {};
+        const availableYears = config.availableYears || [2026, 2025, 2024];
+        const stockCardModalHtml = config.stockCardModal ? renderStockCardModal(config.stockCardModal) : '';
+
+        // Tính toán các tổng cột bảng
+        const totalOpeningStock = items.reduce((s, it) => s + (Number(it.openingStock) || 0), 0);
+        const totalInQty = items.reduce((s, it) => s + (Number(it.inQty) || 0), 0);
+        const totalOutQty = items.reduce((s, it) => s + (Number(it.outQty) || 0), 0);
+        const totalWipQty = items.reduce((s, it) => s + (Number(it.wipQty) || 0), 0);
+        const totalClosingStock = items.reduce((s, it) => s + (Number(it.closingStock) || 0), 0);
+        const grandTotalValue = items.reduce((s, it) => s + (Number(it.totalValue) || 0), 0);
+
+        // Chuẩn bị biểu đồ SVG
+        const maxBarVal = Math.max(...chartData.map(c => Math.max(c.inQty || 0, c.outQty || 0)), 100);
+        const chartHeight = 150;
+        const chartWidth = 700;
+        const barGroupWidth = chartData.length > 0 ? (chartWidth - 60) / chartData.length : 50;
+
+        return `
+            <div class="wh-report-container">
+                <!-- Tiêu đề trang & các nút thao tác nhanh -->
+                <div class="wh-report-header">
+                    <div>
+                        <div class="wh-report-title-row">
+                            <h1 class="wh-report-main-title">Báo cáo Thống kê Kho</h1>
+                            <span class="wh-report-period-pill">${escapeHtml(period.title || 'Tháng 11/2026')}</span>
+                        </div>
+                        <p class="wh-report-subtitle">
+                            Thống kê số lượng tồn kho, xuất kho, lưu kho theo tháng, quý, năm về vật liệu và sản phẩm
+                            ${period.startDate && period.endDate ? ` (Từ ngày <strong>${period.startDate}</strong> đến <strong>${period.endDate}</strong>)` : ''}
+                        </p>
+                    </div>
+
+                    <div class="wh-report-actions">
+                        <button type="button" class="wh-btn-secondary" data-action="export-report-excel" title="Tải xuống tệp CSV (mở trực tiếp bằng Microsoft Excel)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Xuất Excel
+                        </button>
+                        <button type="button" class="wh-btn-secondary" data-action="print-report" title="In hoặc lưu file PDF">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            In báo cáo
+                        </button>
+                        <button type="button" class="wh-btn-primary" data-action="refresh-report" title="Cập nhật số liệu mới nhất">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            Làm mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thanh bộ lọc thống kê theo Thời gian & Đối tượng -->
+                <div class="wh-report-filter-bar">
+                    <!-- Phân loại thời gian: Tháng / Quý / Năm -->
+                    <div class="wh-report-filter-item">
+                        <label class="wh-report-filter-label">Kỳ báo cáo:</label>
+                        <div class="wh-report-segmented-group">
+                            <button type="button" class="wh-report-seg-btn ${filters.periodType === 'month' ? 'is-active' : ''}" data-action="change-report-period-type" data-value="month">
+                                Theo Tháng
+                            </button>
+                            <button type="button" class="wh-report-seg-btn ${filters.periodType === 'quarter' ? 'is-active' : ''}" data-action="change-report-period-type" data-value="quarter">
+                                Theo Quý
+                            </button>
+                            <button type="button" class="wh-report-seg-btn ${filters.periodType === 'year' ? 'is-active' : ''}" data-action="change-report-period-type" data-value="year">
+                                Theo Năm
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chọn Tháng / Quý -->
+                    ${filters.periodType === 'month' ? `
+                        <div class="wh-report-filter-item">
+                            <label class="wh-report-filter-label">Chọn Tháng:</label>
+                            <select class="wh-report-select" data-action="change-report-period-val">
+                                ${Array.from({ length: 12 }, (_, i) => i + 1).map(m => `
+                                    <option value="${m}" ${Number(filters.periodValue) === m ? 'selected' : ''}>Tháng ${m}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
+
+                    ${filters.periodType === 'quarter' ? `
+                        <div class="wh-report-filter-item">
+                            <label class="wh-report-filter-label">Chọn Quý:</label>
+                            <select class="wh-report-select" data-action="change-report-period-val">
+                                ${[1, 2, 3, 4].map(q => `
+                                    <option value="${q}" ${Number(filters.periodValue) === q ? 'selected' : ''}>Quý ${q} (Q${q})</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
+
+                    <!-- Chọn Năm -->
+                    <div class="wh-report-filter-item">
+                        <label class="wh-report-filter-label">Năm:</label>
+                        <select class="wh-report-select" data-action="change-report-year">
+                            ${availableYears.map(y => `
+                                <option value="${y}" ${Number(filters.year) === y ? 'selected' : ''}>${y}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+
+                    <div style="width: 1px; height: 32px; background: #e2e8f0; margin: 0 4px;"></div>
+
+                    <!-- Lọc phân loại: Tất cả / Vật liệu / Sản phẩm -->
+                    <div class="wh-report-filter-item">
+                        <label class="wh-report-filter-label">Phân loại:</label>
+                        <div class="wh-report-segmented-group">
+                            <button type="button" class="wh-report-seg-btn ${filters.itemType === 'all' ? 'is-active' : ''}" data-action="change-report-item-type" data-value="all">
+                                Tất cả (${summary.totalItems || 0})
+                            </button>
+                            <button type="button" class="wh-report-seg-btn ${filters.itemType === 'ingredient' ? 'is-active' : ''}" data-action="change-report-item-type" data-value="ingredient">
+                                Vật liệu (${summary.ingredientCount || 0})
+                            </button>
+                            <button type="button" class="wh-report-seg-btn ${filters.itemType === 'product' ? 'is-active' : ''}" data-action="change-report-item-type" data-value="product">
+                                Sản phẩm (${summary.productCount || 0})
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tìm kiếm theo mã hoặc tên -->
+                    <div class="wh-report-filter-item" style="margin-left: auto;">
+                        <div class="wh-report-search-box">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" class="wh-report-search-input" data-action="search-report" placeholder="Tìm theo mã hoặc tên..." value="${escapeHtml(filters.search || '')}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Thẻ KPI Tóm tắt Chỉ số Kho -->
+                <div class="wh-report-kpi-grid">
+                    <!-- KPI 1: Tồn kho hiện tại -->
+                    <div class="wh-report-kpi-card is-stock">
+                        <div class="wh-report-kpi-icon-box" style="background:#e0f2fe; color:#0284c7;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </div>
+                        <div class="wh-report-kpi-content">
+                            <div class="wh-report-kpi-title">Tổng số lượng tồn kho</div>
+                            <div class="wh-report-kpi-number" style="color:#0284c7;">
+                                ${(summary.totalStockQty || 0).toLocaleString('vi-VN')}
+                            </div>
+                            <div class="wh-report-kpi-sub">
+                                Ước tính giá trị: <strong>${(summary.totalStockValue || 0).toLocaleString('vi-VN')} đ</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Nhập kho / Lưu kho trong kỳ -->
+                    <div class="wh-report-kpi-card is-inbound">
+                        <div class="wh-report-kpi-icon-box" style="background:#dcfce7; color:#16a34a;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line><line x1="4" y1="21" x2="20" y2="21"></line></svg>
+                        </div>
+                        <div class="wh-report-kpi-content">
+                            <div class="wh-report-kpi-title">Nhập / Lưu kho trong kỳ</div>
+                            <div class="wh-report-kpi-number" style="color:#16a34a;">
+                                +${(summary.totalInQty || 0).toLocaleString('vi-VN')}
+                            </div>
+                            <div class="wh-report-kpi-sub">
+                                NVL từ nhà cung cấp & Thành phẩm từ xưởng
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Xuất kho trong kỳ -->
+                    <div class="wh-report-kpi-card is-outbound">
+                        <div class="wh-report-kpi-icon-box" style="background:#fef3c7; color:#d97706;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 14 12 9 7 14"></polyline><line x1="12" y1="9" x2="12" y2="21"></line><line x1="4" y1="3" x2="20" y2="3"></line></svg>
+                        </div>
+                        <div class="wh-report-kpi-content">
+                            <div class="wh-report-kpi-title">Xuất kho trong kỳ</div>
+                            <div class="wh-report-kpi-number" style="color:#d97706;">
+                                -${(summary.totalOutQty || 0).toLocaleString('vi-VN')}
+                            </div>
+                            <div class="wh-report-kpi-sub">
+                                NVL xuất sản xuất & Thành phẩm xuất bán hàng
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Lưu kho tại xưởng (WIP) -->
+                    <div class="wh-report-kpi-card is-wip">
+                        <div class="wh-report-kpi-icon-box" style="background:#f3e8ff; color:#9333ea;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                        </div>
+                        <div class="wh-report-kpi-content">
+                            <div class="wh-report-kpi-title">Lưu kho tại xưởng (WIP)</div>
+                            <div class="wh-report-kpi-number" style="color:#9333ea;">
+                                ${(summary.totalWipQty || 0).toLocaleString('vi-VN')}
+                            </div>
+                            <div class="wh-report-kpi-sub">
+                                Bán thành phẩm & NVL đang lưu trên chuyền
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biểu đồ Trực quan Tương quan Nhập vs Xuất kho -->
+                <div class="wh-report-chart-box">
+                    <div class="wh-report-chart-header">
+                        <div style="font-size: 15px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                            <span>Tương quan Nhập / Lưu kho và Xuất kho (${escapeHtml(period.title || '')})</span>
+                        </div>
+                        <div class="wh-report-chart-legend">
+                            <span class="wh-legend-item"><span class="wh-legend-dot" style="background:#0284c7;"></span> Nhập / Lưu kho</span>
+                            <span class="wh-legend-item"><span class="wh-legend-dot" style="background:#d97706;"></span> Xuất kho</span>
+                        </div>
+                    </div>
+
+                    <div style="padding: 16px 20px 8px 20px; overflow-x: auto;">
+                        <svg viewBox="0 0 ${chartWidth} ${chartHeight + 35}" style="width: 100%; max-height: 200px; display: block;">
+                            <!-- Đường lưới kẻ ngang -->
+                            <line x1="30" y1="20" x2="${chartWidth}" y2="20" stroke="#f1f5f9" stroke-width="1" />
+                            <line x1="30" y1="65" x2="${chartWidth}" y2="65" stroke="#f1f5f9" stroke-width="1" />
+                            <line x1="30" y1="110" x2="${chartWidth}" y2="110" stroke="#f1f5f9" stroke-width="1" />
+                            <line x1="30" y1="${chartHeight}" x2="${chartWidth}" y2="${chartHeight}" stroke="#cbd5e1" stroke-width="1" />
+
+                            <!-- Các cột bar chart -->
+                            ${chartData.map((d, idx) => {
+                                const xCenter = 50 + idx * barGroupWidth + (barGroupWidth / 2);
+                                const barW = Math.max(12, Math.min(24, barGroupWidth * 0.3));
+                                const inH = maxBarVal > 0 ? ((d.inQty || 0) / maxBarVal) * (chartHeight - 30) : 0;
+                                const outH = maxBarVal > 0 ? ((d.outQty || 0) / maxBarVal) * (chartHeight - 30) : 0;
+                                const inY = chartHeight - inH;
+                                const outY = chartHeight - outH;
+
+                                return `
+                                    <g class="wh-chart-group">
+                                        <!-- Cột Nhập (Xanh) -->
+                                        <rect x="${xCenter - barW - 2}" y="${inY}" width="${barW}" height="${inH}" rx="3" fill="#0284c7" opacity="0.9">
+                                            <title>${d.label} - Nhập/Lưu kho: ${(d.inQty || 0).toLocaleString('vi-VN')}</title>
+                                        </rect>
+                                        <!-- Cột Xuất (Cam) -->
+                                        <rect x="${xCenter + 2}" y="${outY}" width="${barW}" height="${outH}" rx="3" fill="#d97706" opacity="0.9">
+                                            <title>${d.label} - Xuất kho: ${(d.outQty || 0).toLocaleString('vi-VN')}</title>
+                                        </rect>
+                                        <!-- Nhãn trục X -->
+                                        <text x="${xCenter}" y="${chartHeight + 18}" text-anchor="middle" font-size="11" fill="#64748b" font-weight="500">${escapeHtml(d.label)}</text>
+                                        <!-- Giá trị trên cột (nếu có số liệu) -->
+                                        ${d.inQty > 0 ? `<text x="${xCenter - barW/2 - 2}" y="${inY - 4}" text-anchor="middle" font-size="9" fill="#0284c7" font-weight="600">${Number(d.inQty).toLocaleString('vi-VN')}</text>` : ''}
+                                        ${d.outQty > 0 ? `<text x="${xCenter + barW/2 + 2}" y="${outY - 4}" text-anchor="middle" font-size="9" fill="#d97706" font-weight="600">${Number(d.outQty).toLocaleString('vi-VN')}</text>` : ''}
+                                    </g>
+                                `;
+                            }).join('')}
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Bảng chi tiết Thống kê số lượng Tồn, Xuất, Lưu kho -->
+                <div class="wh-report-table-card">
+                    <div class="wh-report-table-header">
+                        <div style="font-size: 15px; font-weight: 600; color: #1e293b;">
+                            Bảng chi tiết Nhập - Xuất - Tồn & Lưu kho (${items.length} mặt hàng)
+                        </div>
+                        <div style="font-size: 12px; color: #64748b;">
+                            Nhấp vào <strong>Mã hàng</strong> hoặc nút <strong>Thẻ kho</strong> để xem toàn bộ lịch sử chứng từ
+                        </div>
+                    </div>
+
+                    <div class="wh-report-table-wrapper">
+                        <table class="wh-report-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;">STT</th>
+                                    <th style="width: 90px;">Mã hàng</th>
+                                    <th style="min-width: 200px;">Tên nguyên vật liệu / sản phẩm</th>
+                                    <th style="width: 120px;">Phân loại</th>
+                                    <th style="width: 60px; text-align: center;">ĐVT</th>
+                                    <th style="width: 95px; text-align: right;">Tồn đầu kỳ</th>
+                                    <th style="width: 105px; text-align: right; background: #f0fdf4;">Nhập/Lưu kho</th>
+                                    <th style="width: 95px; text-align: right; background: #fffbeb;">Xuất kho</th>
+                                    <th style="width: 95px; text-align: right; background: #faf5ff;">Lưu xưởng (WIP)</th>
+                                    <th style="width: 105px; text-align: right; background: #f0f9ff; font-weight: 700;">Tồn cuối kỳ</th>
+                                    <th style="width: 100px; text-align: right;">Đơn giá</th>
+                                    <th style="width: 130px; text-align: right;">Thành tiền tồn</th>
+                                    <th style="width: 95px; text-align: center;">Trạng thái</th>
+                                    <th style="width: 85px; text-align: center;">Thẻ kho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.length === 0 ? `
+                                    <tr>
+                                        <td colspan="14" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                            Không tìm thấy dữ liệu thống kê phù hợp với điều kiện tìm kiếm.
+                                        </td>
+                                    </tr>
+                                ` : items.map((it, idx) => {
+                                    const isIngr = it.type === 'ingredient';
+                                    return `
+                                        <tr>
+                                            <td style="text-align: center; color: #64748b;">${idx + 1}</td>
+                                            <td>
+                                                <a href="javascript:void(0)" class="wh-report-code-link" data-action="view-stock-card" data-item-id="${it.id}" data-item-type="${it.type}">
+                                                    ${escapeHtml(it.code)}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <strong style="color: #1e293b;">${escapeHtml(it.name)}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="wh-report-badge is-${isIngr ? 'ingredient' : 'product'}">
+                                                    ${escapeHtml(it.typeLabel)}
+                                                </span>
+                                            </td>
+                                            <td style="text-align: center; color: #64748b;">${escapeHtml(it.unit)}</td>
+                                            <td style="text-align: right;">${(Number(it.openingStock) || 0).toLocaleString('vi-VN')}</td>
+                                            <td style="text-align: right; background: #f0fdf4; color: ${it.inQty > 0 ? '#16a34a' : '#64748b'}; font-weight: ${it.inQty > 0 ? '600' : 'normal'};">
+                                                ${it.inQty > 0 ? `+${(Number(it.inQty) || 0).toLocaleString('vi-VN')}` : '0'}
+                                            </td>
+                                            <td style="text-align: right; background: #fffbeb; color: ${it.outQty > 0 ? '#d97706' : '#64748b'}; font-weight: ${it.outQty > 0 ? '600' : 'normal'};">
+                                                ${it.outQty > 0 ? `-${(Number(it.outQty) || 0).toLocaleString('vi-VN')}` : '0'}
+                                            </td>
+                                            <td style="text-align: right; background: #faf5ff; color: ${it.wipQty > 0 ? '#9333ea' : '#64748b'}; font-weight: ${it.wipQty > 0 ? '600' : 'normal'};">
+                                                ${(Number(it.wipQty) || 0).toLocaleString('vi-VN')}
+                                            </td>
+                                            <td style="text-align: right; background: #f0f9ff; font-weight: 700; color: #0284c7;">
+                                                ${(Number(it.closingStock) || 0).toLocaleString('vi-VN')}
+                                            </td>
+                                            <td style="text-align: right; color: #475569;">
+                                                ${(Number(it.unitPrice) || 0).toLocaleString('vi-VN')} đ
+                                            </td>
+                                            <td style="text-align: right; font-weight: 600; color: #1e293b;">
+                                                ${(Number(it.totalValue) || 0).toLocaleString('vi-VN')} đ
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <span class="wh-report-status-pill is-${it.stockStatus}">
+                                                    ${escapeHtml(it.stockStatusLabel)}
+                                                </span>
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <button type="button" class="wh-report-stockcard-btn" data-action="view-stock-card" data-item-id="${it.id}" data-item-type="${it.type}" title="Xem lịch sử nhập xuất thẻ kho">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                                    Thẻ kho
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8fafc; font-weight: 700; border-top: 2px solid #cbd5e1;">
+                                    <td colspan="5" style="text-align: right; padding: 12px 16px; color: #1e293b;">
+                                        TỔNG CỘNG (${items.length} mặt hàng):
+                                    </td>
+                                    <td style="text-align: right; color: #1e293b;">${totalOpeningStock.toLocaleString('vi-VN')}</td>
+                                    <td style="text-align: right; background: #dcfce7; color: #16a34a;">+${totalInQty.toLocaleString('vi-VN')}</td>
+                                    <td style="text-align: right; background: #fef3c7; color: #d97706;">-${totalOutQty.toLocaleString('vi-VN')}</td>
+                                    <td style="text-align: right; background: #f3e8ff; color: #9333ea;">${totalWipQty.toLocaleString('vi-VN')}</td>
+                                    <td style="text-align: right; background: #e0f2fe; color: #0284c7;">${totalClosingStock.toLocaleString('vi-VN')}</td>
+                                    <td style="text-align: right; color: #64748b;">-</td>
+                                    <td style="text-align: right; color: #0f172a; font-size: 13px;">${grandTotalValue.toLocaleString('vi-VN')} đ</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Modal Thẻ kho nếu có -->
+                ${stockCardModalHtml}
+            </div>
+        `;
+    }
+
+    /**
      * 9. MainContentComponent (Vùng nội dung chính)
      */
     function renderMainContent(state, viewPayloads) {
@@ -3694,9 +4665,6 @@ const WarehouseComponents = (function () {
             : '';
 
         switch (state.activeMenuId) {
-            case 'ban-lam-viec':
-                return renderWorkspace(viewPayloads.workspaceData);
-
             case 'tong-quan':
                 return `
                     <div class="wh-page-header">
@@ -3721,15 +4689,289 @@ const WarehouseComponents = (function () {
                 return renderTabbedDataGrid(viewPayloads.prConfig, prModalHtml);
             }
 
+            case 'nha-cung-cap': {
+                const supplierModalHtml = viewPayloads.supplierModalData
+                    ? renderSupplierModal(viewPayloads.supplierModalData)
+                    : '';
+                return renderTabbedDataGrid(viewPayloads.supplierConfig, supplierModalHtml);
+            }
+
             case 'nhap-kho':
                 return renderTabbedDataGrid(viewPayloads.inboundConfig, activeVoucherHtml);
 
             case 'xuat-kho':
                 return renderTabbedDataGrid(viewPayloads.outboundConfig, activeVoucherHtml);
 
+            case 'bao-cao':
+                return renderReportPage(viewPayloads.reportConfig);
+
+            case 'thong-tin-nhan-vien':
+                return renderEmployeeProfile(
+                    viewPayloads.currentUser || state.currentUser,
+                    viewPayloads.warehouseTasks || (typeof WarehouseModel !== 'undefined' && WarehouseModel.getWarehouseKeeperTasks ? WarehouseModel.getWarehouseKeeperTasks() : [])
+                );
+
             default:
                 return `<div class="wh-empty-maincontent" data-empty-section="${escapeHtml(state.activeMenuId)}"></div>`;
         }
+    }
+
+    /**
+     * 8b. Component Trang Thông tin cá nhân & Bảng công việc của thủ kho
+     * - Chỉ lấy các cột từ bảng account: userid, username, fullname, phone, role, status, password
+     * - Bỏ các bảng Chuyên môn & Chứng chỉ Dược, Phân quyền & Phạm vi Quản lý kho, Thống kê hoạt động & Đánh giá KPIs
+     * - Thay bằng Bảng công việc của thủ kho cần thực hiện
+     */
+    function renderEmployeeProfile(user, tasks) {
+        user = user || {
+            userId: 9,
+            username: 'thanhha',
+            fullName: 'DS. Phan Thanh Hà',
+            role: 'Employee',
+            phone: '0904 112 334',
+            status: 'Active'
+        };
+
+        tasks = Array.isArray(tasks) && tasks.length > 0
+            ? tasks
+            : (typeof WarehouseModel !== 'undefined' && WarehouseModel.getWarehouseKeeperTasks ? WarehouseModel.getWarehouseKeeperTasks() : []);
+
+        const avatarLargeSvg = `data:image/svg+xml;utf8,` + encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0284c7" />
+                        <stop offset="100%" stop-color="#0369a1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="48" fill="url(#avatarGrad)"/>
+                <circle cx="50" cy="38" r="18" fill="#ffffff"/>
+                <path d="M22 84c0-16 12-28 28-28s28 12 28 28" fill="#ffffff"/>
+                <rect x="47" y="68" width="6" height="14" fill="#0284c7" rx="1"/>
+                <rect x="43" y="72" width="14" height="6" fill="#0284c7" rx="1"/>
+            </svg>`
+        );
+
+        return `
+            <div class="wh-employee-profile-page">
+                <!-- Toolbar & Breadcrumb -->
+                <div class="wh-profile-toolbar">
+                    <div class="wh-profile-breadcrumb-wrap">
+                        <button type="button" class="wh-btn wh-btn-secondary wh-btn-back" data-action="back-from-profile">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                            <span>Quay lại</span>
+                        </button>
+                        <div class="wh-profile-breadcrumb">
+                            <span>Quản lý hệ thống</span>
+                            <span class="wh-breadcrumb-sep">/</span>
+                            <span>Tài khoản người dùng</span>
+                            <span class="wh-breadcrumb-sep">/</span>
+                            <span class="wh-breadcrumb-current">Thông tin tài khoản & Bảng công việc</span>
+                        </div>
+                    </div>
+                    <div class="wh-profile-actions">
+                        <button type="button" class="wh-btn wh-btn-secondary" onclick="window.print()" title="In thông tin">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <span>In thông tin</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hero Card Banner (Chỉ chứa thông tin có trong bảng account) -->
+                <div class="wh-profile-hero">
+                    <div class="wh-profile-hero-main">
+                        <div class="wh-profile-hero-avatar">
+                            <img src="${avatarLargeSvg}" alt="Avatar" />
+                            <span class="wh-profile-avatar-status" title="Trạng thái: ${escapeHtml(user.status || 'Active')}"></span>
+                        </div>
+                        <div class="wh-profile-hero-info">
+                            <div class="wh-profile-hero-topline">
+                                <h2 class="wh-profile-hero-name">${escapeHtml(user.fullName)}</h2>
+                                <span class="wh-badge-code wh-badge-code-lg">ID: ${escapeHtml(user.userId)}</span>
+                                <span class="wh-profile-hero-status-pill is-${(user.status || 'Active').toLowerCase()}">
+                                    <span class="wh-pulse-dot"></span>
+                                    ${escapeHtml(user.status || 'Active')}
+                                </span>
+                            </div>
+                            <div class="wh-profile-hero-title">
+                                <span class="wh-profile-hero-username">@${escapeHtml(user.username)}</span>
+                                <span class="wh-profile-hero-dot">•</span>
+                                <span class="wh-profile-hero-role">Vai trò: ${escapeHtml(user.role || 'Employee')}</span>
+                                ${user.phone ? `
+                                    <span class="wh-profile-hero-dot">•</span>
+                                    <span class="wh-profile-hero-phone">SĐT: ${escapeHtml(user.phone)}</span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Khối 1: Thông tin tài khoản & Cá nhân (Chỉ lấy các cột trong bảng account, không thêm dữ liệu ảo) -->
+                <div class="wh-profile-card">
+                    <div class="wh-profile-card-header">
+                        <div class="wh-profile-card-header-icon is-blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                        <div>
+                            <h3 class="wh-profile-card-title">Thông tin tài khoản & Cá nhân</h3>
+                            <p class="wh-profile-card-subtitle">Các trường dữ liệu thực tế từ bảng <code>account</code> trong cơ sở dữ liệu (không có dữ liệu ảo)</p>
+                        </div>
+                    </div>
+                    <div class="wh-profile-card-body">
+                        <div class="wh-account-columns-grid">
+                            <div class="wh-account-col-item">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">userid</span>
+                                    Mã người dùng (User ID)
+                                </div>
+                                <div class="wh-account-col-val">
+                                    <span class="wh-badge-code">ID: ${escapeHtml(user.userId)}</span>
+                                </div>
+                            </div>
+                            <div class="wh-account-col-item">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">username</span>
+                                    Tên đăng nhập
+                                </div>
+                                <div class="wh-account-col-val">
+                                    <strong>${escapeHtml(user.username)}</strong>
+                                </div>
+                            </div>
+                            <div class="wh-account-col-item">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">fullname</span>
+                                    Họ và tên
+                                </div>
+                                <div class="wh-account-col-val">
+                                    <strong>${escapeHtml(user.fullName)}</strong>
+                                </div>
+                            </div>
+                            <div class="wh-account-col-item">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">phone</span>
+                                    Số điện thoại
+                                </div>
+                                <div class="wh-account-col-val">
+                                    ${user.phone ? `
+                                        <a href="tel:${escapeHtml(user.phone)}" class="wh-profile-link">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                            ${escapeHtml(user.phone)}
+                                        </a>
+                                    ` : '<span style="color:#94a3b8; font-style:italic;">Chưa cập nhật</span>'}
+                                </div>
+                            </div>
+                            <div class="wh-account-col-item">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">role</span>
+                                    Vai trò hệ thống
+                                </div>
+                                <div class="wh-account-col-val">
+                                    <span class="wh-role-tag">${escapeHtml(user.role || 'Employee')}</span>
+                                </div>
+                            </div>
+                            <div class="wh-account-col-item">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">status</span>
+                                    Trạng thái tài khoản
+                                </div>
+                                <div class="wh-account-col-val">
+                                    <span class="wh-status-badge is-${(user.status || 'Active').toLowerCase()}">
+                                        <span class="wh-dot"></span>
+                                        ${escapeHtml(user.status || 'Active')}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="wh-account-col-item wh-account-col-full">
+                                <div class="wh-account-col-label">
+                                    <span class="wh-col-db-tag">password</span>
+                                    Mật khẩu
+                                </div>
+                                <div class="wh-account-col-val" style="color: #64748b; font-size: 13px;">
+                                    <code>••••••••••••</code> 
+                                    <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">(Được bảo mật và mã hóa trong cơ sở dữ liệu)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Khối 2: Bảng công việc của thủ kho cần thực hiện -->
+                <div class="wh-profile-card">
+                    <div class="wh-profile-card-header">
+                        <div class="wh-profile-card-header-icon is-green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <h3 class="wh-profile-card-title">Bảng công việc của thủ kho cần thực hiện</h3>
+                                <span class="wh-badge-code">${tasks.length} nhiệm vụ chính</span>
+                            </div>
+                            <p class="wh-profile-card-subtitle">Quy trình, chứng từ liên quan và danh mục trách nhiệm vận hành kho hàng</p>
+                        </div>
+                    </div>
+                    <div class="wh-profile-card-body" style="padding: 0;">
+                        <div class="wh-task-table-wrapper">
+                            <table class="wh-task-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px; text-align: center;">STT</th>
+                                        <th style="min-width: 280px;">Nhiệm vụ / Công việc</th>
+                                        <th style="min-width: 250px;">Quy trình & Chứng từ áp dụng</th>
+                                        <th style="min-width: 170px;">Chu kỳ thực hiện</th>
+                                        <th style="width: 110px; text-align: center;">Mức ưu tiên</th>
+                                        <th style="width: 140px; text-align: center;">Phân hệ quản lý</th>
+                                        <th style="width: 130px; text-align: center;">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tasks.map((task, idx) => `
+                                        <tr>
+                                            <td style="text-align: center; font-weight: 700; color: #64748b;">${idx + 1}</td>
+                                            <td>
+                                                <div class="wh-task-title">${escapeHtml(task.title)}</div>
+                                                <div class="wh-task-desc">${escapeHtml(task.description)}</div>
+                                            </td>
+                                            <td>
+                                                <div class="wh-task-docs-wrap">
+                                                    ${task.documents.map(doc => `
+                                                        <span class="wh-task-doc-pill">
+                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                                            ${escapeHtml(doc)}
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="wh-task-freq">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                                    <span>${escapeHtml(task.frequency)}</span>
+                                                </div>
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <span class="wh-priority-badge is-${task.priorityClass}">
+                                                    ${escapeHtml(task.priority)}
+                                                </span>
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <span class="wh-module-tag">
+                                                    ${escapeHtml(task.module)}
+                                                </span>
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <button type="button" class="wh-task-action-btn" data-action="select-menu" data-menu-id="${escapeHtml(task.menuId)}" title="Mở phân hệ ${escapeHtml(task.module)}">
+                                                    <span>Mở phân hệ</span>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function escapeHtml(str) {
@@ -3755,6 +4997,11 @@ const WarehouseComponents = (function () {
         renderDocumentModal,
         renderVthhDetailModal,
         renderProductionRequestModal,
+        renderSupplierModal,
+        renderStockCardModal,
+        renderReportPage,
+        renderUserDropdown,
+        renderEmployeeProfile,
         renderMainContent
     };
 })();

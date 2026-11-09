@@ -37,6 +37,8 @@ public class DashboardViewModel
     // ── Sales ────────────────────────────────────────────────────────────
     public int TodayOrders { get; set; }
     public int MonthOrders { get; set; }
+    public decimal CurrentMonthRevenue { get; set; }
+    public decimal TotalWipQuantity { get; set; }
     public int PendingApprovalOrders { get; set; }
     public decimal TodayRevenue { get; set; }
 
@@ -46,6 +48,9 @@ public class DashboardViewModel
 
     // ── Recent activity feed ─────────────────────────────────────────────
     public List<RecentUserItem> RecentUsers { get; set; } = new();
+
+    // ── Recent requests with UserAccount FK (Eager loaded via .Include) ──
+    public List<RecentProductionRequestItem> RecentProductionRequests { get; set; } = new();
 }
 
 public class RecentUserItem
@@ -56,3 +61,12 @@ public class RecentUserItem
     public string Status { get; set; } = string.Empty;
 }
 
+public class RecentProductionRequestItem
+{
+    public int RequestId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public string RequestedByUsername { get; set; } = string.Empty;
+    public string RequestedByFullName { get; set; } = string.Empty;
+}

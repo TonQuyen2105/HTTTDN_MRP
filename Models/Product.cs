@@ -18,8 +18,14 @@ public class Product
     [Column("unit")]
     public string? Unit { get; set; }
 
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("shelflifemonths")]
+    public int? ShelfLifeMonths { get; set; }
+
     [Column("quantity")]
-    public decimal Quantity { get; set; }
+    public int Quantity { get; set; }
 
     // Required for inventory valuation. The PostgreSQL column is `cost`.
     [Column("cost")]

@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using httt.Areas.Admin.Services;
@@ -69,7 +68,8 @@ public class AccountController : Controller
 
         var normalizedUsername = username.Trim();
         var user = await _context.UserAccounts
-            .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername.ToLower());
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Username, normalizedUsername));
 
         if (user == null)
         {
@@ -85,9 +85,8 @@ public class AccountController : Controller
             return View();
         }
 
-        var hasher = new PasswordHasher<UserAccount>();
-        var verifyResult = hasher.VerifyHashedPassword(user, user.Password, password);
-        var isValidPassword = verifyResult == PasswordVerificationResult.Success || user.Password == password;
+        // Xác thực mật khẩu thông qua UserAccountService (BCrypt và nâng cấp an toàn)
+        var isValidPassword = UserAccountService.VerifyPassword(password, user.Password);
 
         if (!isValidPassword)
         {
@@ -95,6 +94,9 @@ public class AccountController : Controller
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
+
+        // Tự động nâng cấp mật khẩu cũ sang BCrypt hash nếu cần
+        await _accountService.UpgradePasswordIfNeededAsync(user, password);
 
         var claims = new List<Claim>
         {
@@ -175,26 +177,58 @@ public class AccountController : Controller
         if (string.IsNullOrWhiteSpace(username)) return Challenge();
 
         if (string.IsNullOrWhiteSpace(fullname))
-            return Json(new { success = false, message = "Họ và tên không được để trống." });
+        {
+            TempData["ErrorMessage"] = "Họ và tên không được để trống.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        string? errorMessage = null;
 
         try
         {
-            var account = await _context.UserAccounts
-                .FirstOrDefaultAsync(u => u.Username == username);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            if (account == null)
-                return Json(new { success = false, message = "Không tìm thấy thông tin tài khoản." });
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var account = await _context.UserAccounts
+                        .FirstOrDefaultAsync(u => u.Username == username);
 
-            account.FullName = fullname.Trim();
-            account.Phone    = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+                    if (account == null)
+                    {
+                        errorMessage = "Không tìm thấy thông tin tài khoản.";
+                        return;
+                    }
 
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "Cập nhật thông tin cá nhân thành công." });
+                    account.FullName = fullname.Trim();
+                    account.Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating profile for: {Username}", username);
-            return Json(new { success = false, message = "Lỗi khi cập nhật cơ sở dữ liệu. Vui lòng thử lại." });
+            TempData["ErrorMessage"] = "Lỗi khi cập nhật cơ sở dữ liệu. Vui lòng thử lại.";
+            return RedirectToAction(nameof(Profile));
         }
+
+        if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            TempData["ErrorMessage"] = errorMessage;
+            return RedirectToAction(nameof(Profile));
+        }
+
+        TempData["SuccessMessage"] = "Cập nhật thông tin thành công";
+        return RedirectToAction(nameof(Profile));
     }
 }

@@ -37,7 +37,7 @@
                         </span>
                         <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
                             <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
-                            @(isActive ? "Active" : "Inactive")
+                            @(isActive ? "Hoạt động" : "Không hoạt động")
                         </span>
                     </div>
 
@@ -60,7 +60,7 @@
                     </h2>
                 </div>
                 <div class="adm-card-body">
-                    <form id="profileForm" asp-area="Admin" asp-controller="Account" asp-action="UpdateProfile" method="post" class="needs-validation" novalidate>
+                    <form id="profileForm" asp-area="Admin" asp-controller="Account" asp-action="UpdateProfile" method="post" class="needs-validation">
                         @Html.AntiForgeryToken()
 
                         <div class="row g-4">
@@ -107,7 +107,7 @@
                                 <div class="rounded-3 px-3 py-2 border bg-light-subtle" style="min-height: 3rem; display: flex; align-items: center;">
                                     <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
                                         <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
-                                        @(isActive ? "Active" : "Inactive")
+                                        @(isActive ? "Hoạt động" : "Không hoạt động")
                                     </span>
                                 </div>
                             </div>
@@ -132,4 +132,19 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const profileForm = document.getElementById('profileForm');
+        if (!profileForm) return;
+
+        profileForm.addEventListener('submit', function (event) {
+            if (!event.target.checkValidity()) {
+                event.preventDefault();
+                event.target.reportValidity();
+                return;
+            }
+        });
+    });
+</script>
 

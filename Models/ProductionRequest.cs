@@ -14,19 +14,30 @@ public class ProductionRequest
     [Column("productid")]
     public int? ProductId { get; set; }
 
-    [Column("quantity")]
-    public decimal Quantity { get; set; }
+    [ForeignKey(nameof(ProductId))]
+    public virtual Product? Product { get; set; }
+
+    [Column("requestcode")]
+    public string? RequestCode { get; set; }
+
+    [Column("quantityrequired")]
+    public decimal QuantityRequired { get; set; }
 
     [Column("status")]
     public string Status { get; set; } = "Pending";
 
-    [Column("requestdate")]
-    public DateTime RequestDate { get; set; } = DateTime.UtcNow;
+    [Column("createddate")]
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
-    [Column("requestedby")]
-    public int? RequestedBy { get; set; }
+    [Column("assignedto")]
+    public int? AssignedTo { get; set; }
+
+    /// <summary>
+    /// Navigation property trỏ tới UserAccount (người được giao xử lý phiếu).
+    /// </summary>
+    [ForeignKey(nameof(AssignedTo))]
+    public virtual UserAccount? AssignedUser { get; set; }
 
     [Column("notes")]
     public string? Notes { get; set; }
 }
-

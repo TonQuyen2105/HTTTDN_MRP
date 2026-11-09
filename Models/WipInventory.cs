@@ -14,6 +14,9 @@ public class WipInventory
     [Column("productid")]
     public int? ProductId { get; set; }
 
+    [ForeignKey(nameof(ProductId))]
+    public virtual Product? Product { get; set; }
+
     [Column("quantity")]
     public decimal Quantity { get; set; }
 
@@ -23,4 +26,3 @@ public class WipInventory
     [Column("updatedat")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
-

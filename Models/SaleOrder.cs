@@ -11,6 +11,9 @@ public class SaleOrder
     [Column("orderid")]
     public int OrderId { get; set; }
 
+    [Column("ordercode")]
+    public string? OrderCode { get; set; }
+
     [Column("orderdate")]
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
 
@@ -23,10 +26,16 @@ public class SaleOrder
     [Column("approvedby")]
     public int? ApprovedBy { get; set; }
 
+    /// <summary>
+    /// Navigation property trỏ tới UserAccount (người duyệt đơn hàng).
+    /// Hỗ trợ Eager Loading: .Include(x => x.UserAccount) để xử lý triệt để N+1 Query.
+    /// </summary>
+    [ForeignKey(nameof(ApprovedBy))]
+    public virtual UserAccount? UserAccount { get; set; }
+
     [Column("customerid")]
     public int? CustomerId { get; set; }
 
     [Column("notes")]
     public string? Notes { get; set; }
 }
-

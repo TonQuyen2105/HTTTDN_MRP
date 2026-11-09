@@ -1,176 +1,193 @@
 @{
     ViewData["Title"] = "Đăng nhập Admin";
-    Layout = null; /* Standalone page, no sidebar/header */
+    Layout = null;
     var errorMessage = ViewBag.ErrorMessage as string;
     var returnUrl = ViewBag.ReturnUrl as string;
 }
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] — HTTT Admin</title>
+    <title>@ViewData["Title"]</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
-    <link href="/css/admin-style.css" rel="stylesheet" />
+    <style>
+        body {
+            background: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .login-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            padding: 32px 28px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .brand-mark {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .brand-text {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .brand-sub {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .form-title {
+            text-align: center;
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .form-subtitle {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.92rem;
+            margin-bottom: 24px;
+        }
+
+        .alert {
+            margin-bottom: 18px;
+            border-radius: 12px;
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: #b91c1c;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            border-radius: 12px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            min-height: 52px;
+            padding-left: 14px;
+        }
+
+        .form-control:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+        }
+
+        .mb-3 {
+            margin-bottom: 16px !important;
+        }
+
+        .btn-primary {
+            width: 100%;
+            min-height: 52px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(0.98);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.9;
+        }
+    </style>
 </head>
-<body style="background: #0f172a; margin: 0; padding: 0;">
-
-<div class="adm-login-wrapper">
-
-    <div class="adm-login-card">
-
-        <!-- ── Left panel ── -->
-        <div class="adm-login-panel-left">
-            <!-- Brand -->
-            <div class="adm-login-left-brand">
-                <div class="adm-login-left-brand-icon">
-                    <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+<body>
+    <div class="login-shell">
+        <div class="login-card">
+            <div class="brand">
+                <div class="brand-mark">
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
                 </div>
                 <div>
-                    <div class="adm-login-left-brand-name">HTTT Admin</div>
-                    <div class="adm-login-left-brand-tagline">Hệ thống MRP Quản lý Kho Thuốc</div>
+                    <div class="brand-text">HTTT Admin</div>
+                    <div class="brand-sub">Quản trị viên hệ thống</div>
                 </div>
             </div>
 
-            <!-- Hero illustration -->
-            <div class="adm-login-left-hero">
-                <i class="fa-solid fa-shield-halved adm-login-left-hero-icon" aria-hidden="true"></i>
-                <h2 class="adm-login-left-headline">Trung tâm kiểm soát<br>toàn hệ thống</h2>
-                <p class="adm-login-left-desc">
-                    Quản trị tài khoản, phân quyền RBAC và giám sát vận hành<br>
-                    từ một bảng điều khiển tập trung, an toàn và hiệu quả.
-                </p>
-            </div>
-
-            <!-- Feature list -->
-            <ul class="adm-login-left-features" aria-label="Tính năng hệ thống">
-                <li>
-                    <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Bảo mật xác thực Cookie &amp; mã hóa mật khẩu an toàn
-                </li>
-                <li>
-                    <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Giám sát số liệu kho &amp; sản xuất MRP thời gian thực
-                </li>
-                <li>
-                    <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Phân quyền phân hệ độc quyền cho Quản trị viên
-                </li>
-            </ul>
-        </div>
-
-        <!-- ── Right panel (form) ── -->
-        <div class="adm-login-panel-right">
-            <h1 class="adm-login-form-title">Đăng nhập Admin</h1>
-            <p class="adm-login-form-subtitle">Vui lòng nhập thông tin tài khoản Quản trị để tiếp tục.</p>
+            <h1 class="form-title">Đăng nhập</h1>
+            <p class="form-subtitle">Quản trị viên hệ thống</p>
 
             @if (!string.IsNullOrWhiteSpace(errorMessage))
             {
-                <div class="alert alert-danger d-flex align-items-center mb-4 py-2 px-3 rounded-3 shadow-sm border-0" role="alert" style="background: rgba(239, 68, 68, 0.12); color: #dc2626;">
-                    <i class="fa-solid fa-triangle-exclamation me-2 fs-5" aria-hidden="true"></i>
-                    <div style="font-size: 0.875rem; font-weight: 500;">
-                        @errorMessage
-                    </div>
-                </div>
+                <div class="alert" role="alert">@errorMessage</div>
             }
 
-            <form asp-area="Admin" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl" method="post" class="adm-login-form" id="loginForm" novalidate>
+            <form asp-area="Admin" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl" method="post" id="loginForm">
                 @Html.AntiForgeryToken()
 
-                <!-- Username -->
-                <div class="form-floating mb-3">
-                    <input id="username" name="username" type="text" class="form-control"
-                           placeholder="Tên đăng nhập" autocomplete="username"
-                           required autofocus />
-                    <label for="username">
-                        <i class="fa-regular fa-user me-1" aria-hidden="true"></i>Tên đăng nhập
-                    </label>
+                <div class="mb-3">
+                    <label for="username" class="form-label visually-hidden">Tên đăng nhập</label>
+                    <input id="username" name="username" type="text" class="form-control" placeholder="Tên đăng nhập" autocomplete="username" required autofocus />
                 </div>
 
-                <!-- Password -->
-                <div class="form-floating mb-4 position-relative">
-                    <input id="password" name="password" type="password" class="form-control"
-                           placeholder="Mật khẩu" autocomplete="current-password" required />
-                    <label for="password">
-                        <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Mật khẩu
-                    </label>
-                    <button type="button" id="togglePwd"
-                            class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-1 text-muted border-0 bg-transparent p-2"
-                            aria-label="Hiện / Ẩn mật khẩu" tabindex="-1">
-                        <i class="fa-regular fa-eye" id="togglePwdIcon" aria-hidden="true"></i>
-                    </button>
+                <div class="mb-3">
+                    <label for="password" class="form-label visually-hidden">Mật khẩu</label>
+                    <input id="password" name="password" type="password" class="form-control" placeholder="Mật khẩu" autocomplete="current-password" required />
                 </div>
 
-                <button type="submit" class="adm-login-submit-btn" id="btnLoginSubmit">
-                    <span class="btn-text">
-                        <i class="fa-solid fa-arrow-right-to-bracket me-2" aria-hidden="true"></i>
-                        Đăng nhập vào hệ thống
-                    </span>
-                    <span class="btn-spinner d-none">
-                        <i class="fa-solid fa-spinner fa-spin me-2" aria-hidden="true"></i>
-                        Đang xác thực...
-                    </span>
+                <button type="submit" class="btn btn-primary" id="btnLoginSubmit">
+                    Đăng nhập
                 </button>
             </form>
-
-            <div class="adm-login-footer">
-                <i class="fa-solid fa-lock fa-xs me-1" aria-hidden="true"></i>
-                Hệ thống xác thực bảo mật &amp; phiên làm việc 8 giờ
-            </div>
         </div>
-
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    // Ẩn/hiện mật khẩu
-    const toggleBtn = document.getElementById('togglePwd');
-    const pwdInput = document.getElementById('password');
-    const toggleIcon = document.getElementById('togglePwdIcon');
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('btnLoginSubmit');
 
-    if (toggleBtn && pwdInput && toggleIcon) {
-        toggleBtn.addEventListener('click', function () {
-            const isPassword = pwdInput.type === 'password';
-            pwdInput.type = isPassword ? 'text' : 'password';
-            toggleIcon.classList.toggle('fa-eye', !isPassword);
-            toggleIcon.classList.toggle('fa-eye-slash', isPassword);
-        });
-    }
+        if (loginForm && submitBtn) {
+            loginForm.addEventListener('submit', function (event) {
+                if (!event.target.checkValidity()) {
+                    event.preventDefault();
+                    event.target.reportValidity();
+                    return;
+                }
 
-    // Hiển thị trạng thái Loading khi submit
-    const loginForm = document.getElementById('loginForm');
-    const submitBtn = document.getElementById('btnLoginSubmit');
-    if (loginForm && submitBtn) {
-        loginForm.addEventListener('submit', function () {
-            const btnText = submitBtn.querySelector('.btn-text');
-            const btnSpinner = submitBtn.querySelector('.btn-spinner');
-            if (btnText && btnSpinner) {
-                btnText.classList.add('d-none');
-                btnSpinner.classList.remove('d-none');
-            }
-            submitBtn.disabled = true;
-        });
-    }
-
-    // SweetAlert2 Toast nếu có lỗi từ Server
-    @if (!string.IsNullOrWhiteSpace(errorMessage))
-    {
-        <text>
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'error',
-            title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(errorMessage)),
-            showConfirmButton: false,
-            timer: 4500,
-            timerProgressBar: true
-        });
-        </text>
-    }
-</script>
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Đang đăng nhập...';
+            });
+        }
+    </script>
 </body>
 </html>
+

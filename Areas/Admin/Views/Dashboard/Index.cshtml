@@ -38,7 +38,7 @@
                 <div class="adm-kpi-card-body">
                     <div class="adm-kpi-label">Đang hoạt động</div>
                     <div class="adm-kpi-value">@Model.ActiveAccounts</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>Status Active</div>
+                <div class="adm-kpi-delta"><i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>Hoạt động</div>
                 </div>
                 <div class="adm-kpi-icon-wrap text-success"><i class="fa-solid fa-user-check fa-2x" aria-hidden="true"></i></div>
             </div>
@@ -113,7 +113,7 @@
                         <i class="fa-solid fa-chart-pie me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
                         Phân bổ theo vai trò
                     </h2>
-                    <span class="badge rounded-pill px-2 py-1" style="background: rgba(99,102,241,0.10); color: #4f46e5; font-size: 0.7rem;">Live</span>
+                    <span class="badge rounded-pill px-2 py-1" style="background: rgba(99,102,241,0.10); color: #4f46e5; font-size: 0.7rem;">Trực tiếp</span>
                 </div>
                 <div class="adm-card-body">
                     <div class="adm-chart-container" style="max-width: 300px;">
@@ -250,7 +250,7 @@
                                     <td>
                                         <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
                                             <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
-                                            @(isActive ? "Active" : "Inactive")
+                                            @(isActive ? "Hoạt động" : "Không hoạt động")
                                         </span>
                                     </td>
                                 </tr>

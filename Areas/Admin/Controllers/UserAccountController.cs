@@ -30,28 +30,29 @@ public class UserAccountController : Controller
     }
 
     // ── GET: /Admin/UserAccount/Index ─────────────────────────────────────
+    // Tiêu chí 1: Truy vấn Read-only dùng .AsNoTracking()
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Index(string? searchString, string? roleFilter, string? statusFilter)
+    public async Task<IActionResult> Index(
+        int page = 1,
+        string search = "",
+        string role = "",
+        string status = "")
     {
-        var normalizedSearch = searchString?.Trim();
-        var normalizedRole = roleFilter?.Trim();
-        var normalizedStatus = statusFilter?.Trim();
-        var cacheKey = $"admin:user-list:{normalizedSearch ?? ""}|{normalizedRole ?? ""}|{normalizedStatus ?? ""}";
+        const int pageSize = 10;
+        page = Math.Max(1, page);
 
-        if (_cache.TryGetValue(cacheKey, out List<UserAccount>? cachedUsers))
-        {
-            return View(cachedUsers ?? new List<UserAccount>());
-        }
-
-        var query = _context.UserAccounts.AsNoTracking().AsQueryable();
+        var normalizedSearch = search.Trim();
+        var normalizedRole = role.Trim();
+        var normalizedStatus = status.Trim();
+        IQueryable<UserAccount> query = _context.UserAccounts.AsNoTracking();
 
         try
         {
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
             {
-                var kw = normalizedSearch.ToLower();
-                query = query.Where(u => u.Username.ToLower().Contains(kw) || u.FullName.ToLower().Contains(kw));
+                var kw = normalizedSearch.Trim();
+                query = query.Where(u => EF.Functions.ILike(u.Username, $"%{kw}%") || EF.Functions.ILike(u.FullName, $"%{kw}%"));
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedRole) && !normalizedRole.Equals("all", StringComparison.OrdinalIgnoreCase))
@@ -63,12 +64,26 @@ public class UserAccountController : Controller
             {
                 bool isActive = normalizedStatus.Equals("Active", StringComparison.OrdinalIgnoreCase);
                 query = query.Where(u =>
-                    (isActive  && (u.Status == "Active" || u.Status == "true"  || u.Status == "1")) ||
-                    (!isActive && (u.Status == "Inactive" || u.Status == "false" || u.Status == "0")));
+                    (isActive  && (u.Status == "Active" || u.Status == "true" || u.Status == "1")) ||
+                    (!isActive && (u.Status == "Inactive" || u.Status == "Disabled" || u.Status == "Blocked" || u.Status == "false" || u.Status == "0")));
             }
 
-            var users = await query.OrderBy(u => u.UserId).ToListAsync();
-            _cache.Set(cacheKey, users, TimeSpan.FromMinutes(2));
+            var totalItems = await query.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+            page = Math.Min(page, totalPages);
+
+            var users = await query
+                .OrderBy(u => u.UserId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.Search = normalizedSearch;
+            ViewBag.Role = normalizedRole;
+            ViewBag.Status = normalizedStatus;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
             return View(users);
         }
         catch (Exception ex)
@@ -77,6 +92,33 @@ public class UserAccountController : Controller
             TempData["ErrorMessage"] = "Không thể tải danh sách tài khoản từ cơ sở dữ liệu.";
             return View(new List<UserAccount>());
         }
+    }
+
+    // ── GET: /Admin/UserAccount/GetById/{id} ───────────────────────────────
+    // Tiêu chí 1: Xem chi tiết read-only dùng .AsNoTracking()
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        if (id <= 0) return BadRequest(new { success = false, message = "ID tài khoản không hợp lệ." });
+
+        var user = await _accountService.GetByIdAsync(id);
+        if (user == null) return NotFound(new { success = false, message = "Không tìm thấy tài khoản." });
+
+        return Json(new
+        {
+            success = true,
+            data = new
+            {
+                user.UserId,
+                user.Username,
+                user.FullName,
+                user.Phone,
+                user.Role,
+                user.Status,
+                user.IsActive
+            }
+        });
     }
 
     // ── POST: Create ──────────────────────────────────────────────────────
@@ -126,8 +168,9 @@ public class UserAccountController : Controller
     [HttpPost]
     [Authorize(Roles = "Admin")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, string fullname, string? phone, string role, string? newpassword)
+    public async Task<IActionResult> Edit(int id, string fullname, string? phone, string? role, string? password, string? newpassword)
     {
+        var effectivePassword = !string.IsNullOrWhiteSpace(password) ? password : newpassword;
         var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
         if (string.IsNullOrWhiteSpace(fullname))
@@ -137,9 +180,26 @@ public class UserAccountController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            if (isAjax) return BadRequest(new { success = false, message = "Vai trò không được để trống." });
+            TempData["ErrorMessage"] = "Vai trò không được để trống.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Ngăn chặn Admin đang login tự thay đổi vai trò của chính mình
+        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (currentUserId == id.ToString() && !string.Equals(role.Trim(), "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            const string msg = "Bạn không thể tự thay đổi vai trò của chính mình.";
+            if (isAjax) return BadRequest(new { success = false, message = msg });
+            TempData["ErrorMessage"] = msg;
+            return RedirectToAction(nameof(Index));
+        }
+
         try
         {
-            var (success, message) = await _accountService.EditAsync(id, fullname, phone, role, newpassword);
+            var (success, message) = await _accountService.EditAsync(id, fullname, phone, role.Trim(), effectivePassword);
             if (!success)
             {
                 if (isAjax) return BadRequest(new { success = false, message });
@@ -175,6 +235,14 @@ public class UserAccountController : Controller
             return BadRequest(new { success = false, message = "Họ tên là bắt buộc." });
         if (string.IsNullOrWhiteSpace(role))
             return BadRequest(new { success = false, message = "Vai trò là bắt buộc." });
+
+        // Ngăn chặn Admin đang login tự thay đổi vai trò của chính mình
+        var currentUsername = User.Identity?.Name;
+        if (string.Equals(currentUsername, username.Trim(), StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(role.Trim(), "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { success = false, message = "Bạn không thể tự thay đổi vai trò của chính mình." });
+        }
 
         try
         {
@@ -230,6 +298,12 @@ public class UserAccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateRole(int id, string role)
     {
+        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (currentUserId == id.ToString())
+        {
+            return BadRequest(new { success = false, message = "Bạn không thể tự thay đổi vai trò của chính mình." });
+        }
+
         try
         {
             var (success, message) = await _accountService.UpdateRoleAsync(id, role);
@@ -272,6 +346,31 @@ public class UserAccountController : Controller
         {
             _logger.LogError(ex, "Error deleting user ID: {UserId}", id);
             return Json(new { success = false, message = "Lỗi hệ thống khi xóa tài khoản." });
+        }
+    }
+
+    // ── POST: ApproveAccounts (Tiêu chí 3: Gộp SaveChanges khi duyệt nhiều)
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveAccounts([FromBody] BulkActionRequest request)
+    {
+        if (request?.Ids == null || !request.Ids.Any())
+            return BadRequest(new { success = false, message = "Không có tài khoản nào được chọn." });
+
+        try
+        {
+            var (success, affected, message) = await _accountService.ApproveMultipleAccountsAsync(request.Ids);
+            if (success)
+            {
+                _cache.Remove("admin:user-list:");
+            }
+            return Json(new { success, affected, message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving accounts.");
+            return Json(new { success = false, message = "Lỗi hệ thống khi duyệt tài khoản." });
         }
     }
 

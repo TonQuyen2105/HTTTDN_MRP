@@ -18,6 +18,12 @@ public class Ingredient
     [Column("unit")]
     public string? Unit { get; set; }
 
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("shelflifemonths")]
+    public int? ShelfLifeMonths { get; set; }
+
     [Column("quantity")]
     public decimal Quantity { get; set; }
 

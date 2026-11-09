@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using httt.Data;
 using httt.Areas.Admin.Services;
 using httt.Models;
@@ -23,18 +24,38 @@ if (string.IsNullOrWhiteSpace(connectionString) || hasPlaceholderConnectionStrin
         "Database is not configured. Set ConnectionStrings:DefaultConnection or the DATABASE_URL environment variable to a valid Supabase/PostgreSQL connection string before running the app.");
 }
 
+var npgsqlConnectionString = BuildSupabaseConnectionString(connectionString);
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    ConfigureNpgsql(options, npgsqlConnectionString));
+
+static void ConfigureNpgsql(DbContextOptionsBuilder options, string connectionString)
+{
     options.UseNpgsql(
         connectionString,
         npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(3),
+                maxRetryCount: 2,
+                maxRetryDelay: TimeSpan.FromSeconds(2),
                 errorCodesToAdd: null);
 
-            npgsqlOptions.CommandTimeout(10);
-        }));
+            npgsqlOptions.CommandTimeout(30);
+        });
+}
+
+static string BuildSupabaseConnectionString(string connectionString)
+{
+    var builder = new NpgsqlConnectionStringBuilder(connectionString)
+    {
+        Pooling = false,
+        Timeout = 30,
+        CommandTimeout = 30,
+        IncludeErrorDetail = false
+    };
+
+    return builder.ConnectionString;
+}
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -112,7 +133,7 @@ if (app.Environment.IsDevelopment())
 
     try
     {
-        if (!await db.UserAccounts.AnyAsync())
+        if (!await db.UserAccounts.AsNoTracking().AnyAsync())
         {
             var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME") ?? "admin";
             var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "Admin@123";

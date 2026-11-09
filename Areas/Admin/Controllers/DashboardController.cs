@@ -23,6 +23,8 @@ public sealed class DashboardData
     public int TotalIngredients { get; set; }
     public decimal TotalIngredientInventoryValue { get; set; }
     public int MonthOrders { get; set; }
+    public decimal CurrentMonthRevenue { get; set; }
+    public decimal TotalWipQuantity { get; set; }
     public int PendingProductionRequests { get; set; }
     public int InProgressProductionRequests { get; set; }
     public int OpenProductionRequests { get; set; }
@@ -35,11 +37,16 @@ public sealed class DashboardController : Controller
     private const string DashboardCacheKey = "admin:dashboard:metrics";
 
     private readonly ApplicationDbContext _context;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DashboardController> _logger;
     private readonly IMemoryCache _cache;
 
-    public DashboardController(ApplicationDbContext context, ILogger<DashboardController> logger, IMemoryCache cache)
-        => (_context, _logger, _cache) = (context, logger, cache);
+    public DashboardController(
+        ApplicationDbContext context,
+        IServiceScopeFactory scopeFactory,
+        ILogger<DashboardController> logger,
+        IMemoryCache cache)
+        => (_context, _scopeFactory, _logger, _cache) = (context, scopeFactory, logger, cache);
 
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -62,15 +69,20 @@ SELECT
     (SELECT COUNT(*) FROM public.ingredient) AS "TotalIngredients",
     (SELECT COALESCE(SUM(quantity * price), 0) FROM public.ingredient) AS "TotalIngredientInventoryValue",
     (SELECT COUNT(*) FROM public.productreceipt WHERE createddate >= DATE_TRUNC('month', CURRENT_DATE) AND createddate < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month') AS "MonthOrders",
+    (SELECT COALESCE(SUM(totalamount), 0) FROM public.saleorder WHERE orderdate >= DATE_TRUNC('month', CURRENT_DATE) AND orderdate < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month') AS "CurrentMonthRevenue",
+    (SELECT COALESCE(SUM(quantity), 0) FROM public.wip_inventory) AS "TotalWipQuantity",
     (SELECT COUNT(*) FROM public.productionrequest WHERE status = 'Pending') AS "PendingProductionRequests",
     (SELECT COUNT(*) FROM public.productionrequest WHERE status = 'Processing') AS "InProgressProductionRequests",
     (SELECT COUNT(*) FROM public.productionrequest WHERE status IN ('Pending', 'Processing')) AS "OpenProductionRequests"
 """;
 
-                var dashboard = await _context.Database
-                    .SqlQueryRaw<DashboardData>(sql)
-                    .SingleOrDefaultAsync(cancellationToken);
+                var dashboardTask = GetDashboardMetricsAsync(sql, cancellationToken);
+                var recentUsersTask = GetRecentUsersAsync(cancellationToken);
+                var recentProductionTask = GetRecentProductionRequestsAsync(cancellationToken);
 
+                await Task.WhenAll(dashboardTask, recentUsersTask, recentProductionTask);
+
+                var dashboard = await dashboardTask;
                 if (dashboard is null)
                 {
                     return View(new DashboardViewModel());
@@ -92,9 +104,13 @@ SELECT
                     TotalIngredients = dashboard.TotalIngredients,
                     TotalIngredientInventoryValue = dashboard.TotalIngredientInventoryValue,
                     MonthOrders = dashboard.MonthOrders,
+                    CurrentMonthRevenue = dashboard.CurrentMonthRevenue,
+                    TotalWipQuantity = dashboard.TotalWipQuantity,
                     PendingProductionRequests = dashboard.PendingProductionRequests,
                     InProgressProductionRequests = dashboard.InProgressProductionRequests,
-                    OpenProductionRequests = dashboard.OpenProductionRequests
+                    OpenProductionRequests = dashboard.OpenProductionRequests,
+                    RecentUsers = await recentUsersTask,
+                    RecentProductionRequests = await recentProductionTask
                 };
 
                 vm.RoleLabels = JsonSerializer.Serialize(new[] { "Admin", "Manager", "Employee", "Production", "Warehouse", "Sales" });
@@ -124,5 +140,54 @@ SELECT
             TempData["ErrorMessage"] = "Không thể tải số liệu Dashboard. Vui lòng thử lại.";
             return View(new DashboardViewModel());
         }
+    }
+
+    private async Task<DashboardData?> GetDashboardMetricsAsync(string sql, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await context.Database
+            .SqlQueryRaw<DashboardData>(sql)
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<List<RecentUserItem>> GetRecentUsersAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await context.UserAccounts
+            .AsNoTracking()
+            .OrderByDescending(u => u.UserId)
+            .Take(5)
+            .Select(u => new RecentUserItem
+            {
+                Username = u.Username,
+                FullName = u.FullName,
+                Role = u.Role,
+                Status = u.Status
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task<List<RecentProductionRequestItem>> GetRecentProductionRequestsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await context.ProductionRequests
+            .AsNoTracking()
+            .Include(r => r.AssignedUser)
+            .Include(r => r.Product)
+            .OrderByDescending(r => r.RequestId)
+            .Take(5)
+            .Select(r => new RecentProductionRequestItem
+            {
+                RequestId = r.RequestId,
+                ProductName = r.Product != null ? r.Product.ProductName : "—",
+                Status = r.Status,
+                CreatedDate = r.CreatedDate,
+                RequestedByUsername = r.AssignedUser != null ? r.AssignedUser.Username : "—",
+                RequestedByFullName = r.AssignedUser != null ? r.AssignedUser.FullName : "—"
+            })
+            .ToListAsync(cancellationToken);
     }
 }

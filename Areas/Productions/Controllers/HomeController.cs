@@ -11,19 +11,22 @@ namespace httt.Areas.Productions.Controllers
 {
     [Area("Productions")]
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Production}")]
-    public class HomeController : Controller
+    public partial class HomeController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly MaterialRequirementService _mrpService;
+        private readonly ProductionHandoverService _handoverService;
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(
             ApplicationDbContext context, 
             MaterialRequirementService mrpService,
+            ProductionHandoverService handoverService,
             ILogger<HomeController> logger)
         {
             _context = context;
             _mrpService = mrpService;
+            _handoverService = handoverService;
             _logger = logger;
         }
 
@@ -84,61 +87,6 @@ namespace httt.Areas.Productions.Controllers
         }
 
         public IActionResult Overview() => RedirectToAction("Index");
-
-        public async Task<IActionResult> BomList()
-        {
-            try
-            {
-                var boms = await _context.Boms
-                    .AsNoTracking()
-                    .Include(b => b.Product)
-                    .Include(b => b.Ingredient)
-                    .OrderBy(b => b.BomId)
-                    .ToListAsync();
-                return View("~/Areas/Productions/Views/BomList.cshtml", boms);
-            }
-            catch
-            {
-                return View("~/Areas/Productions/Views/BomList.cshtml", new List<Bom>());
-            }
-        }
-
-        public async Task<IActionResult> BomCreate()
-        {
-            try
-            {
-                ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
-                ViewBag.Ingredients = await _context.Ingredients.AsNoTracking().ToListAsync();
-            }
-            catch {}
-            return View("~/Areas/Productions/Views/BomCreate.cshtml");
-        }
-
-        public async Task<IActionResult> BomEdit(int? id)
-        {
-            try
-            {
-                ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
-                ViewBag.Ingredients = await _context.Ingredients.AsNoTracking().ToListAsync();
-
-                if (!id.HasValue || id.Value <= 0)
-                {
-                    return View("~/Areas/Productions/Views/BomEdit.cshtml", (Bom?)null);
-                }
-
-                var bom = await _context.Boms
-                    .AsNoTracking()
-                    .Include(b => b.Product)
-                    .Include(b => b.Ingredient)
-                    .FirstOrDefaultAsync(b => b.BomId == id.Value);
-
-                return View("~/Areas/Productions/Views/BomEdit.cshtml", bom);
-            }
-            catch
-            {
-                return View("~/Areas/Productions/Views/BomEdit.cshtml", (Bom?)null);
-            }
-        }
 
         /// <summary>
         /// Trang Lệnh sản xuất đã được gộp/bỏ theo yêu cầu, chuyển hướng toàn bộ sang Đơn đặt hàng thuốc
@@ -724,71 +672,56 @@ namespace httt.Areas.Productions.Controllers
 
         #endregion
 
+        private async Task<List<ProductionStatisticsViewModel>> LoadProductionStatisticsAsync(int? requestId = null)
+        {
+            var query = _context.ProductionRequests.AsNoTracking().Include(r => r.Product).Include(r => r.Manager).AsQueryable();
+            if (requestId.HasValue) query = query.Where(r => r.RequestId == requestId.Value);
+            var requests = await query.OrderByDescending(r => r.RequestId).ToListAsync();
+            var ids = requests.Select(r => r.RequestId).ToList();
+            var logs = await _context.ProductionLogs.AsNoTracking().Include(l => l.Creator)
+                .Where(l => ids.Contains(l.RequestId)).OrderByDescending(l => l.ProducedAt).ThenByDescending(l => l.LogId).ToListAsync();
+            var receipts = await _context.ProductReceipts.AsNoTracking().Include(r => r.Details)
+                .Where(r => r.RequestId.HasValue && ids.Contains(r.RequestId.Value) && string.IsNullOrWhiteSpace(r.ReceiptCode)).ToListAsync();
+            return requests.Select(r => new ProductionStatisticsViewModel
+            {
+                Request = r,
+                Logs = logs.Where(l => l.RequestId == r.RequestId && l.ProductId == r.ProductId).ToList(),
+                AccumulatedQuantity = receipts.Where(x => x.RequestId == r.RequestId).SelectMany(x => x.Details)
+                    .Where(d => d.ProductId == r.ProductId).Sum(d => (long)d.Quantity)
+            }).ToList();
+        }
+
         public async Task<IActionResult> ProductionStatisticsList()
         {
             try
             {
-                var requests = await _context.ProductionRequests
-                    .AsNoTracking()
-                    .Include(p => p.Product)
-                    .OrderByDescending(p => p.RequestId)
-                    .ToListAsync();
-
-                return View("~/Areas/Productions/Views/ProductionStatisticsList.cshtml", requests);
+                return View("~/Areas/Productions/Views/ProductionStatisticsList.cshtml", await LoadProductionStatisticsAsync());
             }
-            catch
+            catch (Exception ex)
             {
-                return View("~/Areas/Productions/Views/ProductionStatisticsList.cshtml", new List<ProductionRequest>());
+                _logger.LogError(ex, "Không tải được thống kê sản xuất");
+                ViewBag.LoadError = "Không tải được dữ liệu thống kê. Vui lòng tải lại trang.";
+                Response.StatusCode = 503;
+                return View("~/Areas/Productions/Views/ProductionStatisticsList.cshtml", new List<ProductionStatisticsViewModel>());
             }
         }
 
-        public async Task<IActionResult> ProductionStatisticsCreate()
-        {
-            try
-            {
-                ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
-                ViewBag.Orders = await _context.ProductionRequests
-                    .AsNoTracking()
-                    .Include(p => p.Product)
-                    .OrderByDescending(p => p.RequestId)
-                    .ToListAsync();
-            }
-            catch {}
-            return View("~/Areas/Productions/Views/ProductionStatisticsCreate.cshtml");
-        }
+        public IActionResult ProductionStatisticsCreate() => RedirectToAction(nameof(ProductionStatisticsList));
 
         public async Task<IActionResult> ProductionStatisticsDetail(int? id)
         {
             try
             {
-                ViewBag.Products = await _context.Products.AsNoTracking().ToListAsync();
-                if (!id.HasValue || id.Value <= 0)
-                {
-                    return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", (ProductionRequest?)null);
-                }
-
-                var req = await _context.ProductionRequests
-                    .AsNoTracking()
-                    .Include(p => p.Product)
-                    .Include(p => p.Manager)
-                    .FirstOrDefaultAsync(p => p.RequestId == id.Value);
-
-                if (req != null)
-                {
-                    var receipt = await _context.ProductReceipts
-                        .AsNoTracking()
-                        .Include(r => r.Details)
-                        .FirstOrDefaultAsync(r => r.RequestId == req.RequestId);
-
-                    ViewBag.ProductReceipt = receipt;
-                    return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", req);
-                }
-
-                return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", (ProductionRequest?)null);
+                var model = id is > 0 ? (await LoadProductionStatisticsAsync(id)).FirstOrDefault() : null;
+                if (model == null) Response.StatusCode = 404;
+                return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", model);
             }
-            catch
+            catch (Exception ex)
             {
-                return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", (ProductionRequest?)null);
+                _logger.LogError(ex, "Không tải được lịch sử sản xuất {RequestId}", id);
+                ViewBag.LoadError = "Không tải được lịch sử sản xuất. Vui lòng tải lại trang.";
+                Response.StatusCode = 503;
+                return View("~/Areas/Productions/Views/ProductionStatisticsDetail.cshtml", (ProductionStatisticsViewModel?)null);
             }
         }
 
@@ -827,26 +760,68 @@ namespace httt.Areas.Productions.Controllers
         }
         */
 
-        public async Task<IActionResult> HandoverList()
+        public async Task<IActionResult> HandoverList(string? search = null, string? status = null, string? tab = "pending")
         {
             try
             {
-                var receipts = await _context.ProductReceipts
-                    .AsNoTracking()
-                    .Include(p => p.Requester)
-                    .Include(p => p.Approver)
-                    .Include(p => p.ProductionRequest)
-                    .Include(p => p.Details)
-                        .ThenInclude(d => d.Product)
-                    .OrderByDescending(p => p.ProductReceiptId)
-                    .ToListAsync();
-
-                return View("~/Areas/Productions/Views/HandoverList.cshtml", receipts);
+                var model = await _handoverService.GetHandoverPageDataAsync(search, status, tab);
+                ViewBag.SearchKeyword = search ?? string.Empty;
+                ViewBag.StatusFilter = status ?? "All";
+                return View("~/Areas/Productions/Views/HandoverList.cshtml", model);
             }
-            catch
+            catch (Exception ex)
             {
-                return View("~/Areas/Productions/Views/HandoverList.cshtml", new List<ProductReceipt>());
+                _logger.LogError(ex, "Lỗi hiển thị trang HandoverList");
+                return View("~/Areas/Productions/Views/HandoverList.cshtml", new HandoverPageViewModel());
             }
+        }
+
+        /// <summary>
+        /// API lập và gửi phiếu bàn giao thành phẩm riêng biệt sang Kho (hỗ trợ bàn giao từng phần)
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateHandoverSlip([FromBody] HandoverSlipCreateRequest req)
+        {
+            if (!ModelState.IsValid)
+            {
+                var firstError = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .FirstOrDefault(msg => !string.IsNullOrWhiteSpace(msg));
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = !string.IsNullOrWhiteSpace(firstError)
+                        ? firstError
+                        : "Dữ liệu lập phiếu bàn giao không hợp lệ hoặc thiếu trường bắt buộc."
+                });
+            }
+
+            var currentUser = await GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "Chưa xác định được danh tính người dùng hoặc phiên đăng nhập đã hết hạn."
+                });
+            }
+
+            var (success, message, receiptCode, receiptId) = await _handoverService.CreateHandoverSlipAsync(req, currentUser.UserID);
+            if (!success)
+            {
+                return BadRequest(new { success = false, message });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message,
+                receiptCode,
+                receiptId
+            });
         }
 
         public async Task<IActionResult> HandoverDetail(int? id)
@@ -858,19 +833,12 @@ namespace httt.Areas.Productions.Controllers
                     return View("~/Areas/Productions/Views/HandoverDetail.cshtml", (ProductReceipt?)null);
                 }
 
-                var receipt = await _context.ProductReceipts
-                    .AsNoTracking()
-                    .Include(p => p.Requester)
-                    .Include(p => p.Approver)
-                    .Include(p => p.ProductionRequest)
-                    .Include(p => p.Details)
-                        .ThenInclude(d => d.Product)
-                    .FirstOrDefaultAsync(p => p.ProductReceiptId == id.Value);
-
+                var receipt = await _handoverService.GetHandoverSlipDetailAsync(id.Value);
                 return View("~/Areas/Productions/Views/HandoverDetail.cshtml", receipt);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Lỗi hiển thị chi tiết phiếu bàn giao {Id}", id);
                 return View("~/Areas/Productions/Views/HandoverDetail.cshtml", (ProductReceipt?)null);
             }
         }
@@ -907,7 +875,7 @@ namespace httt.Areas.Productions.Controllers
                 var receipts = await _context.ProductReceipts
                     .AsNoTracking()
                     .Include(p => p.Details)
-                    .Where(p => p.RequestId.HasValue)
+                    .Where(p => p.RequestId.HasValue && string.IsNullOrWhiteSpace(p.ReceiptCode))
                     .ToListAsync();
 
                 foreach (var order in orders)
@@ -955,7 +923,7 @@ namespace httt.Areas.Productions.Controllers
                 var receipts = await _context.ProductReceipts
                     .AsNoTracking()
                     .Include(p => p.Details)
-                    .Where(p => p.RequestId == id)
+                    .Where(p => p.RequestId == id && string.IsNullOrWhiteSpace(p.ReceiptCode))
                     .ToListAsync();
 
                 int producedQty = receipts.SelectMany(r => r.Details).Sum(d => d.Quantity);
@@ -1029,7 +997,7 @@ namespace httt.Areas.Productions.Controllers
                 var receipts = await _context.ProductReceipts
                     .AsNoTracking()
                     .Include(p => p.Details)
-                    .Where(p => p.RequestId == requestId)
+                    .Where(p => p.RequestId == requestId && string.IsNullOrWhiteSpace(p.ReceiptCode))
                     .ToListAsync();
 
                 int currentProduced = receipts.SelectMany(r => r.Details)
@@ -1171,6 +1139,10 @@ namespace httt.Areas.Productions.Controllers
                 return BadRequest(new { success = false, message = "Mã đơn hàng không hợp lệ." });
             }
 
+            int batchQty = req.QuantityToProduce ?? req.ProducedQuantity;
+            if (batchQty <= 0 || batchQty > 100000000 || req.OperationKey == Guid.Empty)
+                return BadRequest(new { success = false, message = "Sản lượng phải từ 1 đến 100.000.000 và phải có mã thao tác. Vui lòng tải lại trang nếu cần." });
+
             try
             {
                 // 2. Xác thực người dùng
@@ -1184,11 +1156,23 @@ namespace httt.Areas.Productions.Controllers
                     });
                 }
 
-                // 3. Tra cứu đơn hàng
-                var order = await _context.ProductionRequests.FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
+                // Khóa đơn trước khi đọc tiến độ để các lần ghi nhận cùng đơn chạy tuần tự.
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                var orders = await _context.ProductionRequests
+                    .FromSqlInterpolated($"SELECT * FROM public.productionrequest WHERE requestid = {req.RequestId} FOR UPDATE")
+                    .ToListAsync();
+                var order = orders.SingleOrDefault();
                 if (order == null)
                 {
                     return NotFound(new { success = false, message = "Không tìm thấy đơn hàng trong hệ thống." });
+                }
+
+                var previous = await _context.ProductionLogs.AsNoTracking().FirstOrDefaultAsync(l => l.OperationKey == req.OperationKey);
+                if (previous != null)
+                {
+                    if (previous.RequestId != req.RequestId || previous.ProductId != order.ProductId || previous.ProducedQuantity != batchQty || previous.CreatedBy != currentUser.UserID || previous.Note != req.Note)
+                        return Conflict(new { success = false, message = "Mã thao tác đã được sử dụng cho nội dung khác. Vui lòng tải lại trang." });
+                    return Ok(new { success = true, message = "Lần sản xuất này đã được lưu trước đó. Không ghi nhận thêm lần nữa.", recordedQuantity = previous.ProducedQuantity, status = order.Status });
                 }
 
                 // 4. Kiểm tra tính toàn vẹn của đơn hàng
@@ -1230,10 +1214,10 @@ namespace httt.Areas.Productions.Controllers
                     });
                 }
 
-                // 6. Tra cứu sản lượng đã ghi nhận trước đó
+                // 6. Tra cứu sản lượng đã ghi nhận trước đó (loại trừ các phiếu bàn giao kho riêng biệt)
                 var existingReceipts = await _context.ProductReceipts
                     .Include(p => p.Details)
-                    .Where(p => p.RequestId == req.RequestId)
+                    .Where(p => p.RequestId == req.RequestId && string.IsNullOrWhiteSpace(p.ReceiptCode))
                     .ToListAsync();
 
                 var receipt = existingReceipts.FirstOrDefault();
@@ -1243,9 +1227,7 @@ namespace httt.Areas.Productions.Controllers
                     .Sum(d => d.Quantity);
 
                 // Số lượng ghi nhận lần này (tui ghi nhận bao nhiêu là nó sản xuất ra bấy nhiêu)
-                int batchQty = req.QuantityToProduce.HasValue && req.QuantityToProduce.Value > 0
-                    ? req.QuantityToProduce.Value
-                    : req.ProducedQuantity;
+
 
                 if (batchQty <= 0)
                 {
@@ -1293,10 +1275,15 @@ namespace httt.Areas.Productions.Controllers
                     });
                 }
 
+                if (bomItems.Select(b => string.IsNullOrWhiteSpace(b.BomCode) ? b.BomName : b.BomCode).Distinct().Count() > 1
+                    || bomItems.GroupBy(b => b.IngrId).Any(g => g.Count() > 1))
+                    return BadRequest(new { success = false, message = "BOM có nhiều công thức hoặc nguyên liệu trùng. Vui lòng xác định một công thức cho sản phẩm trước khi ghi nhận." });
+
                 // Lấy tồn kho sản xuất (WIP) cho đơn/lệnh sản xuất này
-                var wipRawMaterials = await _context.WipInventories
-                    .Where(w => w.RequestId == req.RequestId && w.IngrId.HasValue)
+                var lockedWip = await _context.WipInventories
+                    .FromSqlInterpolated($"SELECT * FROM public.wip_inventory WHERE requestid = {req.RequestId} ORDER BY wipid FOR UPDATE")
                     .ToListAsync();
+                var wipRawMaterials = lockedWip.Where(w => w.IngrId.HasValue).ToList();
 
                 var shortages = new List<string>();
                 var deductions = new List<(WipInventory WipItem, decimal DeductQty, string IngrName, string Unit)>();
@@ -1308,8 +1295,8 @@ namespace httt.Areas.Productions.Controllers
                     bool isDiscrete = BomUnitQuantity.DiscreteUnits.Contains(ingrUnit);
                     decimal requiredQty = BomUnitQuantity.Required(bom.MaterialQuantity, bom.ItemQuantity, batchQty, isDiscrete);
 
-                    var wipItem = wipRawMaterials.FirstOrDefault(w => w.IngrId == bom.IngrId);
-                    decimal availableWip = wipItem?.Quantity ?? 0m;
+                    var wipItems = wipRawMaterials.Where(w => w.IngrId == bom.IngrId).ToList();
+                    decimal availableWip = wipItems.Sum(w => w.Quantity ?? 0m);
 
                     if (availableWip < requiredQty)
                     {
@@ -1318,7 +1305,14 @@ namespace httt.Areas.Productions.Controllers
                     }
                     else
                     {
-                        deductions.Add((wipItem!, requiredQty, ingr.IngrName, ingrUnit));
+                        var toDeduct = requiredQty;
+                        foreach (var wipItem in wipItems)
+                        {
+                            var take = Math.Min(Math.Max(0m, wipItem.Quantity ?? 0m), toDeduct);
+                            if (take > 0) deductions.Add((wipItem, take, ingr.IngrName, ingrUnit));
+                            toDeduct -= take;
+                            if (toDeduct == 0) break;
+                        }
                     }
                 }
 
@@ -1338,7 +1332,6 @@ namespace httt.Areas.Productions.Controllers
                 string newStatus = newTotalProduced >= order.QuantityRequired ? "Completed" : "In Production";
 
                 // 10. Lưu đồng bộ toàn bộ lần ghi nhận trong một Transaction duy nhất
-                await using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
                     order.Status = newStatus;
@@ -1351,8 +1344,7 @@ namespace httt.Areas.Productions.Controllers
                     }
 
                     // B. Đưa đúng số lượng thành phẩm sản xuất được (batchQty) vào kho sản xuất (wip_inventory với ProductId) chờ ngày bàn giao
-                    var wipProduct = await _context.WipInventories
-                        .FirstOrDefaultAsync(w => w.RequestId == req.RequestId && w.ProductId == order.ProductId && w.IngrId == null);
+                    var wipProduct = lockedWip.FirstOrDefault(w => w.ProductId == order.ProductId && w.IngrId == null);
 
                     if (wipProduct == null)
                     {
@@ -1402,12 +1394,11 @@ namespace httt.Areas.Productions.Controllers
                     {
                         receipt.Status = newStatus;
 
-                        var detail = receipt.Details.FirstOrDefault(d => d.ProductId == order.ProductId)
-                                     ?? receipt.Details.FirstOrDefault();
+                        var detail = receipt.Details.FirstOrDefault(d => d.ProductId == order.ProductId);
 
                         if (detail != null)
                         {
-                            detail.Quantity = newTotalProduced;
+                            detail.Quantity += batchQty;
                             detail.Status = newStatus;
                             if (!string.IsNullOrWhiteSpace(req.Note))
                             {
@@ -1429,6 +1420,26 @@ namespace httt.Areas.Productions.Controllers
                             });
                         }
                     }
+
+                    var recordedAt = DateTimeOffset.UtcNow;
+                    DateOnly? expiry;
+                    try { expiry = ProductionExpiry.Calculate(recordedAt, product.ShelfLifeMonths); }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        return BadRequest(new { success = false, message = "Thời hạn sử dụng quá lớn. Vui lòng cập nhật lại trong BOM." });
+                    }
+                    _context.ProductionLogs.Add(new ProductionLog
+                    {
+                        RequestId = order.RequestId,
+                        ProductId = order.ProductId,
+                        ProducedQuantity = batchQty,
+                        ProducedAt = recordedAt,
+                        ExpiredDate = expiry,
+                        CreatedAt = recordedAt,
+                        CreatedBy = currentUser.UserID,
+                        OperationKey = req.OperationKey,
+                        Note = req.Note
+                    });
 
                     // Lưu toàn bộ thay đổi cùng lúc
                     await _context.SaveChangesAsync();
@@ -1593,20 +1604,26 @@ namespace httt.Areas.Productions.Controllers
                     });
                 }
 
-                var order = await _context.ProductionRequests.FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
+                var order = await _context.ProductionRequests.AsNoTracking().FirstOrDefaultAsync(p => p.RequestId == req.RequestId);
                 if (order == null)
                     return NotFound(new { success = false, message = "Không tìm thấy phiếu yêu cầu trong cơ sở dữ liệu." });
 
-                // Tiếp nhận phiếu: chuyển trạng thái từ Pending sang In Production
-                order.Status = "In Production";
-                await _context.SaveChangesAsync();
+                // Update both fields atomically; a concurrent acceptance must not overwrite the recipient.
+                var accepted = await _context.ProductionRequests
+                    .Where(p => p.RequestId == req.RequestId && p.Status == "Pending")
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(p => p.Status, "In Production")
+                        .SetProperty(p => p.AssignedTo, (int?)currentUser.UserID));
+                if (accepted == 0)
+                    return Conflict(new { success = false, message = "Phiếu không còn ở trạng thái chờ tiếp nhận. Vui lòng tải lại danh sách." });
 
                 return Ok(new
                 {
                     success = true,
                     message = $"Đã tiếp nhận thành công phiếu {order.DisplayCode} từ kho thành phẩm vào quy trình sản xuất!",
                     requestId = order.RequestId,
-                    newStatus = order.Status
+                    newStatus = "In Production",
+                    assignedTo = currentUser.UserID
                 });
             }
             catch (Exception ex)
@@ -1635,25 +1652,21 @@ namespace httt.Areas.Productions.Controllers
                     });
                 }
 
-                var pendingOrders = await _context.ProductionRequests
+                // The Pending condition is checked by the database during the update.
+                var acceptedCount = await _context.ProductionRequests
                     .Where(p => p.Status == "Pending")
-                    .ToListAsync();
-
-                if (!pendingOrders.Any())
-                    return Ok(new { success = true, count = 0, message = "Không có phiếu nào đang chờ tiếp nhận." });
-
-                foreach (var order in pendingOrders)
-                {
-                    order.Status = "In Production";
-                }
-
-                await _context.SaveChangesAsync();
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(p => p.Status, "In Production")
+                        .SetProperty(p => p.AssignedTo, (int?)currentUser.UserID));
 
                 return Ok(new
                 {
                     success = true,
-                    count = pendingOrders.Count,
-                    message = $"Đã tiếp nhận toàn bộ {pendingOrders.Count} phiếu yêu cầu sản xuất từ kho vào phân xưởng!"
+                    count = acceptedCount,
+                    assignedTo = currentUser.UserID,
+                    message = acceptedCount == 0
+                        ? "Không có phiếu nào đang chờ tiếp nhận."
+                        : $"Đã tiếp nhận toàn bộ {acceptedCount} phiếu yêu cầu sản xuất từ kho vào phân xưởng!"
                 });
             }
             catch (Exception ex)

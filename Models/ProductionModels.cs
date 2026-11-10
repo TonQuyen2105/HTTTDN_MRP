@@ -118,6 +118,9 @@ public class Bom
 [Table("productionrequest")]
 public class ProductionRequest
 {
+    [Column("assignedto")]
+    public int? AssignedTo { get; set; }
+
     [Key]
     [Column("requestid")]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -156,10 +159,28 @@ public class ProductionRequest
     public int ProducedQuantity { get; set; }
 
     [NotMapped]
-    public string DisplayCode => !string.IsNullOrWhiteSpace(RequestCode) ? RequestCode : $"LSX-{RequestId}";
+    public string DisplayCode
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(RequestCode))
+            {
+                return $"YCSX-{RequestId}";
+            }
+            if (RequestCode.StartsWith("LSX-", StringComparison.OrdinalIgnoreCase))
+            {
+                return "YCSX-" + RequestCode.Substring(4);
+            }
+            if (RequestCode.StartsWith("LSX", StringComparison.OrdinalIgnoreCase))
+            {
+                return "YCSX-" + RequestCode.Substring(3);
+            }
+            return RequestCode;
+        }
+    }
 
     [NotMapped]
-    public string RequestDisplayCode => !string.IsNullOrWhiteSpace(RequestCode) ? RequestCode : $"YCSX-{RequestId}";
+    public string RequestDisplayCode => DisplayCode;
 }
 
 [Table("materialreceipt")]
@@ -314,6 +335,11 @@ public class ProductReceipt
 [Table("productreceiptdetail")]
 public class ProductReceiptDetail
 {
+    [Column("productionlogid")]
+    public int? ProductionLogId { get; set; }
+
+    [ForeignKey(nameof(ProductionLogId))]
+    public ProductionLog? ProductionLog { get; set; }
     [Column("productreceiptid")]
     public int ProductReceiptId { get; set; }
 
@@ -405,6 +431,7 @@ public class WipInventory
 
 public class MarkProducedGoodsRequest
 {
+    public Guid OperationKey { get; set; }
     [Required(ErrorMessage = "Mã đơn hàng không được để trống.")]
     [Range(1, int.MaxValue, ErrorMessage = "Mã đơn hàng không hợp lệ.")]
     public int RequestId { get; set; }

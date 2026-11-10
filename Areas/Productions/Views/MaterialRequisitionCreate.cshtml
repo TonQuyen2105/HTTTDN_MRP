@@ -175,27 +175,9 @@
           </div>
         </div>
 
-        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-section-title">QUẢN TRỊ</div>
 
-        <div class="nav-item has-sub">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Báo cáo</span>
-            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </a>
-          <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
-          </div>
-        </div>
+        
 
         <div class="nav-item">
           <a href="/Productions/Home/BomList" class="nav-link ">
@@ -281,7 +263,8 @@
               }
               else
               {
-                <select class="form-select">
+                <select class="form-select" id="mrProductionRequest" data-wip-url="@Url.Action("GetMaterialWipForRequest")">
+                  <option value="">-- Chọn yêu cầu sản xuất --</option>
                   @if (ViewBag.ProductionRequests != null && ((IEnumerable<httt.Models.ProductionRequest>)ViewBag.ProductionRequests).Any())
                   {
                       foreach (var req in (IEnumerable<httt.Models.ProductionRequest>)ViewBag.ProductionRequests)
@@ -293,10 +276,7 @@
                   }
                   else
                   {
-                      <option selected>YCSX-0001 - Ginkgo Biloba 120mg Trunature</option>
-                      <option>YCSX-0002 - Glucosamine HCL 1500mg</option>
-                      <option>YCSX-0003 - Milk Thistle Extract 1000mg</option>
-                      <option>YCSX-0004 - Viên nén Paracetamol 500mg</option>
+                      <option value="" disabled>Chưa có yêu cầu sản xuất</option>
                   }
                 </select>
               }
@@ -422,12 +402,13 @@
                   <th>Mã nguyên vật liệu</th>
                   <th>Tên nguyên vật liệu</th>
                   <th>ĐVT</th>
-                  <th class="text-right">SL định mức (BOM)</th>
+                  
                   <th class="text-right">SL yêu cầu xuất</th>
-                  <th class="text-right" style="color: #0284c7; background-color: #f0f9ff; font-weight: 700;">Kho sản xuất</th>
+                  <th class="text-right" style="color: #0284c7; background-color: #f0f9ff; font-weight: 700;">Tồn WIP của đơn</th>
                   <th class="text-right" style="color: #475569;">Tồn kho thực tế</th>
                   <th class="text-center">Tình trạng kho SX</th>
                   <th class="text-center" style="width: 100px;">Trạng thái</th>
+                  @if (!isViewMode) { <th class="text-center">Thao tác</th> }
                 </tr>
               </thead>
               <tbody id="mrTableBody">
@@ -453,7 +434,7 @@
                       <td><strong>INGR@(detail.IngrId.ToString("D4"))</strong></td>
                       <td>@ingrName</td>
                       <td>@ingrUnit</td>
-                      <td class="text-right">@(detail.BomNorm.HasValue ? detail.BomNorm.Value.ToString("N2") : "—")</td>
+                      
                       <td class="text-right"><strong style="color: var(--color-primary); font-size: 13.5px;">@detail.Quantity.ToString("0.####")</strong></td>
                       
                       <!-- CỘT KHO SẢN XUẤT (LẤY TỪ wip_inventory) -->
@@ -503,8 +484,8 @@
                 }
                 else
                 {
-                  <tr>
-                    <td colspan="10" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
+                  <tr data-mr-empty>
+                    <td colspan="@(isViewMode ? 9 : 10)" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
                       Chưa có dòng nguyên vật liệu nào. Phiếu yêu cầu xuất kho được tạo tự động từ chức năng "Tính nhu cầu nguyên vật liệu (MRP)".
                     </td>
                   </tr>
@@ -629,6 +610,17 @@
   </div>
 
   <script src="/js/app.js"></script>
-  <script src="/js/productions/material-requisition.js"></script>
+  @if (!isViewMode)
+  {
+      var ingredients = ViewBag.Ingredients as IEnumerable<httt.Models.Ingredient> ?? Enumerable.Empty<httt.Models.Ingredient>();
+      <datalist id="mrIngredientCodes">
+      @foreach (var ingredient in ingredients)
+      {
+          <option value="@($"INGR{ingredient.IngrId:D4}")">@ingredient.IngrName</option>
+      }
+      </datalist>
+      <script type="application/json" id="mrIngredientCatalog">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ingredients.Select(i => new { id = i.IngrId, code = $"INGR{i.IngrId:D4}", name = i.IngrName, unit = i.Unit, stock = i.Quantity })))</script>
+  }
+  <script src="~/js/productions/material-requisition.js" asp-append-version="true"></script>
 </body>
 </html>

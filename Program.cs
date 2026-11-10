@@ -20,6 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 builder.Services.AddScoped<MaterialRequirementService>();
+builder.Services.AddScoped<ProductionHandoverService>();
 builder.Services.AddMemoryCache();
 
 // 2. Chống giả mạo yêu cầu (Antiforgery)

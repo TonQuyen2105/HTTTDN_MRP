@@ -206,27 +206,9 @@
           </div>
         </div>
 
-        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-section-title">QUẢN TRỊ</div>
 
-        <div class="nav-item has-sub">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Báo cáo</span>
-            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </a>
-          <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
-          </div>
-        </div>
+        
 
         <div class="nav-item">
           <a href="/Productions/Home/BomList" class="nav-link">
@@ -945,6 +927,7 @@
   </div>
 
   <!-- JAVASCRIPT XỬ LÝ -->
+  <script src="~/js/productions/list-search.js" asp-append-version="true"></script>
   <script src="~/js/app.js" asp-append-version="true"></script>
   <script>
     let currentDetailOrderId = 0;
@@ -955,39 +938,10 @@
       const statusSelect = document.getElementById('statusFilterSelect');
       const refreshBtn = document.getElementById('btnRefreshList');
 
-      function filterRows() {
-        const query = searchInput.value.toLowerCase().trim();
-        const status = statusSelect.value;
-        const rows = document.querySelectorAll('#orderListTableBody tr.order-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-          const rowStatus = row.getAttribute('data-status') || '';
-          const rowName = row.getAttribute('data-name') || '';
-          const rowCode = row.getAttribute('data-code') || '';
-          const rowYcsx = row.getAttribute('data-ycsx') || '';
-
-          const matchSearch = !query || rowName.includes(query) || rowCode.includes(query) || rowYcsx.includes(query);
-          const matchStatus = (!status || status === 'ALL') || (rowStatus === status);
-
-          if (matchSearch && matchStatus) {
-            row.style.display = '';
-            visibleCount++;
-          } else {
-            row.style.display = 'none';
-          }
-        });
-
-        const lblTotal = document.getElementById('lblTotalRowCount');
-        if (lblTotal) lblTotal.textContent = visibleCount;
-      }
-
-      if (searchInput) searchInput.addEventListener('input', filterRows);
-      if (statusSelect) statusSelect.addEventListener('change', filterRows);
       if (refreshBtn) refreshBtn.addEventListener('click', () => {
         searchInput.value = '';
         statusSelect.value = 'ALL';
-        filterRows();
+        window.ProductionListSearch.refresh('orderSearchInput');
       });
 
       // Mở modal tạo đơn mới / tiếp nhận từ kho
@@ -1482,16 +1436,17 @@
 
     async function submitMarkProduced() {
       const btn = document.getElementById('btnSaveMark');
+      if (btn.disabled) return;
       const reqId = parseInt(document.getElementById('markRequestId').value);
       const rawVal = document.getElementById('inputProducedQty').value;
-      const batchQty = parseInt(rawVal);
+      const batchQty = Number(rawVal);
       const prevProduced = parseInt(document.getElementById('markPrevProducedVal')?.value || '0');
       const reqQty = parseInt(document.getElementById('markReqQty').value || '0');
       const remaining = Math.max(0, reqQty - prevProduced);
       const unit = document.getElementById('markUnitLabel')?.textContent || 'Hộp';
       const note = document.getElementById('inputMarkNote').value.trim();
 
-      if (rawVal === '' || isNaN(batchQty) || batchQty <= 0) {
+      if (rawVal === '' || !Number.isSafeInteger(batchQty) || batchQty <= 0) {
         alert('Vui lòng nhập số lượng ghi nhận lớn hơn 0.');
         return;
       }
@@ -1516,6 +1471,14 @@
       btn.textContent = 'Đang lưu ghi nhận...';
 
       try {
+        const attemptStorageKey = `production-attempt-${reqId}`;
+        const fingerprint = JSON.stringify([reqId, batchQty, note, prevProduced]);
+        let attempt;
+        try { attempt = JSON.parse(sessionStorage.getItem(attemptStorageKey) || 'null'); } catch { attempt = null; }
+        if (!attempt || attempt.fingerprint !== fingerprint) {
+          attempt = { fingerprint, key: crypto.randomUUID() };
+          sessionStorage.setItem(attemptStorageKey, JSON.stringify(attempt));
+        }
         const res = await fetch('/Productions/Home/MarkProducedGoods', {
           method: 'POST',
           headers: {
@@ -1526,6 +1489,7 @@
             requestId: reqId,
             producedQuantity: batchQty,
             quantityToProduce: batchQty,
+            operationKey: attempt.key,
             isCompleted: (prevProduced + batchQty >= reqQty),
             note: note
           })
@@ -1549,6 +1513,7 @@
         }
 
         if (res.ok && data && data.success) {
+          sessionStorage.removeItem(attemptStorageKey);
           alert('✅ ' + data.message);
           closeMarkModal();
           window.location.reload();

@@ -1,32 +1,19 @@
-@model httt.Models.ProductionRequest?
-@{
-    Layout = null;
-    var isNotFound = Model == null;
-    var requestId = Model?.RequestId ?? 0;
-    var reqCode = Model != null ? "TKSX00" + requestId.ToString("D3") : "—";
-    var prodName = Model?.Product?.ProductName ?? "—";
-    var unit = Model?.Product?.Unit ?? "Hộp";
-    var dateStr = Model?.CreatedDate?.ToString("dd/MM/yyyy") ?? "—";
-    var managerName = Model?.Manager?.FullName ?? "Chưa cập nhật";
-    var qtyReq = Model?.QuantityRequired ?? 0;
-    var receipt = ViewBag.ProductReceipt as httt.Models.ProductReceipt;
-    var actualProduced = receipt?.Details?.Sum(d => d.Quantity) ?? 0;
-    var hasRecordedOutput = actualProduced > 0;
-    var orderCode = !string.IsNullOrWhiteSpace(Model?.RequestCode) ? Model.RequestCode : (Model?.RequestId > 0 ? $"YCSX-{Model.RequestId}" : (Model?.DisplayCode ?? "—"));
-}
+@model httt.Models.ProductionStatisticsViewModel?
+@{ Layout = null; }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AMIS Sản xuất - Chi tiết Phiếu thống kê sản xuất @reqCode</title>
+  <title>AMIS Sản xuất - Chi tiết Phiếu thống kê sản xuất</title>
   
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="/css/productions/production-order.css">
   <link rel="stylesheet" href="/css/productions/production-statistics.css">
+  <link rel="stylesheet" href="/css/productions/production-statistics-history.css" asp-append-version="true">
 </head>
-<body>
+<body class="stats-page">
   <div class="app-wrapper">
     
     <!-- TOP HEADER -->
@@ -157,27 +144,9 @@
           </div>
         </div>
 
-        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-section-title">QUẢN TRỊ</div>
 
-        <div class="nav-item has-sub">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Báo cáo</span>
-            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </a>
-          <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
-          </div>
-        </div>
+        
 
         <div class="nav-item">
           <a href="/Productions/Home/BomList" class="nav-link ">
@@ -204,298 +173,45 @@
     </aside>
 
     <!-- NỘI DUNG CHÍNH (CHI TIẾT PHIẾU THỐNG KÊ SẢN XUẤT) -->
-    <main class="app-main">
-      <div class="main-container page-fade-in">
-
-        @if (isNotFound)
-        {
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 24px; margin-bottom: 24px; color: #991b1b;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                <line x1="12" y1="12" x2="12" y2="16"></line>
-              </svg>
-              <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Không tìm thấy Phiếu thống kê sản xuất</h2>
-            </div>
-            <p style="margin: 0 0 16px 0; font-size: 14px; color: #7f1d1d;">Bản ghi thống kê sản xuất không tồn tại hoặc đã bị xóa khỏi hệ thống.</p>
-            <a href="/Productions/Home/ProductionStatisticsList" class="btn-cancel" style="display: inline-block; text-decoration: none; padding: 8px 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; color: #1e293b; font-weight: 500;">&larr; Về danh sách thống kê</a>
-          </div>
-        }
-        else
-        {
-        <div class="stats-form-card">
-          <div class="stats-form-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <h1 class="stats-form-title">Chi tiết Phiếu thống kê sản xuất @reqCode</h1>
-              <span class="badge-confirmed" style="font-size: 12.5px; padding: 4px 10px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                @(hasRecordedOutput ? "Đã ghi nhận sản lượng" : "Kế hoạch sản xuất")
-              </span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-              <div class="order-header-actions">
-                <a href="/Productions/Home/ProductionStatisticsList" class="btn-header-tool" id="btnCloseStats" title="Đóng">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div class="stats-form-body">
-            
-            <!-- HÀNG 1: THÔNG TIN CHUNG & THÔNG TIN KHÁC -->
-            <div class="stats-top-grid">
-              
-              <div class="form-section-card">
-                <h2 class="section-legend">Thông tin chung</h2>
-
-                <div class="stats-inner-2col">
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Thống kê</label>
-                    <input type="text" class="form-input" value="Sản lượng" readonly style="background-color: #f8fafc; font-weight: 500;">
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Mã đơn / Phiếu kho</label>
-                    <div style="display: flex; align-items: center;">
-                      <a href="/Productions/Home/DrugOrder" class="ref-link" style="font-weight: 600; font-size: 13.5px; color: var(--color-primary);">@orderCode</a>
-                    </div>
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Đơn vị sản xuất</label>
-                    <input type="text" class="form-input" value="Nhà máy Dược phẩm GMP Nam Hà" readonly style="background-color: #f8fafc;">
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Sản phẩm</label>
-                    <input type="text" class="form-input" value="@prodName" readonly style="background-color: #f8fafc; font-weight: 600;">
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Công đoạn</label>
-                    <input type="text" class="form-input" value="Pha chế, trộn đồng nhất & Dập viên GMP" readonly style="background-color: #f8fafc;">
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Số lượng kế hoạch</label>
-                    <input type="text" class="form-input text-right" value="@qtyReq.ToString("N0") @unit" readonly style="background-color: #f8fafc; font-weight: 600;">
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Ca làm việc</label>
-                    <input type="text" class="form-input" value="—" readonly style="background-color: #f8fafc;">
-                  </div>
-
-                  <div class="stats-field-row">
-                    <label class="stats-field-label">Người thống kê</label>
-                    <input type="text" class="form-input" value="@managerName" readonly style="background-color: #f8fafc; font-weight: 600;">
-                  </div>
-
-                  <div class="stats-field-row" style="grid-column: 1 / -1;">
-                    <label class="stats-field-label">Diễn giải</label>
-                    <input type="text" class="form-input" value="Thống kê sản lượng kế hoạch và thực tế theo tiến độ sản xuất" readonly style="background-color: #f8fafc;">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Cột Phải: Thông tin khác -->
-              <div class="form-section-card">
-                <h2 class="section-legend">Thông tin khác</h2>
-                <div class="status-meta-grid">
-                  <div class="status-meta-item">
-                    <label class="status-meta-label">Số phiếu</label>
-                    <input type="text" class="form-input" value="@reqCode" readonly style="background-color: #f8fafc; font-weight: 700; color: var(--color-primary);">
-                  </div>
-
-                  <div class="status-meta-item">
-                    <label class="status-meta-label">Ngày thống kê</label>
-                    <input type="text" class="form-input" value="@dateStr" readonly style="background-color: #f8fafc;">
-                  </div>
-
-                  <div class="status-meta-item">
-                    <label class="status-meta-label">Trạng thái phiếu</label>
-                    <div>
-                      @if (hasRecordedOutput)
-                      {
-                        <span class="badge-confirmed">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          Đã có sản lượng
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="badge-waiting" style="background:#fef3c7; color:#d97706; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600;">Chưa ghi nhận</span>
-                      }
-                    </div>
-                  </div>
-
-                  <div class="status-meta-item">
-                    <label class="status-meta-label">Tham chiếu Lệnh SX</label>
-                    <div>
-                      <a href="/Productions/Home/DrugOrder" class="ref-link" style="font-weight: 600;">@orderCode</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- HÀNG 2: THỜI LƯỢNG SẢN XUẤT -->
-            <div class="duration-card">
-              <div class="duration-fields-row">
-                <div class="form-group">
-                  <label class="form-label" style="min-width: 120px;">Thời gian bắt đầu</label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input" value="—" readonly style="background-color: #f8fafc;">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" style="min-width: 120px;">Thời gian kết thúc</label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input" value="—" readonly style="background-color: #f8fafc;">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" style="min-width: 140px;">Thời lượng dừng SX</label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input text-right" value="—" readonly style="background-color: #f8fafc;">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" style="min-width: 120px;">Thời lượng SX</label>
-                  <div class="form-control-wrap">
-                    <input type="text" class="form-input text-right" value="—" readonly style="background-color: #f8fafc; font-weight: 600;">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- HÀNG 3: BẢNG CHI TIẾT THỐNG KÊ -->
-            <div class="bom-section-box">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <h2 class="bom-section-title" style="margin-bottom: 0;">Chi tiết thống kê sản lượng thực tế</h2>
-                <span style="font-size: 13px; color: #64748b;">Tổng số: <strong>@(hasRecordedOutput ? 1 : 0)</strong> bản ghi</span>
-              </div>
-
-              <div class="table-responsive">
-                <table class="bom-table">
-                  <thead>
-                    <tr>
-                      <th>Mã NV</th>
-                      <th>Người thực hiện</th>
-                      <th>ĐVT</th>
-                      <th class="text-right">SL đã sản xuất</th>
-                      <th class="text-right">SL đạt</th>
-                      <th class="text-right">SL lỗi</th>
-                      <th>Lý do lỗi</th>
-                      <th>Số lô</th>
-                      <th>Ngày sản xuất</th>
-                    </tr>
-                  </thead>
-                  <tbody id="statsDetailBody">
-                    @if (hasRecordedOutput)
-                    {
-                      <tr>
-                        <td><strong>—</strong></td>
-                        <td>@managerName</td>
-                        <td>@unit</td>
-                        <td class="text-right font-weight-bold" style="color: #059669;">@actualProduced.ToString("N0")</td>
-                        <td class="text-right" style="color: #2ea664; font-weight: 700;">@actualProduced.ToString("N0")</td>
-                        <td class="text-right" style="color: #64748b;">—</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>@dateStr</td>
-                      </tr>
-                    }
-                    else
-                    {
-                      <tr>
-                        <td colspan="9" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
-                          Chưa có bản ghi kết quả sản lượng sản xuất thực tế cho lệnh này
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="table-footer-bar">
-                <div class="table-footer-left">
-                  <span>Số lượng kế hoạch: <strong>@qtyReq.ToString("N0") @unit</strong></span>
-                </div>
-                <div class="table-footer-right">
-                  @if (hasRecordedOutput)
-                  {
-                    <span>Tổng đã ghi nhận: <strong style="color: #059669;">@actualProduced.ToString("N0") @unit</strong></span>
-                  }
-                  else
-                  {
-                    <span>Sản lượng thực tế: <strong style="color: #64748b;">Chưa ghi nhận</strong></span>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <!-- HÀNG 4: BẢNG PHỤ PHẨM PHÁT SINH -->
-            <div class="sub-table-section">
-              <h2 class="sub-table-title">Phụ phẩm phát sinh</h2>
-              <div class="table-responsive">
-                <table class="bom-table">
-                  <thead>
-                    <tr>
-                      <th>Tên phụ phẩm</th>
-                      <th>ĐVT</th>
-                      <th class="text-right">Số lượng</th>
-                      <th>Mã quy cách</th>
-                      <th>Số lô</th>
-                      <th>Ngày sản xuất</th>
-                      <th>Hạn sử dụng</th>
-                    </tr>
-                  </thead>
-                  <tbody id="statsSubBody">
-                    <tr>
-                      <td colspan="7" style="text-align: center; color: #64748b; font-style: italic; padding: 20px;">
-                        Chưa có dữ liệu phụ phẩm ghi nhận cho lô sản xuất này
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="bom-action-footer">
-          <a href="/Productions/Home/ProductionStatisticsList" class="btn-cancel" style="text-decoration:none; display:inline-flex; align-items:center;">
-            Quay lại danh sách
-          </a>
-          <button type="button" class="btn-save-submit" onclick="window.print()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
-              <polyline points="6 9 6 2 18 2 18 9"></polyline>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-              <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-            In phiếu thống kê
-          </button>
-        </div>
-        }
-
+<main class="app-main"><div class="main-container page-fade-in">
+  <div class="stats-list-header"><h1 class="stats-page-title">Chi tiết thống kê sản xuất</h1><a class="btn-cancel" href="@Url.Action("ProductionStatisticsList")">Quay lại danh sách</a></div>
+  @if (ViewBag.LoadError != null) { <div class="stats-notice" role="alert">@ViewBag.LoadError</div> }
+  @if (Model == null)
+  {
+    <div class="stats-empty">@(ViewBag.LoadError == null ? "Không tìm thấy yêu cầu sản xuất." : "Vui lòng tải lại trang để xem dữ liệu.")</div>
+  }
+  else
+  {
+    var req = Model.Request;
+    var unit = req.Product?.Unit ?? "";
+    <div class="stats-form-card"><div class="stats-form-body">
+      <div class="stats-order-heading"><span class="stats-order-code">@req.DisplayCode</span><h2 class="section-legend">@(req.Product?.ProductName ?? "—")</h2></div>
+      <p class="stats-owner">Người phụ trách: <strong>@(req.Manager?.FullName ?? "—")</strong></p>
+      <div class="stats-summary">
+        <div><span>Số lượng yêu cầu</span><strong>@req.QuantityRequired.ToString("N0") @unit</strong></div>
+        <div><span>Tổng đã sản xuất</span><strong>@Model.TotalProduced.ToString("N0") @unit</strong></div>
+        <div><span>Còn phải sản xuất</span><strong>@Model.Remaining.ToString("N0") @unit</strong></div>
+        <div class="stats-latest"><span>Sản xuất gần nhất</span><strong>@httt.Models.ProductionStatisticsViewModel.DisplayTime(Model.LatestProduction)</strong></div>
       </div>
-    </main>
+      @if (Model.LegacyQuantity > 0)
+      {
+        <div class="stats-notice">Có @Model.LegacyQuantity.ToString("N0") @unit đã ghi nhận trước khi có nhật ký. Số lượng này được tính vào tổng, nhưng chưa có thông tin từng lần sản xuất hoặc ngày sản xuất.</div>
+      }
+      <div class="stats-history-heading"><h2 class="sub-table-title">Lịch sử sản xuất</h2><span class="stats-count-pill">@Model.Logs.Count lần ghi nhận</span></div>
+      <p class="stats-description">Lần mới nhất hiển thị đầu tiên. Thời gian theo giờ Việt Nam.</p>
+      <div class="table-responsive"><table class="bom-table"><thead><tr>
+        <th>Mã ghi nhận</th><th>Ngày sản xuất</th><th>Hạn sử dụng</th><th>Người ghi nhận</th><th class="text-right">Số lượng lần này</th><th>Đơn vị</th><th>Ghi chú</th>
+      </tr></thead><tbody>
+      @foreach (var log in Model.Logs)
+      {
+        <tr><td><span class="stats-log-code">GN-@log.LogId</span></td><td>@httt.Models.ProductionStatisticsViewModel.DisplayTime(log.ProducedAt)</td><td><span class="@(log.ExpiredDate.HasValue ? "stats-expiry" : "stats-unset")">@(log.ExpiredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")</span></td><td>@(log.Creator?.FullName ?? "—")</td><td class="text-right"><strong class="stats-quantity">@log.ProducedQuantity.ToString("N0")</strong></td><td>@unit</td><td class="stats-note">@(string.IsNullOrWhiteSpace(log.Note) ? "—" : log.Note)</td></tr>
+      }
+      @if (!Model.Logs.Any()) { <tr><td colspan="7" class="stats-empty">Chưa có lần sản xuất nào được lưu trong nhật ký.</td></tr> }
+      </tbody><tfoot><tr><td colspan="4">Tổng trong nhật ký (@Model.Logs.Count lần)</td><td class="text-right"><strong>@Model.LoggedQuantity.ToString("N0")</strong></td><td>@unit</td><td></td></tr></tfoot></table></div>
+    </div></div>
+    <div class="bom-action-footer"><button type="button" class="btn-save-submit" onclick="window.print()">In thống kê</button></div>
+  }
+</div></main>
 
   </div>
 

@@ -20,11 +20,25 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProductReceipt> ProductReceipts { get; set; } = null!;
     public DbSet<ProductReceiptDetail> ProductReceiptDetails { get; set; } = null!;
     public DbSet<Supplier> Suppliers { get; set; } = null!;
+    public DbSet<ProductionLog> ProductionLogs { get; set; } = null!;
     public DbSet<WipInventory> WipInventories { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Always address the real tables, regardless of pooled connection search_path
+        // or session-local temporary tables with the same names. This changes SQL
+        // mapping only; it does not create or alter database objects.
+        modelBuilder.HasDefaultSchema("public");
+
+        modelBuilder.Entity<ProductionLog>(entity =>
+        {
+            entity.HasIndex(l => l.OperationKey).IsUnique();
+            entity.HasOne(l => l.ProductionRequest).WithMany().HasForeignKey(l => l.RequestId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(l => l.Product).WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(l => l.Creator).WithMany().HasForeignKey(l => l.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+        });
 
         // Khóa chính và quan hệ cho chi tiết xuất kho vật tư
         modelBuilder.Entity<MaterialReceiptDetail>(entity =>

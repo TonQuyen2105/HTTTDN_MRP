@@ -1,7 +1,8 @@
-@model IEnumerable<httt.Models.ProductReceipt>
+@model httt.Models.HandoverPageViewModel
 @{
     Layout = null;
-    ViewData["Title"] = "AMIS Sản xuất Dược - Biên bản bàn giao thành phẩm";
+    ViewData["Title"] = "AMIS Sản xuất Dược - Bàn giao thành phẩm";
+    var activeTab = Model?.ActiveTab ?? "pending";
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -14,7 +15,7 @@
   <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="/css/productions/production-order.css">
   <link rel="stylesheet" href="/css/productions/production-statistics.css">
-  <link rel="stylesheet" href="/css/productions/handover.css">
+  <link rel="stylesheet" href="/css/productions/handover.css" asp-append-version="true">
 </head>
 <body>
   <div class="app-wrapper">
@@ -75,7 +76,7 @@
       </div>
     </header>
 
-            <!-- SIDEBAR -->
+    <!-- SIDEBAR -->
     <aside class="app-sidebar" id="appSidebar">
       <div class="sidebar-nav-container">
         
@@ -125,13 +126,13 @@
           </div>
         </div>
 
-        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
+        <!-- Điều phối & thực thi -->
         <div class="nav-item has-sub open">
           <a href="#" class="nav-link">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
             </span>
             <span class="nav-text">Điều phối & thực thi</span>
@@ -140,35 +141,15 @@
             </svg>
           </a>
           <div class="sub-menu">
-            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
             <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
             <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
-            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
             <a href="/Productions/Home/HandoverList" class="sub-link active">Bàn giao thành phẩm</a>
           </div>
         </div>
 
-        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-section-title">QUẢN TRỊ</div>
 
-        <div class="nav-item has-sub">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Báo cáo</span>
-            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </a>
-          <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
-          </div>
-        </div>
+        
 
         <div class="nav-item">
           <a href="/Productions/Home/BomList" class="nav-link ">
@@ -194,150 +175,285 @@
       </div>
     </aside>
 
-    <!-- NỘI DUNG CHÍNH (DANH SÁCH BÀN GIAO THÀNH PHẨM) -->
+    <!-- NỘI DUNG CHÍNH (BÀN GIAO THÀNH PHẨM - 2 TAB) -->
     <main class="app-main">
       <div class="main-container page-fade-in">
         
         <div class="handover-list-header">
-          <h1 class="handover-page-title">Bàn giao thành phẩm</h1>
           <div>
-            <a href="/Productions/Home/HandoverDetail" class="btn-add-handover">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              + Thêm phiếu bàn giao
-            </a>
+            <h1 class="handover-page-title" style="margin-bottom: 4px;">Bàn giao thành phẩm</h1>
+            <p style="font-size: 13px; color: #64748b; margin: 0;">
+              Tổng hợp số lượng có thể bàn giao từ xưởng sản xuất, cho phép lập phiếu bàn giao từng phần gửi kho thành phẩm.
+            </p>
           </div>
+        </div>
+
+        <!-- 2-TAB NAVIGATION -->
+        <div class="handover-tabs-nav">
+          <button type="button" class="handover-tab-btn @(activeTab == "pending" ? "active" : "")" id="tabBtnPending" data-tab="tabPending">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Chờ bàn giao</span>
+            <span class="handover-tab-badge">@(Model?.TotalPendingOrdersCount ?? 0)</span>
+          </button>
+
+          <button type="button" class="handover-tab-btn @(activeTab == "slips" ? "active" : "")" id="tabBtnSlips" data-tab="tabSlips">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span>Phiếu bàn giao</span>
+            <span class="handover-tab-badge">@(Model?.TotalSlipsCount ?? 0)</span>
+          </button>
+
+          @if ((Model?.InconsistentCount ?? 0) > 0)
+          {
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 16px;" title="Có đơn sản xuất bị lệch số dư giữa tổng sản lượng và WIP xưởng. Hệ thống tự động chặn lập phiếu để bảo toàn dữ liệu!">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <span>Phát hiện <strong>@(Model?.InconsistentCount ?? 0)</strong> đơn cần đối soát</span>
+            </div>
+          }
         </div>
 
         <!-- Filter bar -->
         <div class="handover-filter-bar">
-          <div class="search-input-wrap">
+          <div class="search-input-wrap" style="flex: 1; max-width: 480px;">
             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="handoverSearchInput" class="search-input" placeholder="Tìm theo số phiếu, mã đơn/phiếu kho, người bàn giao...">
+            <input type="text" id="handoverSearchInput" class="search-input" placeholder="Tìm theo mã đơn/phiếu kho, tên sản phẩm, số phiếu...">
           </div>
 
-          <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <span style="font-size: 13px; color: #64748b;">Trạng thái:</span>
-              <select class="form-select" style="width: 150px; height: 32px;">
-                <option selected>Tất cả trạng thái</option>
-                <option>Đã xác nhận</option>
-                <option>Chờ xác nhận</option>
-              </select>
+          <div id="slipsFilterOptions" style="display: @(activeTab == "slips" ? "flex" : "none"); gap: 8px; align-items: center;">
+            <span style="font-size: 13px; color: #64748b;">Trạng thái:</span>
+            <select id="slipStatusFilter" class="form-select" style="width: 160px; height: 32px;">
+              <option value="All">Tất cả trạng thái</option>
+              <option value="Pending">Chờ kho nhận</option>
+              <option value="Approved">Đã duyệt</option>
+              <option value="Rejected">Bị từ chối</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ==========================================================================
+             TAB 1: CHỜ BÀN GIAO (DANH SÁCH YÊU CẦU & SẢN LƯỢNG CÓ THỂ BÀN GIAO)
+             ========================================================================== -->
+        <div class="tab-pane @(activeTab == "pending" ? "active" : "")" id="tabPending">
+          <div class="handover-table-card">
+            <div class="table-responsive">
+              <table class="bom-table">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 45px;">STT</th>
+                    <th style="width: 140px;">Mã đơn / Phiếu kho</th>
+                    <th>Sản phẩm thuốc</th>
+                    <th class="text-center" style="width: 70px;">ĐVT</th>
+                    <th class="text-right" style="width: 100px;">SL đặt</th>
+                    <th class="text-right" style="width: 110px;">Tổng đã SX</th>
+                    <th class="text-right" style="width: 105px;">Kho đã nhận</th>
+                    <th class="text-right" style="width: 120px;">Đang chờ nhận</th>
+                    <th class="text-right" style="width: 145px;">Có thể bàn giao</th>
+                    <th class="text-center" style="width: 150px;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="pendingHandoverBody">
+                  @if (Model?.PendingItems != null && Model.PendingItems.Any())
+                  {
+                    int idx = 1;
+                    foreach (var item in Model.PendingItems)
+                    {
+                      <tr class="pending-row" data-search="@item.RequestCode.ToLower() @item.ProductName.ToLower()">
+                        <td class="text-center">@idx</td>
+                        <td>
+                          <a href="/Productions/Home/DrugOrder" class="ref-link" title="Xem đơn đặt hàng thuốc">@item.RequestCode</a>
+                        </td>
+                        <td>
+                          <strong>@item.ProductName</strong>
+                        </td>
+                        <td class="text-center">@item.Unit</td>
+                        <td class="text-right">@item.QuantityRequired.ToString("N0")</td>
+                        <td class="text-right" style="color: #059669; font-weight: 600;">@item.TotalProduced.ToString("N0")</td>
+                        <td class="text-right">@item.WarehouseReceived.ToString("N0")</td>
+                        <td class="text-right">
+                          @if (item.PendingHandover > 0)
+                          {
+                            <span style="color: #d97706; font-weight: 600;">@item.PendingHandover.ToString("N0")</span>
+                          }
+                          else
+                          {
+                            <span style="color: #94a3b8;">0</span>
+                          }
+                        </td>
+                        <td class="text-right">
+                          @if (!item.IsConsistent)
+                          {
+                            <span class="badge-inconsistent-error" title="@item.DiscrepancyReason">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                              <span>Cần đối soát</span>
+                            </span>
+                          }
+                          else if (item.AvailableForHandover > 0)
+                          {
+                            <span class="badge-available-qty">@item.AvailableForHandover.ToString("N0")</span>
+                          }
+                          else
+                          {
+                            <span class="badge-zero-qty">0</span>
+                          }
+                        </td>
+                        <td class="text-center">
+                          @if (item.IsConsistent && item.AvailableForHandover > 0)
+                          {
+                            <button type="button" class="btn-open-handover-modal" 
+                                    data-reqid="@item.RequestId"
+                                    data-reqcode="@item.RequestCode"
+                                    data-prodid="@item.ProductId"
+                                    data-prodname="@item.ProductName"
+                                    data-unit="@item.Unit"
+                                    data-available="@item.AvailableForHandover"
+                                    data-produced="@item.TotalProduced"
+                                    data-received="@item.WarehouseReceived"
+                                    data-pending="@item.PendingHandover"
+                                    data-options="@System.Text.Json.JsonSerializer.Serialize(item.ProductionOptions)" data-warning="@item.ProductionWarning" data-wip="@item.WipQuantity">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                              </svg>
+                              <span>Lập bàn giao</span>
+                            </button>
+                          }
+                          else if (!item.IsConsistent)
+                          {
+                            <span class="handover-action-state handover-action-state--warning" title="@item.DiscrepancyReason">Cần đối soát</span>
+                          }
+                          else if (item.TotalProduced <= 0)
+                          {
+                            <span class="handover-action-state">Chưa sản xuất</span>
+                          }
+                          else
+                          {
+                            <span class="handover-action-state" title="Toàn bộ sản lượng hiện có đã được lập phiếu bàn giao">Đã lập đủ</span>
+                          }
+                        </td>
+                      </tr>
+                      idx++;
+                    }
+                  }
+                  else
+                  {
+                    <tr>
+                      <td colspan="10" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
+                        Không có yêu cầu sản xuất nào cần bàn giao
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer-bar">
+              <span>Tổng số: <strong id="handoverPendingCount">@(Model?.PendingItems?.Count ?? 0)</strong> yêu cầu sản xuất</span>
             </div>
           </div>
         </div>
 
-        <!-- BẢNG DANH SÁCH BÀN GIAO -->
-        <div class="handover-table-card">
-          <div class="table-responsive">
-            <table class="bom-table">
-              <thead>
-                <tr>
-                  <th class="text-center" style="width: 50px;">STT</th>
-                  <th>Số phiếu</th>
-                  <th>Ngày bàn giao</th>
-                  <th>Mã đơn / Phiếu kho</th>
-                  <th>Sản phẩm</th>
-                  <th>Người giao</th>
-                  <th>Người nhận</th>
-                  <th class="text-right">SL giao</th>
-                  <th class="text-center">Trạng thái</th>
-                  <th class="text-center" style="width: 80px;">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody id="handoverListBody">
-                @if (Model != null && Model.Any())
-                {
-                    int stt = 1;
-                    foreach (var item in Model)
+        <!-- ==========================================================================
+             TAB 2: PHIẾU BÀN GIAO (DANH SÁCH CÁC PHIẾU ĐÃ LẬP GỬI KHO)
+             ========================================================================== -->
+        <div class="tab-pane @(activeTab == "slips" ? "active" : "")" id="tabSlips">
+          <div class="handover-table-card">
+            <div class="table-responsive">
+              <table class="bom-table">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 50px;">STT</th>
+                    <th style="width: 140px;">Số phiếu</th>
+                    <th style="width: 140px;">Mã đơn / Phiếu kho</th>
+                    <th>Sản phẩm bàn giao</th>
+                    <th class="text-right" style="width: 130px;">Số lượng giao</th>
+                    <th style="width: 150px;">Người gửi</th>
+                    <th style="width: 140px;">Ngày gửi</th><th>Lần sản xuất</th><th>Hạn sử dụng</th>
+                    <th class="text-center" style="width: 130px;">Trạng thái</th>
+                    <th class="text-center" style="width: 80px;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="handoverSlipsBody">
+                  @if (Model?.HandoverSlips != null && Model.HandoverSlips.Any())
+                  {
+                    int sIdx = 1;
+                    foreach (var slip in Model.HandoverSlips)
                     {
-                        var firstDetail = item.Details.FirstOrDefault();
-                        var prodName = firstDetail?.Product?.ProductName ?? "—";
-                        var unit = firstDetail?.Product?.Unit ?? "Hộp";
-                        var isDone = item.Status == "Completed";
-                        var reqCode = item.RequestId.HasValue ? (!string.IsNullOrWhiteSpace(item.ProductionRequest?.RequestCode) ? item.ProductionRequest.RequestCode : $"YCSX-{item.RequestId}") : "—";
-                        var receiptCode = item.DisplayCode;
-                        <tr>
-                          <td class="text-center">@stt</td>
-                          <td><a href="/Productions/Home/HandoverDetail/@item.ProductReceiptId" style="color:var(--color-primary); font-weight:700;">@receiptCode</a></td>
-                          <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")</td>
-                          <td>
-                            @if (item.RequestId.HasValue)
-                            {
-                              <a href="/Productions/Home/DrugOrder" style="color:#2563eb; font-weight:600;">@reqCode</a>
-                            }
-                            else
-                            {
-                              <span style="color:#64748b;">—</span>
-                            }
-                          </td>
-                          <td>@prodName</td>
-                          <td>@(item.Requester?.FullName ?? "Chưa cập nhật")</td>
-                          <td>@(item.Approver?.FullName ?? (isDone ? "Chưa cập nhật" : "Chờ nhận"))</td>
-                          <td class="text-right" style="font-weight:600;">
-                            @if (firstDetail != null)
-                            {
-                              <span>@firstDetail.Quantity.ToString("N0") @unit</span>
-                            }
-                            else
-                            {
-                              <span style="color:#64748b; font-style:italic; font-weight:normal;">Chưa ghi nhận</span>
-                            }
-                          </td>
-                          <td class="text-center">
-                            @if (isDone)
-                            {
-                                <span class="badge-confirmed">Đã xác nhận</span>
-                            }
-                            else
-                            {
-                                <span class="badge-waiting" style="background:#fef3c7; color:#d97706; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:600;">Chờ xác nhận</span>
-                            }
-                          </td>
-                          <td class="text-center">
-                            <div class="row-actions-cell">
-                              <a href="/Productions/Home/HandoverDetail/@item.ProductReceiptId" class="btn-action-view" title="Xem chi tiết phiếu">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                  <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                              </a>
-                            </div>
-                          </td>
-                        </tr>
-                        stt++;
+                      var isRejected = httt.Models.HandoverStatus.IsRejected(slip.Status);
+                      var isDone = string.Equals(slip.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(slip.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(slip.Status, "Received", StringComparison.OrdinalIgnoreCase);
+                      <tr class="slip-row" 
+                          data-search="@slip.ReceiptCode.ToLower() @slip.RequestCode.ToLower() @slip.ProductName.ToLower() @slip.RequesterName.ToLower()"
+                          data-status="@(isRejected ? "Rejected" : isDone ? "Approved" : "Pending")">
+                        <td class="text-center">@sIdx</td>
+                        <td>
+                          <a href="/Productions/Home/HandoverDetail/@slip.ProductReceiptId" style="color: var(--color-primary); font-weight: 700;">
+                            @slip.ReceiptCode
+                          </a>
+                        </td>
+                        <td>
+                          <a href="/Productions/Home/DrugOrder" class="ref-link">@slip.RequestCode</a>
+                        </td>
+                        <td>
+                          <strong>@slip.ProductName</strong>
+                        </td>
+                        <td class="text-right" style="font-weight: 700; color: #059669;">
+                          @slip.Quantity.ToString("N0") @slip.Unit
+                        </td>
+                        <td>@slip.RequesterName</td>
+                        <td>@(slip.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "—")</td><td>@(slip.ProductionLogId.HasValue ? $"GN-{slip.ProductionLogId}" : "Chưa cập nhật")</td><td>@(slip.ExpiredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")</td>
+                        <td class="text-center">
+                          @if (isRejected)
+                          {
+                            <span class="badge-rejected">Bị từ chối</span>
+                          }
+                          else if (isDone)
+                          {
+                            <span class="badge-confirmed">Đã duyệt</span>
+                          }
+                          else
+                          {
+                            <span class="badge-waiting" style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600;">
+                              Chờ kho nhận
+                            </span>
+                          }
+                        </td>
+                        <td class="text-center">
+                          <a href="/Productions/Home/HandoverDetail/@slip.ProductReceiptId" class="btn-action-view" title="Xem chi tiết phiếu bàn giao">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          </a>
+                        </td>
+                      </tr>
+                      sIdx++;
                     }
-                }
-                else
-                {
+                  }
+                  else
+                  {
                     <tr>
-                      <td colspan="10" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
-                        Chưa có biên bản bàn giao thành phẩm nào trong cơ sở dữ liệu
+                      <td colspan="11" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
+                        Chưa có phiếu bàn giao thành phẩm nào được lập
                       </td>
                     </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                  }
+                </tbody>
+              </table>
+            </div>
 
-          <div class="table-footer-bar">
-            <span>Tổng số: <strong>@(Model?.Count() ?? 0)</strong> phiếu</span>
-            <div class="table-footer-right">
-              <span>Số dòng/trang</span>
-              <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
-                <option selected>20</option>
-                <option>50</option>
-                <option>100</option>
-              </select>
-              <span>1 - 1</span>
-              <button type="button" class="pagination-btn">&lt;</button>
-              <button type="button" class="pagination-btn">&gt;</button>
+            <div class="table-footer-bar">
+              <span>Tổng số: <strong id="handoverSlipCount">@(Model?.HandoverSlips?.Count ?? 0)</strong> phiếu</span>
             </div>
           </div>
         </div>
@@ -347,7 +463,122 @@
 
   </div>
 
+  <!-- ==========================================================================
+       MODAL LẬP VÀ GỬI PHIẾU BÀN GIAO THÀNH PHẨM (HỖ TRỢ BÀN GIAO TỪNG PHẦN)
+       ========================================================================== -->
+  <div class="modal-backdrop-custom" id="handoverModalBackdrop">
+    <div class="modal-dialog-custom">
+      <div class="modal-header-custom">
+        <h3>Lập phiếu bàn giao thành phẩm sang Kho</h3>
+        <button type="button" class="modal-close-btn" id="btnCloseModal" title="Đóng">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="handoverCreateForm" autocomplete="off">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="modalRequestId" name="RequestId" value="0">
+        <input type="hidden" id="modalProductId" name="ProductId" value="0">
+        <input type="hidden" id="modalIdempotencyKey" name="IdempotencyKey" value="">
+
+        <div class="modal-body-custom">
+          <!-- Thông tin tóm tắt đơn và tồn kho -->
+          <div class="modal-info-box">
+            <div class="modal-info-grid">
+              <div>
+                <div class="modal-info-label">Mã đơn / Phiếu kho:</div>
+                <div class="modal-info-val" id="modalRequestCode">—</div>
+              </div>
+              <div>
+                <div class="modal-info-label">Đơn vị tính:</div>
+                <div class="modal-info-val" id="modalUnit">Hộp</div>
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <div class="modal-info-label">Sản phẩm thuốc:</div>
+                <div class="modal-info-val" id="modalProductName" style="color: #0f172a; font-size: 13.5px;">—</div>
+              </div>
+              <div>
+                <div class="modal-info-label">Tổng đã sản xuất:</div>
+                <div class="modal-info-val" id="modalTotalProduced">0</div>
+              </div>
+              <div>
+                <div class="modal-info-label">Kho đã nhận:</div>
+                <div class="modal-info-val" id="modalWarehouseReceived">0</div>
+              </div>
+              <div>
+                <div class="modal-info-label">Đang chờ kho nhận:</div>
+                <div class="modal-info-val" id="modalPendingHandover" style="color:#d97706;">0</div>
+              </div>
+              <div>
+                <div class="modal-info-label">Có thể bàn giao hiện tại:</div>
+                <div class="modal-info-val" id="modalAvailableQty" style="color: #059669; font-size: 15px; font-weight: 700;">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Input số lượng bàn giao lần này -->
+          <div style="margin-bottom: 16px;">
+            <label for="modalProductionLog" style="display:block;font-weight:600;margin-bottom:6px">Lần sản xuất *</label>
+            <select id="modalProductionLog" class="form-input" required style="width:100%;margin-bottom:8px"></select>
+            <p id="modalProductionHint" style="color:#64748b;font-size:13px;margin-bottom:16px" role="status"></p>
+            <label for="modalQuantityInput" style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
+              Số lượng bàn giao lần này <span class="required-star">*</span>
+            </label>
+            <input type="number" id="modalQuantityInput" name="Quantity" class="form-input" 
+                   style="width: 100%; height: 38px; font-size: 14px; font-weight: 600;" 
+                   placeholder="Nhập số lượng thành phẩm gửi kho" min="1" step="1" required>
+            
+            <div class="quick-pct-group">
+              <span style="font-size: 12px; color: #64748b; align-self: center;">Chọn nhanh:</span>
+              <button type="button" class="btn-quick-pct" data-pct="25">25%</button>
+              <button type="button" class="btn-quick-pct" data-pct="50">50%</button>
+              <button type="button" class="btn-quick-pct" data-pct="100">Toàn bộ (100%)</button>
+            </div>
+          </div>
+
+          <!-- Input ghi chú -->
+          <div style="margin-bottom: 12px;">
+            <label for="modalNoteInput" style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
+              Ghi chú lần bàn giao (tùy chọn)
+            </label>
+            <textarea id="modalNoteInput" name="Note" class="form-input" rows="2" 
+                      style="width: 100%; resize: none; font-size: 13px; padding: 8px 10px;" 
+                      maxlength="255" placeholder="Ví dụ: Bàn giao đợt 1 chuyển sang kho thành phẩm"></textarea>
+            <div class="char-counter" id="noteCharCounter">0/255 ký tự</div>
+          </div>
+
+          <!-- Thông báo nghiệp vụ -->
+          <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #92400e; display: flex; gap: 8px; align-items: flex-start;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <div>
+              Phiếu bàn giao sau khi gửi sẽ có trạng thái <strong>Chờ kho nhận</strong>. Tồn kho sản xuất (WIP) tại xưởng sẽ chỉ được trừ khi thủ kho hoàn tất kiểm tra và xác nhận nhận hàng.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-cancel" id="btnCancelModal">Hủy bỏ</button>
+          <button type="submit" class="btn-save-submit" id="btnSubmitHandover" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span id="submitBtnText">Gửi phiếu bàn giao</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="~/js/productions/list-search.js" asp-append-version="true"></script>
   <script src="/js/app.js"></script>
-  <script src="/js/productions/handover.js"></script>
+  <script src="/js/productions/handover.js" asp-append-version="true"></script>
 </body>
 </html>

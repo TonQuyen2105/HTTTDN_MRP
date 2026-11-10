@@ -107,6 +107,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = QXJlYXMvUHJvZHVjdGlvbnMvVmlld3MvVXNlclByb2ZpbGUuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/apple/Downloads/CNPM_MRP/Areas/Productions/Views/_BomEditor.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvUHJvZHVjdGlvbnMvVmlld3MvX0JvbUVkaXRvci5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/apple/Downloads/CNPM_MRP/Areas/Productions/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = QXJlYXMvUHJvZHVjdGlvbnMvVmlld3MvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 

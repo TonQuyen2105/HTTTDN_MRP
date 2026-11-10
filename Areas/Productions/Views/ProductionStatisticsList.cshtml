@@ -1,8 +1,5 @@
-@model IEnumerable<httt.Models.ProductionRequest>
-@{
-    Layout = null;
-    ViewData["Title"] = "AMIS Sản xuất Dược - Thống kê tiến độ & sản lượng sản xuất";
-}
+@model List<httt.Models.ProductionStatisticsViewModel>
+@{ Layout = null; }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -14,8 +11,9 @@
   <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="/css/productions/production-order.css">
   <link rel="stylesheet" href="/css/productions/production-statistics.css">
+  <link rel="stylesheet" href="/css/productions/production-statistics-history.css" asp-append-version="true">
 </head>
-<body>
+<body class="stats-page">
   <div class="app-wrapper">
     
     <!-- TOP HEADER -->
@@ -147,27 +145,9 @@
           </div>
         </div>
 
-        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-section-title">QUẢN TRỊ</div>
 
-        <div class="nav-item has-sub">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Báo cáo</span>
-            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </a>
-          <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
-          </div>
-        </div>
+        
 
         <div class="nav-item">
           <a href="/Productions/Home/BomList" class="nav-link ">
@@ -194,112 +174,49 @@
     </aside>
 
     <!-- NỘI DUNG CHÍNH (DANH SÁCH PHIẾU THỐNG KÊ SẢN XUẤT) -->
-    <main class="app-main">
-      <div class="main-container page-fade-in">
-        
-        <div class="stats-list-header">
-          <h1 class="stats-page-title">Thống kê sản xuất</h1>
-          <div>
-            <a href="/Productions/Home/ProductionStatisticsCreate" class="btn-add-stats">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              + Thêm phiếu thống kê
-            </a>
-          </div>
-        </div>
-
-        <div class="bom-filter-bar">
-          <div class="search-input-wrap">
-            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="statsSearchInput" class="search-input" placeholder="Tìm theo số phiếu, mã đơn/phiếu kho, người thống kê...">
-          </div>
-        </div>
-
-        <div class="stats-form-card">
-          <div class="table-responsive">
-            <table class="bom-table">
-              <thead>
-                <tr>
-                  <th class="text-center" style="width: 50px;">STT</th>
-                  <th>Số phiếu</th>
-                  <th>Ngày thống kê</th>
-                  <th>Mã đơn / Phiếu kho</th>
-                  <th>Sản phẩm</th>
-                  <th>Người thống kê</th>
-                  <th class="text-right">Số lượng kế hoạch</th>
-                  <th class="text-center" style="width: 80px;">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody id="statsListBody">
-                @if (Model != null && Model.Any())
-                {
-                    int stt = 1;
-                    foreach (var item in Model)
-                    {
-                        var prodName = item.Product?.ProductName ?? "Thành phẩm dược dụng";
-                        var unit = item.Product?.Unit ?? "Hộp";
-                        var reqQty = item.QuantityRequired;
-                        var reqCode = !string.IsNullOrWhiteSpace(item.RequestCode) ? item.RequestCode : $"YCSX-{item.RequestId}";
-                        <tr>
-                          <td class="text-center">@stt</td>
-                          <td><a href="/Productions/Home/ProductionStatisticsDetail/@item.RequestId" style="color:var(--color-primary); font-weight:700;">TKSX00@(item.RequestId.ToString("D3"))</a></td>
-                          <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")</td>
-                          <td><a href="/Productions/Home/DrugOrder" style="color:var(--color-primary); font-weight:600;">@reqCode</a></td>
-                          <td>@prodName</td>
-                          <td>@(item.Manager?.FullName ?? "—")</td>
-                          <td class="text-right" style="font-weight:600;">@reqQty.ToString("N0") @unit</td>
-                          <td class="text-center">
-                            <div class="row-actions-cell">
-                              <a href="/Productions/Home/ProductionStatisticsDetail/@item.RequestId" class="btn-action-view" title="Xem chi tiết phiếu">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                  <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                              </a>
-                            </div>
-                          </td>
-                        </tr>
-                        stt++;
-                    }
-                }
-                else
-                {
-                    <tr>
-                      <td colspan="8" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
-                        Chưa có dữ liệu thống kê sản xuất trong hệ thống
-                      </td>
-                    </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="table-footer-bar">
-            <span>Tổng số: <strong>@(Model?.Count() ?? 0)</strong> phiếu</span>
-            <div class="table-footer-right">
-              <span>Số dòng/trang</span>
-              <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
-                <option selected>20</option>
-                <option>50</option>
-              </select>
-              <span>1 - 1</span>
-              <button type="button" class="pagination-btn">&lt;</button>
-              <button type="button" class="pagination-btn">&gt;</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </main>
+<main class="app-main"><div class="main-container page-fade-in">
+  <div class="stats-list-header"><h1 class="stats-page-title">Thống kê sản xuất</h1></div>
+  <p class="stats-description">Theo dõi sản lượng và lịch sử ghi nhận theo từng yêu cầu sản xuất.</p>
+  @if (ViewBag.LoadError != null) { <div class="stats-notice" role="alert">@ViewBag.LoadError</div> }
+  @if (ViewBag.LoadError == null)
+  {
+    <div class="stats-summary stats-overview" aria-label="Tổng quan tất cả yêu cầu">
+      <div><span>Tổng yêu cầu</span><strong>@Model.Count</strong><small>Toàn bộ yêu cầu sản xuất</small></div>
+      <div><span>Chưa sản xuất</span><strong>@Model.Count(x => x.TotalProduced == 0)</strong><small>Chưa ghi nhận sản lượng</small></div>
+      <div><span>Đang sản xuất</span><strong>@Model.Count(x => x.TotalProduced > 0 && x.Remaining > 0)</strong><small>Đã có sản lượng, còn thiếu</small></div>
+      <div><span>Đã đủ sản lượng</span><strong>@Model.Count(x => x.TotalProduced > 0 && x.Remaining == 0)</strong><small>Đã đạt số lượng yêu cầu</small></div>
+    </div>
+  }
+  <div class="bom-filter-bar"><input type="search" id="statsSearchInput" class="search-input" aria-label="Tìm thống kê" placeholder="Tìm mã yêu cầu, sản phẩm, người phụ trách..." /></div>
+  <div class="stats-form-card"><div class="table-responsive">
+    <table class="bom-table"><thead><tr>
+      <th>Yêu cầu sản xuất</th><th>Sản phẩm</th><th>Người phụ trách</th><th class="text-right">Yêu cầu</th><th class="text-right">Đã sản xuất</th><th class="text-right">Còn lại</th><th>Sản xuất gần nhất</th><th class="text-center">Thao tác</th>
+    </tr></thead><tbody id="statsListBody">
+    @foreach (var item in Model)
+    {
+      var unit = item.Request.Product?.Unit ?? "";
+      <tr data-stat-row>
+        <td><a class="ref-link" href="@Url.Action("ProductionStatisticsDetail", new { id = item.Request.RequestId })">@item.Request.DisplayCode</a></td>
+        <td class="stats-product-name">@(item.Request.Product?.ProductName ?? "—")</td>
+        <td>@(item.Request.Manager?.FullName ?? "—")</td>
+        <td class="text-right">@item.Request.QuantityRequired.ToString("N0") @unit</td>
+        <td class="text-right"><strong class="stats-quantity">@item.TotalProduced.ToString("N0") <small>@unit</small></strong>
+          @if (item.LegacyQuantity > 0) { <small class="stats-muted">Có sản lượng cũ chưa có lịch sử</small> }
+        </td>
+        <td class="text-right">@item.Remaining.ToString("N0") @unit</td>
+        <td>@httt.Models.ProductionStatisticsViewModel.DisplayTime(item.LatestProduction)</td>
+        <td class="text-center"><a class="stats-detail-link" href="@Url.Action("ProductionStatisticsDetail", new { id = item.Request.RequestId })" aria-label="Xem chi tiết @item.Request.DisplayCode">Xem chi tiết <span aria-hidden="true">→</span></a></td>
+      </tr>
+    }
+    <tr id="statsEmptyRow" hidden="@(Model.Any())"><td colspan="8" class="stats-empty">@(ViewBag.LoadError != null ? "Dữ liệu tạm thời không khả dụng." : "Không có yêu cầu sản xuất phù hợp.")</td></tr>
+    </tbody></table>
+  </div><div class="table-footer-bar"><span>Hiển thị <strong id="statsVisibleCount">@Model.Count</strong> / @Model.Count yêu cầu</span></div></div>
+</div></main>
 
   </div>
 
+  <script src="~/js/productions/list-search.js" asp-append-version="true"></script>
   <script src="/js/app.js"></script>
-  <script src="/js/productions/production-statistics.js"></script>
+  <script src="/js/productions/production-statistics.js" asp-append-version="true"></script>
 </body>
 </html>

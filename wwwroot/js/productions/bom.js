@@ -1,181 +1,92 @@
-/**
- * PRODUCTIONS - BOM JS
- * Tương tác form Thêm & Sửa Định mức nguyên vật liệu (BOM)
- */
-
 document.addEventListener('DOMContentLoaded', () => {
-  initBomMaterialsTable();
-  initBomByProductsTable();
-  initBomFormActions();
-  initBomListFilter();
+  const form = document.getElementById('bomEditorForm');
+  if (!form) return;
+  const body = document.getElementById('bomEditorLines');
+  const product = document.getElementById('bomProduct');
+  const message = document.getElementById('bomFormMessage');
+  const save = document.getElementById('bomSaveButton');
+  let dirty = false;
+  const priceInput = document.getElementById('bomProductPrice');
+  let originalPrice = form.dataset.originalPrice || '';
+  const shelfLifeInput = document.getElementById('bomShelfLifeMonths');
+  const descriptionInput = document.getElementById('bomDescription');
+  const descriptions = JSON.parse(document.getElementById('bomProductDescriptions').textContent);
+  let originalDescription = descriptions.find(p => p.id === Number(product.value))?.description ?? null;
+  let originalShelfLife = form.dataset.originalShelfLife === '' ? null : Number(form.dataset.originalShelfLife);
+  const money = value => value.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' đ';
+  function updateMaterialTotal() {
+    let total = 0, complete = body.rows.length > 0;
+    [...body.rows].forEach(row => {
+      const raw = row.querySelector('.bom-ingredient').selectedOptions[0]?.dataset.price;
+      const price = raw == null || raw === '' ? null : Number(raw);
+      const qty = Number(row.querySelector('.bom-quantity').value);
+      const validPrice = price !== null && Number.isFinite(price) && price >= 0;
+      row.querySelector('[data-material-price]').textContent = validPrice ? money(price) : 'Chưa có giá';
+      const amount = validPrice && Number.isFinite(qty) && qty > 0 ? Math.round((price * qty + Number.EPSILON) * 100) / 100 : null;
+      row.querySelector('[data-material-amount]').textContent = amount !== null ? money(amount) : '—';
+      if (amount === null) complete = false; else total += amount;
+    });
+    document.getElementById('bomMaterialTotal').textContent = complete ? money(total) : 'Chưa đủ định mức hoặc đơn giá NVL';
+  }
+  const showError = text => { message.textContent = text; message.hidden = false; };
+  function updateProductUnit() { document.getElementById('bomProductUnit').textContent = product.selectedOptions[0]?.dataset.unit || 'thành phẩm'; }
+  function renumber() { [...body.rows].forEach((row, i) => row.querySelector('[data-row-number]').textContent = i + 1); document.getElementById('bomLineCount').textContent = body.rows.length; updateMaterialTotal(); }
+  function addLine(line = {}) {
+    const fragment = document.getElementById('bomLineTemplate').content.cloneNode(true);
+    const row = fragment.querySelector('tr');
+    const select = row.querySelector('.bom-ingredient');
+    const quantity = row.querySelector('.bom-quantity');
+    select.value = line.IngredientId || '';
+    // Keep the original decimal text until the user changes it to avoid needless numeric rounding.
+    quantity.value = line.Quantity ?? '';
+    function syncUnit() { row.querySelector('[data-ingredient-unit]').textContent = select.selectedOptions[0]?.dataset.unit || '—'; }
+    select.addEventListener('change', () => { syncUnit(); updateMaterialTotal(); });
+    quantity.addEventListener('input', updateMaterialTotal);
+    row.querySelector('.bom-remove-line').addEventListener('click', () => { if (save.disabled) return; row.remove(); renumber(); dirty = true; });
+    syncUnit(); body.appendChild(fragment); renumber();
+  }
+  const initial = JSON.parse(document.getElementById('bomInitialLines').textContent);
+  initial.forEach(addLine);
+  if (!initial.length) addLine();
+  updateProductUnit();
+  product.addEventListener('change', () => { updateProductUnit(); originalPrice = product.selectedOptions[0]?.dataset.price || ''; priceInput.value = originalPrice;
+    const previous = product.selectedOptions[0]?.dataset.shelfLife;
+    originalShelfLife = previous == null || previous === '' ? null : Number(previous);
+    shelfLifeInput.value = originalShelfLife > 0 ? originalShelfLife : '';
+    originalDescription = descriptions.find(p => p.id === Number(product.value))?.description ?? null;
+    descriptionInput.value = originalDescription ?? '';
+  });
+  document.getElementById('bomAddLine').addEventListener('click', () => { if (save.disabled) return; if (body.rows.length >= 200) { showError('Tối đa 200 nguyên liệu trong một công thức.'); return; } addLine(); dirty = true; });
+  form.addEventListener('input', () => { dirty = true; });
+  window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (save.disabled || !form.reportValidity()) return;
+    const lines = [...body.rows].map(row => ({ ingredientId: Number(row.querySelector('.bom-ingredient').value), quantity: row.querySelector('.bom-quantity').value }));
+    if (!lines.length || lines.some(l => !l.ingredientId || !Number.isFinite(Number(l.quantity)) || Number(l.quantity) <= 0)) { showError('Chọn ít nhất một nguyên liệu và nhập định mức lớn hơn 0.'); return; }
+    if (new Set(lines.map(l => l.ingredientId)).size !== lines.length) { showError('Một nguyên liệu chỉ được chọn một lần.'); return; }
+    if (priceInput.value !== '' && (!Number.isFinite(Number(priceInput.value)) || Number(priceInput.value) < 0)) { showError('Giá thành phẩm không được âm.'); return; }
+    const shelfLife = shelfLifeInput.value === '' ? null : Number(shelfLifeInput.value);
+    if (shelfLife !== null && (!Number.isInteger(shelfLife) || shelfLife <= 0 || shelfLife > 2147483647)) { showError('Thời hạn sử dụng phải là số tháng nguyên lớn hơn 0.'); return; }
+    const payload = { description: descriptionInput.value === '' ? null : descriptionInput.value, originalDescription, shelfLifeMonths: shelfLife, originalShelfLifeMonths: originalShelfLife, productPrice: priceInput.value === '' ? null : priceInput.value, originalProductPrice: originalPrice === '' ? null : originalPrice, id: form.dataset.id ? Number(form.dataset.id) : null, version: form.dataset.version, code: document.getElementById('bomCode').value.trim(), name: document.getElementById('bomName').value.trim(), productId: Number(product.value), lines };
+    save.disabled = true; save.textContent = 'Đang lưu...'; message.hidden = true;
+    try {
+      const response = await fetch(form.dataset.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'RequestVerificationToken': form.querySelector('[name="__RequestVerificationToken"]').value }, body: JSON.stringify(payload) });
+      const isJson = (response.headers.get('content-type') || '').includes('application/json');
+      const result = isJson ? await response.json() : null;
+      if (response.ok && result?.success) {
+        dirty = false;
+        const destination = new URL(form.dataset.detailUrl, window.location.origin);
+        destination.searchParams.set('id', result.id);
+        window.location.assign(destination.href);
+      } else if (response.status === 401 || response.status === 403) {
+        showError(result?.message || 'Phiên đăng nhập đã hết hạn hoặc bạn không có quyền. Vui lòng đăng nhập lại.');
+      } else if (response.status === 400 && !result) {
+        showError('Yêu cầu không hợp lệ hoặc phiên xác thực đã hết hạn. Vui lòng tải lại trang trước khi lưu.');
+      } else {
+        showError(result?.message || `Máy chủ không xử lý được yêu cầu (mã ${response.status}). Thông tin trên form vẫn được giữ lại.`);
+      }
+    } catch { showError('Không nhận được phản hồi. Hãy kiểm tra kết nối và tải lại danh sách trước khi thử lưu lại.'); }
+    finally { save.disabled = false; save.textContent = 'Lưu công thức'; }
+  });
 });
-
-/**
- * Xử lý thêm, xoá dòng trong Danh sách nguyên vật liệu của BOM
- */
-function initBomMaterialsTable() {
-  const tableBody = document.getElementById('bomMaterialsBody');
-  const btnAdd = document.getElementById('btnAddMaterialRow');
-  const btnClear = document.getElementById('btnClearMaterialRows');
-  const totalCount = document.getElementById('totalMaterialsCount');
-
-  function updateRowNumbers() {
-    if (!tableBody) return;
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach((row, idx) => {
-      const stt = row.querySelector('.col-stt');
-      if (stt) stt.textContent = idx + 1;
-    });
-    if (totalCount) totalCount.textContent = rows.length;
-  }
-
-  if (btnAdd && tableBody) {
-    btnAdd.addEventListener('click', () => {
-      const newIdx = tableBody.querySelectorAll('tr').length + 1;
-      const row = document.createElement('tr');
-      row.className = 'page-fade-in';
-      row.innerHTML = `
-        <td class="text-center col-stt">${newIdx}</td>
-        <td><input type="text" class="form-input" placeholder="Mã NVL..." style="height:26px; font-size:12px;"></td>
-        <td><input type="text" class="form-input" placeholder="Tên nguyên vật liệu..." style="height:26px; font-size:12px;"></td>
-        <td>Nguyên vật liệu</td>
-        <td>ml</td>
-        <td class="text-center"><input type="checkbox"></td>
-        <td><input type="text" class="form-input text-right" value="100,0000" style="height:26px; font-size:12px;"></td>
-        <td>Tỷ lệ cố định</td>
-        <td class="text-right">0,0000</td>
-        <td class="text-right">1,00</td>
-        <td class="text-center">
-          <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-      updateRowNumbers();
-    });
-  }
-
-  if (tableBody) {
-    tableBody.addEventListener('click', (e) => {
-      const deleteBtn = e.target.closest('.btn-delete-row');
-      if (deleteBtn) {
-        const row = deleteBtn.closest('tr');
-        if (row) {
-          row.style.opacity = '0';
-          row.style.transform = 'translateX(20px)';
-          row.style.transition = 'all 0.2s ease';
-          setTimeout(() => {
-            row.remove();
-            updateRowNumbers();
-          }, 200);
-        }
-      }
-    });
-  }
-
-  if (btnClear && tableBody) {
-    btnClear.addEventListener('click', () => {
-      if (confirm('Bạn có chắc chắn muốn xóa tất cả nguyên vật liệu?')) {
-        tableBody.innerHTML = '';
-        updateRowNumbers();
-      }
-    });
-  }
-}
-
-/**
- * Xử lý thêm, xoá dòng trong Bảng Phụ phẩm
- */
-function initBomByProductsTable() {
-  const tableBody = document.getElementById('byProductsBody');
-  const btnAdd = document.getElementById('btnAddByProductRow');
-  const btnClear = document.getElementById('btnClearByProductRows');
-
-  if (btnAdd && tableBody) {
-    btnAdd.addEventListener('click', () => {
-      const newIdx = tableBody.querySelectorAll('tr').length + 1;
-      const row = document.createElement('tr');
-      row.className = 'page-fade-in';
-      row.innerHTML = `
-        <td class="text-center col-stt">${newIdx}</td>
-        <td><input type="text" class="form-input" placeholder="Mã phụ phẩm..." style="height:26px; font-size:12px;"></td>
-        <td><input type="text" class="form-input" placeholder="Tên phụ phẩm..." style="height:26px; font-size:12px;"></td>
-        <td>kg</td>
-        <td><input type="text" class="form-input text-right" value="1,0000" style="height:26px; font-size:12px;"></td>
-        <td>Công đoạn đóng gói</td>
-        <td class="text-center">
-          <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
-  }
-
-  if (tableBody) {
-    tableBody.addEventListener('click', (e) => {
-      const deleteBtn = e.target.closest('.btn-delete-row');
-      if (deleteBtn) {
-        const row = deleteBtn.closest('tr');
-        if (row) row.remove();
-      }
-    });
-  }
-
-  if (btnClear && tableBody) {
-    btnClear.addEventListener('click', () => {
-      if (confirm('Bạn có chắc chắn muốn xóa hết dòng phụ phẩm?')) {
-        tableBody.innerHTML = '';
-      }
-    });
-  }
-}
-
-/**
- * Xử lý các nút Lưu / Hủy trên form
- */
-function initBomFormActions() {
-  const btnCancel = document.getElementById('btnCancelBom');
-  const btnClose = document.getElementById('btnCloseBom');
-  const btnSave = document.getElementById('btnSaveBom');
-
-  function returnToList() {
-    window.location.href = '/Productions/Home/BomList';
-  }
-
-  if (btnCancel) btnCancel.addEventListener('click', returnToList);
-  if (btnClose) btnClose.addEventListener('click', returnToList);
-
-  if (btnSave) {
-    btnSave.addEventListener('click', (e) => {
-      e.preventDefault();
-      alert('Chức năng cập nhật Định mức nguyên vật liệu (BOM) chưa được triển khai trên hệ thống backend.');
-    });
-  }
-}
-
-/**
- * Lọc tìm kiếm trên trang Danh sách BOM
- */
-function initBomListFilter() {
-  const searchInput = document.getElementById('bomSearchInput');
-  const tableRows = document.querySelectorAll('#bomListTableBody tr');
-
-  if (searchInput && tableRows.length) {
-    searchInput.addEventListener('input', (e) => {
-      const keyword = e.target.value.toLowerCase().trim();
-      tableRows.forEach((row) => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(keyword) ? '' : 'none';
-      });
-    });
-  }
-}

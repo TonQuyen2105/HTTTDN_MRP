@@ -1,9 +1,5 @@
-@model IEnumerable<httt.Models.Bom>
-@{
-    Layout = null;
-    ViewData["Title"] = "AMIS Sản xuất Dược phẩm - Định mức nguyên vật liệu (BOM)";
-}
-
+@model List<httt.Models.BomFormulaViewModel>
+@{ Layout = null; }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -15,6 +11,7 @@
   <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
   <link rel="stylesheet" href="~/css/productions/production-order.css" asp-append-version="true" />
   <link rel="stylesheet" href="~/css/productions/bom.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/productions/bom-editor.css" asp-append-version="true" />
 </head>
 <body>
   <div class="app-wrapper">
@@ -138,27 +135,9 @@
           </div>
         </div>
 
-        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-section-title">QUẢN TRỊ</div>
 
-        <div class="nav-item has-sub">
-          <a href="#" class="nav-link">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            <span class="nav-text">Báo cáo</span>
-            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </a>
-          <div class="sub-menu">
-            <a href="#" class="sub-link">Báo cáo tiến độ lô SX</a>
-            <a href="#" class="sub-link">Báo cáo hao hụt hoạt chất</a>
-          </div>
-        </div>
+        
 
         <div class="nav-item">
           <a href="/Productions/Home/BomList" class="nav-link active">
@@ -184,88 +163,19 @@
       </div>
     </aside>
 
-    <main class="app-main">
-      <div class="main-container page-fade-in">
-        <div class="bom-list-header">
-          <h1 class="bom-page-title">Định mức nguyên vật liệu (BOM)</h1>
-          <div class="bom-header-right">
-            <a asp-action="BomCreate" class="btn-add-bom">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              + Thêm định mức
-            </a>
-          </div>
-        </div>
-
-        <div class="bom-filter-bar">
-          <div class="search-input-wrap">
-            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="bomSearchInput" class="search-input" placeholder="Tìm kiếm theo mã BOM, tên BOM, sản phẩm...">
-          </div>
-        </div>
-
-        <div class="bom-form-card">
-          <div class="table-responsive">
-            <table class="bom-table">
-              <thead>
-                <tr>
-                  <th class="text-center" style="width: 50px;">STT</th>
-                  <th>Mã BOM</th>
-                  <th>Tên BOM</th>
-                  <th>Sản phẩm</th>
-                  <th>Phiên bản</th>
-                  <th>Loại BOM</th>
-                  <th>ĐVT</th>
-                  <th class="text-right">Áp dụng cho</th>
-                  <th>Nguyên vật liệu</th>
-                  <th class="text-right">Định mức / 1 thành phẩm</th>
-                  <th>Hiệu lực</th>
-                  <th class="text-center">Trạng thái</th>
-                  <th class="text-center" style="width: 90px;">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody id="bomListTableBody">
-                @if (Model != null && Model.Any())
-                {
-                    int stt = 1;
-                    foreach (var item in Model)
-                    {
-                        <tr>
-                          <td class="text-center">@stt</td>
-                          <td><strong>@(item.BomCode ?? item.BomName)</strong></td>
-                          <td>@item.BomName</td>
-                          <td>@(item.Product?.ProductName ?? $"Mã SP: {item.ProductId}")</td>
-                          <td>—</td>
-                          <td>—</td>
-                          <td>@(item.Product?.Unit ?? "Hộp")</td>
-                          <td class="text-right">@($"{item.ItemQuantity} {item.Product?.Unit ?? "đơn vị"}")</td>
-                          <td>@item.Ingredient?.IngrName</td>
-                          <td class="text-right">@(item.ItemQuantity > 0 && item.MaterialQuantity > 0
-                              ? (item.MaterialQuantity / item.ItemQuantity).ToString("0.############") + " " + item.Ingredient?.Unit
-                              : "BOM chưa hợp lệ")</td>
-                          <td>—</td>
-                          <td class="text-center">—</td>
-                          <td class="text-center">
-                            <a asp-action="BomEdit" asp-route-id="@item.BomId" class="btn-edit-action" title="Sửa định mức BOM">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </a>
-                          </td>
-                        </tr>
-                        stt++;
-                    }
-                }
-                else
-                {
-                    <tr><td colspan="13" class="text-center">Chưa có dữ liệu BOM.</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <script src="~/js/app.js" asp-append-version="true"></script>
-  <script src="~/js/productions/bom.js" asp-append-version="true"></script>
-</body>
-</html>
+<main class="app-main"><div class="main-container page-fade-in">
+<div class="bom-list-header"><h1 class="bom-page-title">Định mức công thức (BOM)</h1><a asp-action="BomCreate" class="btn-add-bom">+ Thêm công thức</a></div>
+<p class="bom-hint">Mỗi dòng là một công thức. Chọn Xem để đọc công thức hoặc Sửa để cập nhật nguyên liệu cho 1 thành phẩm.</p>
+@if (ViewBag.LoadError != null) { <div class="bom-alert" role="alert">@ViewBag.LoadError</div> }
+<div class="bom-filter-bar"><input id="bomSearchInput" type="search" class="search-input" aria-label="Tìm công thức" placeholder="Tìm mã BOM, tên công thức, sản phẩm..." /></div>
+<div class="bom-form-card"><div class="table-responsive"><table class="bom-table">
+<thead><tr><th>Mã BOM</th><th>Tên công thức</th><th>Sản phẩm</th><th>Định mức cho</th><th>Số nguyên liệu</th><th>Đơn giá thành phẩm</th><th>Thời hạn sử dụng</th><th>Thao tác</th></tr></thead>
+<tbody id="bomListTableBody">
+@foreach (var formula in Model)
+{
+<tr data-bom-row><td><a class="bom-link" asp-action="BomDetail" asp-route-id="@formula.Id">@formula.Code</a></td><td>@formula.Name</td><td>@formula.ProductName <small class="bom-hint">(SP-@formula.ProductId)</small></td><td>1 @formula.Unit</td><td>@formula.MaterialCount</td><td>@httt.Models.BomEditorViewModel.Money(formula.ProductPrice)</td><td>@(formula.ShelfLifeMonths > 0 ? formula.ShelfLifeMonths.Value.ToString() : "Chưa nhập")</td><td><div class="bom-row-actions"><a class="bom-link" asp-action="BomDetail" asp-route-id="@formula.Id">Xem</a><a class="bom-link" asp-action="BomEdit" asp-route-id="@formula.Id">Sửa</a></div></td></tr>
+}
+<tr id="bomEmptyRow" hidden="@Model.Any()"><td colspan="8" class="bom-empty">@(ViewBag.LoadError == null ? "Không có công thức phù hợp." : "Dữ liệu tạm thời không khả dụng.")</td></tr>
+</tbody></table></div><div class="table-footer-bar"><span>Hiển thị <strong id="bomVisibleCount">@Model.Count</strong> / @Model.Count công thức</span></div></div>
+</div></main></div><script src="~/js/productions/list-search.js" asp-append-version="true"></script>
+  <script src="~/js/app.js" asp-append-version="true"></script><script src="~/js/productions/bom.js" asp-append-version="true"></script></body></html>

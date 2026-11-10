@@ -1,0 +1,85 @@
+@model httt.Models.BomEditorViewModel
+<div class="bom-list-header"><h1 class="bom-page-title">@(Model.IsReadOnly ? "Chi tiết công thức BOM" : Model.Id.HasValue ? "Sửa công thức BOM" : "Thêm công thức BOM")</h1><a asp-action="BomList" class="btn-cancel">Về danh sách</a></div>
+@if (Model.Error != null)
+{
+<div class="bom-alert" role="alert">@Model.Error</div>
+}
+else if (Model.IsReadOnly)
+{
+    var product = Model.Products.FirstOrDefault(p => p.ProductId == Model.ProductId);
+    <div class="bom-form-card"><div class="bom-form-body">
+        <h2 class="bom-section-title">Thông tin công thức</h2>
+        <dl class="bom-readonly-grid">
+            <div><dt>Mã BOM</dt><dd>@(string.IsNullOrWhiteSpace(Model.Code) ? "Chưa có mã" : Model.Code)</dd></div>
+            <div><dt>Tên công thức</dt><dd>@Model.Name</dd></div>
+            <div><dt>Sản phẩm</dt><dd>@product?.ProductName · SP-@Model.ProductId</dd></div>
+            <div><dt>Định mức cho</dt><dd>1 @product?.Unit</dd></div>
+            <div><dt>Thời hạn sử dụng</dt><dd>@(Model.ShelfLifeMonths > 0 ? $"{Model.ShelfLifeMonths}" : "Chưa nhập")</dd></div>
+            <div><dt>Đơn giá thành phẩm</dt><dd>@httt.Models.BomEditorViewModel.Money(Model.ProductPrice)</dd></div>
+        </dl>
+        <div class="bom-description-read"><h3>Mô tả sản phẩm</h3><p>@(string.IsNullOrWhiteSpace(Model.Description) ? "Chưa có mô tả" : Model.Description)</p></div>
+        <h2 class="bom-section-title">Nguyên vật liệu (@Model.Lines.Count)</h2>
+        <div class="table-responsive"><table class="bom-table">
+            <thead><tr><th>STT</th><th>Nguyên liệu</th><th>Đơn vị</th><th>Định mức / 1 thành phẩm</th><th>Đơn giá NVL / ĐVT</th><th>Thành tiền</th></tr></thead><tbody>
+            @for (var i = 0; i < Model.Lines.Count; i++)
+            {
+                var line = Model.Lines[i];
+                var ingredient = Model.Ingredients.FirstOrDefault(x => x.IngrId == line.IngredientId);
+                decimal? amount = ingredient?.Price is >= 0 ? Math.Round(line.Quantity * ingredient.Price.Value, 2, MidpointRounding.AwayFromZero) : null;
+                <tr><td>@(i + 1)</td><td>@ingredient?.IngrName <small class="bom-hint">(NVL-@line.IngredientId)</small></td><td>@ingredient?.Unit</td><td>@line.Quantity.ToString("0.############################", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</td><td>@httt.Models.BomEditorViewModel.Money(ingredient?.Price)</td><td>@httt.Models.BomEditorViewModel.Money(amount)</td></tr>
+            }
+            </tbody>
+            <tfoot><tr><td colspan="5"><strong>Tổng tiền NVL / 1 @product?.Unit (tham khảo)</strong></td><td><strong>@(Model.MaterialTotal.HasValue ? httt.Models.BomEditorViewModel.Money(Model.MaterialTotal) : "Chưa đủ đơn giá NVL")</strong></td></tr></tfoot>
+        </table></div>
+        <p class="bom-hint">Tổng tiền NVL chỉ dùng để tham khảo, chưa bao gồm chi phí khác và không tự thay đổi đơn giá thành phẩm.</p>
+    </div></div>
+    <div class="bom-editor-actions"><a asp-action="BomEdit" asp-route-id="@Model.Id" class="btn-save-submit">Sửa công thức</a></div>
+}
+else
+{
+<form id="bomEditorForm" data-id="@Model.Id" data-version="@Model.Version" data-save-url="@Url.Action("SaveBom")" data-list-url="@Url.Action("BomList")" data-detail-url="@Url.Action("BomDetail", new { id = (int?)null })" data-original-price="@Model.ProductPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-original-shelf-life="@Model.ShelfLifeMonths">
+@Html.AntiForgeryToken()
+<div class="bom-form-card"><div class="bom-form-body">
+<h2 class="bom-section-title">Thông tin công thức</h2>
+<div class="bom-editor-grid">
+<div class="bom-field"><label for="bomCode" class="bom-field-label">Mã BOM *</label><input id="bomCode" class="form-input" value="@Model.Code" required maxlength="100" placeholder="Ví dụ: BOM-SP-1" /></div>
+<div class="bom-field"><label for="bomName" class="bom-field-label">Tên công thức *</label><input id="bomName" class="form-input" value="@Model.Name" required maxlength="100" /></div>
+<div class="bom-field"><label for="bomProduct" class="bom-field-label">Sản phẩm *</label><select id="bomProduct" class="form-select" required disabled="@Model.Id.HasValue"><option value="">Chọn sản phẩm</option>
+@foreach(var product in Model.Products) { <option value="@product.ProductId" data-unit="@product.Unit" data-price="@product.Cost?.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-shelf-life="@product.ShelfLifeMonths" selected="@(product.ProductId == Model.ProductId)">@product.ProductName · SP-@product.ProductId (@product.Unit)</option> }
+</select></div>
+<div class="bom-field"><label class="bom-field-label">Định mức cho</label><div class="bom-base-output">1 <span id="bomProductUnit">thành phẩm</span></div></div>
+</div>
+<div class="bom-product-settings">
+  <div class="bom-editor-grid bom-price-life-grid">
+    <div class="bom-field">
+      <label for="bomProductPrice" class="bom-field-label">Đơn giá thành phẩm</label>
+      <div class="bom-input-unit"><input id="bomProductPrice" type="number" min="0" step="0.01" max="9999999999999999.99" class="form-input" value="@Model.ProductPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="Nhập đơn giá" aria-describedby="bomPriceHelp" /><span>VNĐ</span></div>
+      <small id="bomPriceHelp" class="bom-field-help">Giá cho 1 thành phẩm, nhập riêng với tổng tiền NVL.</small>
+    </div>
+    <div class="bom-field">
+      <label for="bomShelfLifeMonths" class="bom-field-label">Thời hạn sử dụng</label>
+      <div class="bom-input-unit"><input id="bomShelfLifeMonths" class="form-input" type="number" min="1" max="2147483647" step="1" value="@(Model.ShelfLifeMonths > 0 ? Model.ShelfLifeMonths.Value.ToString() : "")" placeholder="Ví dụ: 5" aria-describedby="bomShelfHelp" /><span>tháng</span></div>
+      <small id="bomShelfHelp" class="bom-field-help">Tính từ ngày sản xuất thành phẩm.</small>
+    </div>
+  </div>
+  <div class="bom-field bom-description-field">
+    <label for="bomDescription" class="bom-field-label">Mô tả sản phẩm <span class="bom-optional">(không bắt buộc)</span></label>
+    <textarea id="bomDescription" class="form-textarea" rows="3" placeholder="Nhập mô tả, đặc điểm hoặc ghi chú cho sản phẩm…">@Model.Description</textarea>
+  </div>
+</div>
+<h2 class="bom-section-title">Nguyên vật liệu</h2>
+<div class="table-responsive"><table class="bom-table"><thead><tr><th>STT</th><th>Nguyên liệu *</th><th>Đơn vị</th><th>Định mức / 1 thành phẩm *</th><th>Đơn giá NVL / ĐVT</th><th>Thành tiền</th><th></th></tr></thead><tbody id="bomEditorLines"></tbody><tfoot><tr><td colspan="5"><strong>Tổng tiền NVL / 1 thành phẩm (tham khảo)</strong></td><td colspan="2"><strong id="bomMaterialTotal">—</strong></td></tr></tfoot></table></div>
+<div class="bom-lines-footer"><button type="button" id="bomAddLine" class="btn-table-action">+ Thêm nguyên liệu</button><span><strong id="bomLineCount">0</strong> nguyên liệu</span></div>
+</div></div>
+<div id="bomFormMessage" class="bom-alert" role="alert" hidden></div>
+<div class="bom-editor-actions">@if (Model.Id.HasValue) { <a asp-action="BomDetail" asp-route-id="@Model.Id" class="btn-cancel">Hủy</a> }
+else { <a asp-action="BomList" class="btn-cancel">Hủy</a> }<button id="bomSaveButton" type="submit" class="btn-save-submit">Lưu công thức</button></div>
+</form>
+<template id="bomLineTemplate"><tr>
+<td data-row-number></td><td><select class="form-select bom-ingredient" required aria-label="Nguyên liệu"><option value="">Chọn nguyên liệu</option>
+@foreach(var ingredient in Model.Ingredients) { <option value="@ingredient.IngrId" data-unit="@ingredient.Unit" data-price="@ingredient.Price?.ToString(System.Globalization.CultureInfo.InvariantCulture)">@ingredient.IngrName · NVL-@ingredient.IngrId</option> }
+</select></td><td data-ingredient-unit>—</td><td><input class="form-input bom-quantity" type="number" step="any" min="0" max="1000000000" required aria-label="Định mức cho một thành phẩm" /></td><td data-material-price>—</td><td data-material-amount>—</td><td><button type="button" class="row-act-btn bom-remove-line" aria-label="Xóa nguyên liệu">Xóa</button></td>
+</tr></template>
+<script id="bomProductDescriptions" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products.Select(p => new { id = p.ProductId, description = p.Description })))</script>
+<script id="bomInitialLines" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Lines.Select(l => new { l.IngredientId, Quantity = l.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture) })))</script>
+}

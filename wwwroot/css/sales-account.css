@@ -1,951 +1,342 @@
+/* ==========================================================================
+   PHARMAMRP - SALES ACCOUNT STYLING (CLEAN & BALANCED ERP THEME)
+   File: wwwroot/css/sales-account.css
+   ========================================================================== */
 
-/* ========================================
-   PHARMAMRP - SALES ACCOUNT
-   Giao dien tai khoan nhan vien ban hang
-   Dong bo voi transaction-history.css
-======================================== */
+:root {
+    --primary: #158058;
+    --primary-hover: #0f6243;
+    --primary-light: #eef7f3;
+    --primary-border: #c8e6d9;
 
-/* ===== 1. COLOR & BASE ===== */
+    --text-title: #0f172a;
+    --text-body: #334155;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
 
-.sales-account {
-    --sales-primary: #176B50;
-    --sales-primary-dark: #124B38;
-    --sales-primary-light: #E8F2EB;
-    --sales-text: #244333;
-    --sales-muted: #718277;
-    --sales-border: #DFE9E2;
-    --sales-bg: #F5F8F5;
+    --border-soft: #e2e8f0;
+    --border-light: #f1f5f9;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
 
-    width: 100%;
-    max-width: 100%;
+    /* Theme colors pastel dịu mắt */
+    --theme-green-text: #166534;
+    --theme-green-bg: #f0fdf4;
+    --theme-green-border: #bbf7d0;
+
+    --theme-amber-text: #92400e;
+    --theme-amber-bg: #fffbeb;
+    --theme-amber-border: #fde68a;
+
+    --theme-blue-text: #0369a1;
+    --theme-blue-bg: #f0f9ff;
+    --theme-blue-border: #bae6fd;
+}
+
+/* ==========================================================================
+   1. MAIN CONTENT
+   ========================================================================== */
+.sales-main-content {
+    margin-left: 260px;
+    flex: 1;
+    padding: 18px 26px 28px;
     min-width: 0;
-    min-height: calc(100vh - 72px);
-    margin: 0;
-    padding: 30px;
-    color: var(--sales-text);
-    background: transparent;
-    font-family: "Segoe UI", Arial, sans-serif;
-    font-size: 13px;
+    max-width: 1260px;
     box-sizing: border-box;
-    overflow-wrap: anywhere;
 }
 
-.sales-account *,
-.sales-account *::before,
-.sales-account *::after {
-    box-sizing: border-box;
+/* ==========================================================================
+   2. HEADING SECTION
+   ========================================================================== */
+.sales-page-heading {
+    margin-bottom: 14px;
 }
 
-.sales-account img,
-.sales-account input {
-    max-width: 100%;
-}
-
-/* ===== 2. LAYOUT ===== */
-
-.sales-account .sales-workspace {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-}
-
-.sales-account .sales-main-content {
-    width: calc(100% - 250px);
-    max-width: calc(100% - 250px);
-    min-width: 0;
-    margin-left: 250px;
-    padding-left: 30px;
-}
-
-/* ===== 3. PAGE HEADING ===== */
-
-.sales-account .sales-page-heading {
+.sales-breadcrumb {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    min-width: 0;
-    margin: 4px 0 27px;
-}
-
-.sales-account .sales-breadcrumb {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 13px;
-    color: #89968E;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.sales-account .sales-breadcrumb strong {
-    color: var(--sales-primary);
-    font-weight: 750;
-}
-
-.sales-account .breadcrumb-separator {
-    color: #C0CBC4;
-}
-
-.sales-account .sales-page-heading h1 {
-    margin: 0 0 8px;
-    color: #183C2E;
-    font-size: 29px;
-    line-height: 1.3;
-    font-weight: 800;
-    letter-spacing: -0.6px;
-}
-
-.sales-account .sales-page-heading p {
-    margin: 0;
-    color: var(--sales-muted);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.6;
-}
-
-.sales-account .sales-heading-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 54px;
-    height: 54px;
-    flex-shrink: 0;
-    color: var(--sales-primary);
-    background: #E8F2EB;
-    border: 1px solid #D8EADE;
-    border-radius: 16px;
-    font-size: 23px;
-}
-
-/* ===== 4. PROFILE BANNER ===== */
-
-.sales-account .sales-profile-banner {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 24px;
-    min-width: 0;
-    overflow: hidden;
-    margin-bottom: 30px;
-    padding: 30px;
-    color: #FFFFFF;
-    background: linear-gradient(
-        115deg,
-        #124B38 0%,
-        #176B50 62%,
-        #2D8C69 100%
-    );
-    border-radius: 18px;
-    box-shadow: 0 10px 25px rgba(23, 107, 80, 0.13);
-}
-
-.sales-account .sales-profile-banner::after {
-    content: "";
-    position: absolute;
-    top: -100px;
-    right: 160px;
-    width: 260px;
-    height: 260px;
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.sales-account .sales-profile-main {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 21px;
-    min-width: 0;
-}
-
-.sales-account .sales-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 86px;
-    height: 86px;
-    flex-shrink: 0;
-    color: #176B50;
-    background: #F1FAF4;
-    border: 4px solid rgba(255, 255, 255, 0.24);
-    border-radius: 24px;
-    font-size: 25px;
-    font-weight: 800;
-    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.1);
-}
-
-.sales-account .sales-profile-text {
-    min-width: 0;
-}
-
-.sales-account .sales-eyebrow {
-    display: block;
-    margin-bottom: 8px;
-    color: #BCE5D0;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1.8px;
-}
-
-.sales-account .sales-profile-text h2 {
-    margin: 0 0 10px;
-    color: #FFFFFF;
-    font-size: 23px;
-    line-height: 1.35;
-    font-weight: 800;
-}
-
-.sales-account .sales-profile-text p {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 0;
-    color: #D9EEE3;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.sales-account .sales-profile-dot {
-    width: 6px;
-    height: 6px;
-    flex-shrink: 0;
-    background: #B6F2CE;
-    border-radius: 50%;
-}
-
-.sales-account .sales-profile-badges {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-}
-
-.sales-account .sales-role-badge,
-.sales-account .sales-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    max-width: 100%;
-    padding: 9px 13px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 9px;
-    font-size: 12px;
-    font-weight: 700;
-    white-space: normal;
-}
-
-.sales-account .sales-role-badge {
-    color: #FFFFFF;
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.sales-account .sales-status-badge {
-    color: #E4FFEC;
-    background: rgba(7, 48, 35, 0.19);
-}
-
-.sales-account .status-dot {
-    width: 7px;
-    height: 7px;
-    flex-shrink: 0;
-    background: #83EFAD;
-    border-radius: 50%;
-    box-shadow: 0 0 0 3px rgba(131, 239, 173, 0.12);
-}
-
-/* ===== 5. SECTION TITLE ===== */
-
-.sales-account .sales-section-title {
-    margin-bottom: 17px;
-}
-
-.sales-account .sales-section-title h3 {
-    margin: 0 0 5px;
-    color: #234333;
-    font-size: 18px;
-    font-weight: 800;
-}
-
-.sales-account .sales-section-title p {
-    margin: 0;
-    color: var(--sales-muted);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.6;
-}
-
-/* ===== 6. SUMMARY CARDS ===== */
-
-.sales-account .sales-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 17px;
-    min-width: 0;
-    margin-bottom: 30px;
-}
-
-.sales-account .sales-summary-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    min-width: 0;
-    padding: 21px 19px;
-    background: #FFFFFF;
-    border: 1px solid var(--sales-border);
-    border-radius: 14px;
-    box-shadow: 0 3px 12px rgba(25, 65, 45, 0.025);
-    transition: border-color 0.2s ease,
-                transform 0.2s ease,
-                box-shadow 0.2s ease;
-}
-
-.sales-account .sales-summary-card:hover {
-    transform: translateY(-2px);
-    border-color: #C9E1D3;
-    box-shadow: 0 8px 20px rgba(25, 65, 45, 0.06);
-}
-
-.sales-account .summary-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    flex-shrink: 0;
-    border-radius: 13px;
-    font-size: 21px;
-    font-weight: 700;
-}
-
-.sales-account .icon-blue {
-    color: #3976D5;
-    background: #EDF4FF;
-}
-
-.sales-account .icon-green {
-    color: #21815A;
-    background: #E8F7EE;
-}
-
-.sales-account .icon-purple {
-    color: #8062C4;
-    background: #F2EDFF;
-}
-
-.sales-account .sales-summary-card > div:last-child {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
     gap: 5px;
 }
 
-.sales-account .summary-label {
-    color: #718277;
-    font-size: 11px;
-    font-weight: 700;
+.sales-breadcrumb strong {
+    color: var(--primary);
 }
 
-.sales-account .sales-summary-card strong {
-    overflow-wrap: anywhere;
-    color: #234333;
-    font-size: 16px;
+.breadcrumb-separator {
+    color: #cbd5e1;
+}
+
+.sales-page-heading h1 {
+    font-size: 17px;
     font-weight: 800;
+    color: var(--text-title);
+    margin: 0 0 2px;
+    letter-spacing: -0.3px;
 }
 
-.sales-account .sales-summary-card .summary-active {
-    color: #21815A;
+.sales-page-heading p {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
-.sales-account .sales-summary-card small {
-    color: #849188;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 1.5;
-}
-
-/* ===== 7. INFORMATION CARD ===== */
-
-.sales-account .sales-info-card {
-    min-width: 0;
-    margin-bottom: 23px;
-    padding: 27px;
-    background: #FFFFFF;
-    border: 1px solid var(--sales-border);
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(25, 65, 45, 0.025);
-}
-
-.sales-account .sales-info-heading {
+/* ==========================================================================
+   3. PROFILE BANNER (THU NHỎ GỌN, TONE MÀU PASTEL XANH DỊU)
+   ========================================================================== */
+.sales-profile-banner {
+    position: relative;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 14px;
-    min-width: 0;
-    padding-bottom: 22px;
-    margin-bottom: 25px;
-    border-bottom: 1px solid #EDF2EE;
+    margin-bottom: 12px;
+    padding: 12px 18px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #0f6243 0%, #158058 60%, #1c9b6c 100%);
+    border-radius: 7px;
+    box-shadow: 0 1px 3px rgba(21, 128, 88, 0.15);
 }
 
-.sales-account .sales-info-heading-icon {
+.sales-profile-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sales-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 43px;
-    height: 43px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
-    color: var(--sales-primary);
-    background: #EAF5EE;
-    border-radius: 12px;
-    font-size: 21px;
-}
-
-.sales-account .sales-info-heading h3 {
-    margin: 0 0 6px;
-    color: #234333;
-    font-size: 17px;
+    color: var(--primary);
+    background: #ffffff;
+    border-radius: 8px;
+    font-size: 15px;
     font-weight: 800;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
-.sales-account .sales-info-heading p {
-    margin: 0;
-    color: #718277;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.6;
-}
-
-/* ===== 8. FORM FIELDS ===== */
-
-.sales-account .sales-info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 23px 25px;
-    min-width: 0;
-}
-
-.sales-account .sales-info-field {
-    min-width: 0;
-}
-
-.sales-account .sales-info-field label {
+.sales-eyebrow {
     display: block;
-    margin-bottom: 9px;
-    color: #405B49;
-    font-size: 12px;
-    font-weight: 750;
+    margin-bottom: 2px;
+    color: #a7f3d0;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
 }
 
-.sales-account .sales-input-wrap {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    min-height: 48px;
-    padding: 0 13px;
-    background: #F8FAF8;
-    border: 1px solid #E3EBE5;
-    border-radius: 10px;
-    transition: border-color 0.2s ease,
-                box-shadow 0.2s ease;
-}
-
-.sales-account .sales-input-wrap:focus-within {
-    border-color: #81BBA0;
-    box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.08);
-}
-
-.sales-account .field-icon {
-    flex-shrink: 0;
-    margin-right: 11px;
-    color: #718A79;
-    font-size: 16px;
-}
-
-.sales-account .field-icon-green {
-    color: #239464;
-    font-size: 11px;
-}
-
-.sales-account .sales-info-field input {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    padding: 12px 0;
-    color: #304B3B;
-    background: transparent;
-    border: 0;
-    outline: none;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 650;
-}
-
-.sales-account .sales-info-field input[readonly] {
-    cursor: default;
-}
-
-/* ===== 9. NOTICE ===== */
-
-.sales-account .sales-info-footer {
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    min-width: 0;
-    margin-top: 25px;
-    padding: 14px 16px;
-    background: #F4F8F5;
-    border: 1px solid #E8F0EA;
-    border-radius: 10px;
-}
-
-.sales-account .sales-info-footer-icon {
-    flex-shrink: 0;
-    color: #468666;
+.sales-profile-text h2 {
+    margin: 0 0 2px;
+    color: #ffffff;
     font-size: 15px;
     font-weight: 800;
 }
 
-.sales-account .sales-info-footer p {
-    margin: 0;
-    color: #607568;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.7;
-}
-
-/* ===== 10. PAGE FOOTER ===== */
-
-.sales-account .sales-page-footer {
+.sales-profile-text p {
     display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px 15px;
-    min-width: 0;
-    padding: 17px 2px 5px;
-    color: #718277;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    color: #d1fae5;
     font-size: 11px;
-    font-weight: 500;
 }
 
-.sales-account .sales-page-footer span:first-child {
-    color: #39765A;
-    font-weight: 800;
-    letter-spacing: 0.3px;
+.sales-profile-dot {
+    width: 5px;
+    height: 5px;
+    background: #6ee7b7;
+    border-radius: 50%;
 }
 
-/* ========================================
-   11. SIDEBAR
-======================================== */
-
-
-/* =========================================
-   SIDEBAR - SALES ACCOUNT
-========================================= */
-
-.sales-account .sales-sidebar {
-    position: fixed;
-    top: 72px;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-
-    display: flex;
-    flex-direction: column;
-    width: 250px;
-    min-width: 250px;
-    min-height: 0;
-    height: auto;
-
-    margin: 0;
-    padding: 25px 15px 18px;
-
-    overflow-x: hidden;
-    overflow-y: auto;
-
-    background: #FFFFFF;
-    border: none;
-    border-right: 1px solid #DFE9E2;
-    border-radius: 0;
-    box-shadow: 2px 0 12px rgba(25, 65, 45, 0.04);
-}
-
-/* BRAND */
-
-.sales-account .sales-sidebar-brand {
+.sales-profile-badges {
     display: flex;
     align-items: center;
-    gap: 11px;
-    min-width: 0;
-    padding: 2px 7px 23px;
-    border-bottom: 1px solid #EDF2EE;
-}
-
-.sales-account .sales-brand-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 43px;
-    width: 43px;
-    height: 43px;
-
-    color: #FFFFFF;
-    background: linear-gradient(135deg, #176B50, #2C9670);
-    border-radius: 13px;
-    font-size: 26px;
-    font-weight: 700;
-}
-
-.sales-account .sales-sidebar-brand h2 {
-    margin: 0 0 5px;
-    color: #176B50;
-    font-size: 17px;
-    font-weight: 800;
-}
-
-.sales-account .sales-sidebar-brand span {
-    color: #718277;
-    font-size: 8px;
-    font-weight: 750;
-    letter-spacing: 0.7px;
-}
-
-/* MENU TITLE */
-
-.sales-account .sales-sidebar-label {
-    margin: 24px 8px 12px;
-    color: #849188;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-}
-
-/* MENU */
-
-.sales-account .sales-sidebar-nav {
-    display: flex;
-    flex-direction: column;
     gap: 6px;
 }
 
-.sales-account .sales-nav-item {
-    display: flex;
+.sales-role-badge,
+.sales-status-badge {
+    display: inline-flex;
     align-items: center;
-    gap: 11px;
-    min-width: 0;
-    padding: 12px 10px;
-
-    color: #52695B;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 10px;
-
-    font-size: 12px;
-    font-weight: 650;
-    line-height: 1.55;
-    text-decoration: none;
-
-    transition: background 0.2s ease,
-                color 0.2s ease,
-                border-color 0.2s ease;
-}
-
-.sales-account .sales-nav-item:hover {
-    color: #176B50;
-    background: #F1F7F3;
-    border-color: #E5F0E8;
-}
-
-.sales-account .sales-nav-item.active {
-    color: #176B50;
-    background: #E8F2EB;
-    border-color: #DCECE1;
-    font-weight: 800;
-}
-
-/* MENU ICON */
-
-.sales-account .sales-nav-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 27px;
-    width: 27px;
-    height: 27px;
-
-    color: #718277;
-    background: #F3F6F3;
-    border-radius: 8px;
-    font-size: 17px;
-}
-
-.sales-account .sales-nav-item.active .sales-nav-icon {
-    color: #176B50;
-    background: #D6EBDD;
-}
-
-.sales-account .sales-nav-arrow {
-    margin-left: auto;
-    color: #176B50;
-    font-size: 22px;
-    line-height: 1;
-}
-
-/* ===== 12. SIDEBAR USER ===== */
-
-.sales-account .sales-sidebar-bottom {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    margin-top: auto;
-    padding: 18px 5px 3px;
-    border-top: 1px solid #EDF2EE;
-}
-
-.sales-account .sales-sidebar-user-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 37px;
-    height: 37px;
-    flex-shrink: 0;
-    color: #176B50;
-    background: #E6F3E9;
-    border-radius: 11px;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.sales-account .sales-sidebar-user-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
     gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
 }
 
-.sales-account .sales-sidebar-user-info strong {
-    overflow-wrap: anywhere;
-    color: #344C3D;
+.sales-role-badge {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sales-status-badge {
+    color: #dcfce7;
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(110, 231, 183, 0.4);
+}
+
+.status-dot {
+    width: 5px;
+    height: 5px;
+    background: #4ade80;
+    border-radius: 50%;
+}
+
+/* ==========================================================================
+   4. SUMMARY CARDS
+   ========================================================================== */
+.sales-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.sales-summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 9px 13px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.summary-label {
+    display: block;
     font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.sales-summary-card strong {
+    display: block;
+    font-size: 16px;
     font-weight: 800;
+    color: var(--text-title);
+    letter-spacing: -0.2px;
+    line-height: 1.2;
 }
 
-.sales-account .sales-sidebar-user-info span {
-    color: #718277;
-    font-size: 10px;
-    font-weight: 500;
+.sales-summary-card .summary-active {
+    color: var(--theme-green-text);
 }
 
-/* ========================================
-   13. RESPONSIVE - LAPTOP
-======================================== */
+.sales-summary-card small {
+    display: block;
+    font-size: 9.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
 
-@media (max-width: 1100px) and (min-width: 761px) {
-    .sales-account {
-        padding: 22px;
-    }
+/* ==========================================================================
+   5. INFORMATION CARD & FORM FIELDS
+   ========================================================================== */
+.sales-info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 12px 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+    margin-bottom: 12px;
+}
 
-    .sales-account .sales-sidebar {
-        width: 230px;
-        min-width: 230px;
-    }
+.sales-info-heading {
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
 
-    .sales-account .sales-main-content {
-        width: calc(100% - 230px);
-        max-width: calc(100% - 230px);
-        margin-left: 230px;
-        padding-left: 22px;
-    }
+.sales-info-heading h3 {
+    font-size: 13px;
+    font-weight: 750;
+    color: var(--text-title);
+    margin: 0 0 1px;
+}
 
-    .sales-account .sales-summary-grid {
+.sales-info-heading p {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.sales-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 14px;
+}
+
+.sales-info-field label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 650;
+    color: #475569;
+    margin-bottom: 3px;
+}
+
+.sales-input-wrap {
+    width: 100%;
+    background: #f8fafc;
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    padding: 0 9px;
+    transition: border-color 0.15s ease;
+}
+
+.sales-input-wrap:focus-within {
+    border-color: var(--primary);
+    background: #ffffff;
+}
+
+.sales-info-field input {
+    width: 100%;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-title);
+    outline: none;
+}
+
+.sales-info-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-soft);
+}
+
+.sales-info-footer p {
+    margin: 0;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+/* ==========================================================================
+   6. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 900px) {
+    .sales-summary-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
     }
 
-    .sales-account .sales-summary-card {
-        padding: 16px 18px;
+    .sales-info-grid {
+        grid-template-columns: 1fr;
     }
 
-    .sales-account .sales-profile-banner {
-        padding: 25px;
-    }
-}
-
-/* ========================================
-   14. RESPONSIVE - TABLET & MOBILE
-======================================== */
-
-@media (max-width: 760px) {
-    .sales-account {
-        min-height: auto;
-        padding: 16px 12px;
-    }
-
-    .sales-account .sales-workspace {
-        display: flex;
+    .sales-profile-banner {
         flex-direction: column;
-        gap: 20px;
-    }
-
-    .sales-account .sales-sidebar {
-        position: static;
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        height: auto;
-        max-height: none;
-        margin: 0;
-        padding: 15px;
-
-        border: 1px solid #DFE9E2;
-        border-radius: 12px;
-        box-shadow: none;
-    }
-
-    .sales-account .sales-sidebar-brand {
-        padding-bottom: 15px;
-    }
-
-    .sales-account .sales-sidebar-label {
-        margin-top: 17px;
-    }
-
-    .sales-account .sales-sidebar-nav {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .sales-account .sales-nav-item {
         align-items: flex-start;
-        padding: 10px 8px;
-        font-size: 11px;
     }
 
-    .sales-account .sales-nav-icon {
-        width: 24px;
-        height: 24px;
-    }
-
-    .sales-account .sales-sidebar-bottom {
-        margin-top: 17px;
-    }
-
-    .sales-account .sales-main-content {
-        width: 100%;
-        max-width: 100%;
-        margin-left: 0;
-        padding-left: 0;
-    }
-
-    .sales-account .sales-summary-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .sales-account .sales-info-grid {
-        grid-template-columns: 1fr;
-        gap: 18px;
-    }
-
-    .sales-account .sales-profile-banner {
+    .sales-profile-badges {
         align-items: flex-start;
-        flex-direction: column;
-        gap: 20px;
-        padding: 22px 19px;
-        border-radius: 14px;
-    }
-
-    .sales-account .sales-profile-main {
-        gap: 14px;
-    }
-
-    .sales-account .sales-avatar {
-        width: 66px;
-        height: 66px;
-        border-radius: 18px;
-        font-size: 21px;
-    }
-
-    .sales-account .sales-profile-text h2 {
-        font-size: 18px;
-    }
-
-    .sales-account .sales-eyebrow {
-        font-size: 9px;
-        letter-spacing: 1.2px;
-    }
-
-    .sales-account .sales-profile-badges {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .sales-account .sales-role-badge,
-    .sales-account .sales-status-badge {
-        padding: 8px 10px;
-        font-size: 11px;
-    }
-
-    .sales-account .sales-info-card {
-        padding: 20px 16px;
-        border-radius: 13px;
-    }
-
-    .sales-account .sales-info-heading {
-        align-items: flex-start;
-        gap: 11px;
-    }
-
-    .sales-account .sales-info-heading h3 {
-        font-size: 15px;
-    }
-
-    .sales-account .sales-info-heading p {
-        font-size: 11px;
-    }
-
-    .sales-account .sales-page-footer {
-        flex-direction: column;
-    }
-}
-
-/* ===== 15. RESPONSIVE - MOBILE NHO ===== */
-
-@media (max-width: 420px) {
-    .sales-account .sales-sidebar-nav {
-        grid-template-columns: 1fr;
-    }
-
-    .sales-account .sales-page-heading {
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .sales-account .sales-page-heading h1 {
-        font-size: 24px;
-    }
-
-    .sales-account .sales-heading-icon {
-        width: 43px;
-        height: 43px;
-        border-radius: 12px;
-        font-size: 19px;
-    }
-
-    .sales-account .sales-profile-main {
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .sales-account .sales-info-card {
-        padding: 18px 13px;
     }
 }

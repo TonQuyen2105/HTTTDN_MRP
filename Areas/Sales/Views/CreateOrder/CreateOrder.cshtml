@@ -1,660 +1,568 @@
-
+@model IEnumerable<httt.Models.SaleOrder>
 @{
-    ViewData["Title"] = "Tạo đơn hàng thành phẩm";
+    ViewData["Title"] = "Tạo phiếu xuất kho thành phẩm";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var ordersList = Model?.ToList() ?? new List<httt.Models.SaleOrder>();
+    var selectedOrder = ViewBag.SelectedOrder as httt.Models.SaleOrder ?? ordersList.FirstOrDefault();
+    var exportReceipts = ViewBag.ExportReceipts as List<httt.Models.ProductExportReceipt> ?? new List<httt.Models.ProductExportReceipt>();
+    var orderLookup = ViewBag.OrderLookup as Dictionary<int, (string Code, string Customer)> ?? new Dictionary<int, (string Code, string Customer)>();
+
+    var existingReceipt = ViewBag.ExistingReceipt as httt.Models.ProductExportReceipt;
+    
+    bool isLatestRejected = existingReceipt != null && (
+        string.Equals(existingReceipt.Status, "Rejected", StringComparison.OrdinalIgnoreCase) ||
+        existingReceipt.Status == "Từ chối"
+    );
+
+    var isSent = existingReceipt != null && !isLatestRejected;
+    var receiptCode = (isSent && existingReceipt != null) 
+        ? existingReceipt.Expreceiptcode 
+        : $"PXTP{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
+
+    bool isOrderCompleted = selectedOrder != null && (
+        string.Equals(selectedOrder.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+        selectedOrder.Status == "Đã xong" ||
+        selectedOrder.Status == "Đã hoàn thành"
+    );
+
+    bool isWarehouseDone = existingReceipt != null && (
+        string.Equals(existingReceipt.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(existingReceipt.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(existingReceipt.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
+        existingReceipt.Status == "Tán thành" ||
+        existingReceipt.Status == "Đã xuất kho"
+    );
 }
 
 @section Styles {
-    <link rel="stylesheet"
-          href="~/css/create-order.css"
-          asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/create-order.css" asp-append-version="true" />
 }
 
-<div class="create-order-page">
-    <div class="create-order-workspace">
+<div class="order-page">
+    <div class="order-workspace">
 
         <!-- SIDEBAR -->
-        <aside class="co-sidebar">
-            <div class="co-sidebar-brand">
-                <div class="co-brand-icon">✚</div>
-                <div>
-                    <h2>PharmaMRP</h2>
-                    <span>HỆ THỐNG BÁN HÀNG</span>
-                </div>
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
             </div>
 
-            <div class="co-sidebar-label">MENU BÁN HÀNG</div>
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
 
-            <nav class="co-sidebar-nav">
-                <a class="co-nav-item" href="/Sales/Orders">
-                    <span class="co-nav-icon">▤</span>
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item" href="/Sales/Orders">
                     <span>Xem đơn hàng</span>
                 </a>
-
-                <a class="co-nav-item active" href="/Sales/CreateOrder">
-                    <span class="co-nav-icon">＋</span>
-                    <span>Tạo đơn hàng thành phẩm</span>
-                    <span class="co-nav-arrow">›</span>
+                <a class="order-nav-item active" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
                 </a>
-
-                <a class="co-nav-item" href="/Sales/TransactionHistory">
-                    <span class="co-nav-icon">◷</span>
-                    <span>Lịch sử đơn hàng nhập xuất</span>
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
                 </a>
-
-                <a class="co-nav-item" href="/Sales/ExportSlips">
-                    <span class="co-nav-icon">⇧</span>
+                <a class="order-nav-item" href="/Sales/ExportSlips">
                     <span>Theo dõi phiếu xuất kho</span>
                 </a>
-
-                <a class="co-nav-item" href="/Sales/MedicineInventory">
-                    <span class="co-nav-icon">▦</span>
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
                     <span>Tra cứu thuốc và tồn kho</span>
                 </a>
-
-                <a class="co-nav-item" href="/Sales/SalesAccount">
-                    <span class="co-nav-icon">♙</span>
+                <a class="order-nav-item" href="/Sales/SalesAccount">
                     <span>Tài khoản của tôi</span>
                 </a>
-
-                <a class="co-nav-item" href="/Sales/RevenueReport">
-                    <span class="co-nav-icon">▥</span>
+                <a class="order-nav-item" href="/Sales/RevenueReport">
                     <span>Thống kê, báo cáo doanh thu</span>
                 </a>
             </nav>
 
-            <div class="co-sidebar-bottom">
-                <div class="co-user-avatar">NV</div>
-                <div class="co-user-info">
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
                     <strong>Nhân viên bán hàng</strong>
-                    <span>sales_user</span>
+                    <span>sales_user • Pharma Store</span>
                 </div>
             </div>
         </aside>
 
-        <!-- MAIN -->
-        <main class="co-main">
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="order-main">
 
-            <!-- HEADING -->
-            <div class="co-heading">
+            <div class="order-heading">
                 <div>
-                    <div class="co-breadcrumb">
-                        <span>Trang chủ</span>
-                        <span>/</span>
-                        <span>Bán hàng</span>
-                        <span>/</span>
-                        <strong>Tạo đơn hàng</strong>
+                    <div class="order-breadcrumb">
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>Tạo phiếu xuất thành phẩm</strong>
                     </div>
-
-                    <h1>Tạo đơn hàng thành phẩm</h1>
-                    <p>Tạo đơn hàng mới và quản lý danh sách thuốc khách hàng đặt mua.</p>
-                </div>
-
-                <div class="co-heading-icon">🛒</div>
-            </div>
-
-            <!-- SUMMARY -->
-            <div class="co-summary-grid">
-                <div class="co-summary-card">
-                    <div class="co-summary-icon green">▤</div>
-                    <div>
-                        <span>Sản phẩm đã chọn</span>
-                        <strong id="summaryProducts">0</strong>
-                        <small>Số loại thành phẩm</small>
-                    </div>
-                </div>
-
-                <div class="co-summary-card">
-                    <div class="co-summary-icon blue">▦</div>
-                    <div>
-                        <span>Tổng số lượng</span>
-                        <strong id="summaryQuantity">0</strong>
-                        <small>Tổng sản phẩm trong đơn</small>
-                    </div>
-                </div>
-
-                <div class="co-summary-card">
-                    <div class="co-summary-icon orange">₫</div>
-                    <div>
-                        <span>Tổng thanh toán</span>
-                        <strong id="summaryTotal">0 ₫</strong>
-                        <small>Giá trị đơn hàng tạm tính</small>
-                    </div>
+                    <h1>Phiếu yêu cầu xuất kho thành phẩm</h1>
+                    <p>Chọn mã đơn hàng để lập lệnh xuất thuốc và chuyển trực tiếp sang bộ phận Kho.</p>
                 </div>
             </div>
 
-            <!-- CUSTOMER INFORMATION -->
-            <section class="co-card">
-                <div class="co-section-heading">
-                    <div class="co-section-icon">♙</div>
-                    <div>
-                        <h2>Thông tin khách hàng</h2>
-                        <p>Nhập thông tin người đặt hàng và địa chỉ nhận hàng.</p>
-                    </div>
-                </div>
-
-                <div class="co-form-grid">
-                    <div class="co-field">
-                        <label for="customerName">
-                            Họ và tên khách hàng <span>*</span>
-                        </label>
-                        <input type="text"
-                               id="customerName"
-                               placeholder="Nhập tên khách hàng" />
-                    </div>
-
-                    <div class="co-field">
-                        <label for="customerPhone">
-                            Số điện thoại <span>*</span>
-                        </label>
-                        <input type="tel"
-                               id="customerPhone"
-                               placeholder="Nhập số điện thoại" />
+            <!-- THANH CHỌN ĐƠN HÀNG -->
+            <section class="co-clean-card co-single-row-bar">
+                <div class="single-row-content">
+                    <label for="selectOrderDropdown" class="single-row-label">Chọn mã đơn:</label>
+                    
+                    <div class="single-row-select-wrapper">
+                        <select id="selectOrderDropdown" class="form-select co-simple-select">
+                            @if (!ordersList.Any())
+                            {
+                                <option value="">-- Chưa có đơn hàng nào --</option>
+                            }
+                            else
+                            {
+                                @foreach (var ord in ordersList)
+                                {
+                                    var isSel = selectedOrder != null && selectedOrder.Orderid == ord.Orderid;
+                                    <option value="@ord.Orderid" selected="@(isSel ? "selected" : null)">
+                                        @(ord.Ordercode ?? ("DH-" + ord.Orderid))
+                                    </option>
+                                }
+                            }
+                        </select>
                     </div>
 
-                    <div class="co-field co-full">
-                        <label for="shippingAddress">
-                            Địa chỉ giao hàng <span>*</span>
-                        </label>
-                        <input type="text"
-                               id="shippingAddress"
-                               placeholder="Nhập địa chỉ giao hàng" />
-                    </div>
+                    <button type="button" class="btn-select-confirm" onclick="applySelectedOrder()">
+                        Chọn
+                    </button>
 
-                    <div class="co-field co-full">
-                        <label for="orderNote">Ghi chú đơn hàng</label>
-                        <textarea id="orderNote"
-                                  rows="3"
-                                  placeholder="Nhập ghi chú nếu có..."></textarea>
+                    <button type="button" class="btn-clean-outline" onclick="openOrderModal()">
+                        Danh sách đơn
+                    </button>
+                    
+                    <a href="/Sales/Order/GenerateMockOrders" class="btn-clean-primary-soft">
+                        + Tạo đơn mẫu
+                    </a>
+
+                    <div class="single-row-receipt-code">
+                        <span>Mã phiếu: <strong>@receiptCode</strong></span>
                     </div>
                 </div>
             </section>
 
-            <!-- PRODUCT SELECTION -->
-            <section class="co-card">
-                <div class="co-section-heading">
-                    <div class="co-section-icon">▦</div>
-                    <div>
-                        <h2>Chọn thành phẩm</h2>
-                        <p>Tìm kiếm thuốc và thêm vào danh sách sản phẩm cần đặt.</p>
+            <!-- CHI TIẾT ĐƠN HÀNG & MỤC YÊU CẦU XUẤT KHO -->
+            <section class="co-clean-card">
+                <div class="co-card-title-bar">
+                    <h2>Chi tiết đơn hàng</h2>
+                </div>
+
+                @if (selectedOrder == null)
+                {
+                    <div class="order-empty-box">
+                        <p>Vui lòng chọn một mã đơn hàng ở phía trên và bấm <strong>Chọn</strong> để tải dữ liệu chi tiết.</p>
                     </div>
+                }
+                else
+                {
+                    @if (isLatestRejected)
+                    {
+                        <div class="alert-box alert-danger">
+                            <span>⚠</span>
+                            <span><strong>Thông báo:</strong> Phiếu xuất trước đó (<code>@existingReceipt?.Expreceiptcode</code>) đã bị Kho từ chối. Bạn có thể bấm nút bên dưới để tạo lại phiếu xuất mới cho đơn này.</span>
+                        </div>
+                    }
+
+                    <!-- THÔNG TIN ĐƠN VỊ NHẬN HÀNG -->
+                    <div class="co-order-brief">
+                        <div class="brief-item">
+                            <span class="brief-label">Mã đơn hàng</span>
+                            <strong class="brief-value highlight">@(selectedOrder.Ordercode ?? ("DH-" + selectedOrder.Orderid))</strong>
+                        </div>
+                        <div class="brief-item">
+                            <span class="brief-label">Nhà thuốc / Khách hàng</span>
+                            <strong class="brief-value">@selectedOrder.Customername</strong>
+                        </div>
+                        <div class="brief-item">
+                            <span class="brief-label">Số điện thoại</span>
+                            <strong class="brief-value">@(string.IsNullOrWhiteSpace(selectedOrder.Customerphone) ? "—" : selectedOrder.Customerphone)</strong>
+                        </div>
+                        <div class="brief-item">
+                            <span class="brief-label">Thời điểm đặt</span>
+                            <strong class="brief-value">@(selectedOrder.Orderdate.HasValue ? selectedOrder.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
+                        </div>
+                        <div class="brief-item full-row">
+                            <span class="brief-label">Địa chỉ nhận hàng</span>
+                            <p class="brief-address">@(string.IsNullOrWhiteSpace(selectedOrder.Shippingaddress) ? "Nhận trực tiếp tại kho trung tâm" : selectedOrder.Shippingaddress)</p>
+                        </div>
+                    </div>
+
+                    <!-- BẢNG DANH MỤC THUỐC CỦA ĐƠN -->
+                    <div class="co-table-wrapper">
+                        <table class="co-clean-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;">STT</th>
+                                    <th>Tên thuốc thành phẩm</th>
+                                    <th style="width: 70px; text-align: center;">ĐVT</th>
+                                    <th style="width: 80px; text-align: center;">SL Đặt</th>
+                                    <th style="width: 80px; text-align: center;">Tồn kho</th>
+                                    <th style="width: 100px; text-align: center;">Tình trạng</th>
+                                    <th style="width: 110px; text-align: right;">Đơn giá</th>
+                                    <th style="width: 120px; text-align: right;">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int stt = 1;
+                                    int totalQuantity = 0;
+                                    var details = selectedOrder.SaleOrderDetails?.ToList() ?? new List<httt.Models.SaleOrderDetail>();
+                                }
+                                @if (details.Any())
+                                {
+                                    @foreach (var item in details)
+                                    {
+                                        var inStock = item.Product?.Quantity ?? 0;
+                                        var isLack = item.Quantity > inStock;
+                                        totalQuantity += item.Quantity;
+
+                                        <tr>
+                                            <td style="text-align: center; color: var(--text-muted);">@(stt++)</td>
+                                            <td>
+                                                <strong class="med-name">@(item.Product?.Productname ?? $"Sản phẩm #{item.Productid}")</strong>
+                                                <span class="med-code">SP-@item.Productid.ToString("D4")</span>
+                                            </td>
+                                            <td style="text-align: center;">@(item.Product?.Unit ?? "Hộp")</td>
+                                            <td style="text-align: center;">
+                                                <span class="qty-tag">@item.Quantity</span>
+                                            </td>
+                                            <td style="text-align: center; font-weight: 700;">@inStock</td>
+                                            <td style="text-align: center;">
+                                                @if (isLack)
+                                                {
+                                                    <span class="stock-tag-danger">Thiếu @(item.Quantity - inStock)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="stock-tag-ok">Đủ tồn kho</span>
+                                                }
+                                            </td>
+                                            <td style="text-align: right;">@((item.Unitprice ?? 0).ToString("N0")) đ</td>
+                                            <td style="text-align: right; font-weight: 700;">@(((item.Unitprice ?? 0) * item.Quantity).ToString("N0")) đ</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; padding: 20px; color: var(--text-muted);">Đơn hàng này chưa có sản phẩm.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" style="text-align: right; font-weight: 700;">Tổng số lượng xuất:</td>
+                                    <td style="text-align: center; font-weight: 800; color: var(--primary);">@totalQuantity</td>
+                                    <td colspan="3" style="text-align: right; font-weight: 700;">Tổng giá trị đơn hàng:</td>
+                                    <td style="text-align: right; font-weight: 800; color: var(--text-title);">
+                                        @((selectedOrder.Totalamount ?? 0).ToString("N0")) đ
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- MỤC YÊU CẦU XUẤT HÀNG -->
+                    <div class="co-dispatch-bar">
+                        <div class="dispatch-info">
+                            <span>Lệnh xuất gửi trực tiếp đến thủ kho để chuẩn bị hàng và bàn giao.</span>
+                        </div>
+                        <div class="dispatch-actions" style="display: flex; align-items: center; gap: 8px;">
+                            @if (isOrderCompleted)
+                            {
+                                <span class="pill-completed">
+                                    ✓ Đã xong (Completed)
+                                </span>
+                            }
+                            else if (isWarehouseDone)
+                            {
+                                <button type="button" class="btn-confirm-done" onclick="confirmCompleteOrder(@selectedOrder.Orderid, this)">
+                                    ✔ Duyệt đơn ĐÃ XONG
+                                </button>
+                            }
+                            else if (!isSent)
+                            {
+                                <button type="button" class="btn-dispatch-now" onclick="submitExportSlip(@selectedOrder.Orderid, this)">
+                                    @(isLatestRejected ? "Tạo lại phiếu xuất kho" : "Yêu cầu xuất kho")
+                                </button>
+                                <span class="badge-waiting">@(isLatestRejected ? "Đã bị từ chối" : "Chờ lập phiếu")</span>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn-dispatch-now disabled">
+                                    Yêu cầu xuất kho
+                                </button>
+                                <span class="badge-waiting active">Chờ duyệt</span>
+                                <button type="button" class="btn-clean-outline" onclick="resetReceiptForTest(@selectedOrder.Orderid)" title="Xóa phiếu đã lưu để kiểm tra lại">
+                                    Xóa để test lại
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <!-- DANH SÁCH CÁC ĐƠN ĐÃ YÊU CẦU XUẤT -->
+            <section class="co-clean-card">
+                <div class="co-card-title-bar">
+                    <div>
+                        <h2>Danh sách phiếu đã yêu cầu xuất kho</h2>
+                        <span class="co-subtitle">Dữ liệu lưu vào bảng ProductExportReceipt để bộ phận kho xử lý</span>
+                    </div>
+                    <span class="order-count">@exportReceipts.Count phiếu</span>
                 </div>
 
-                <div class="co-search-box">
-                    <span>⌕</span>
-                    <input type="text"
-                           id="productSearch"
-                           placeholder="Tìm kiếm theo tên sản phẩm hoặc mã sản phẩm..." />
-                </div>
-
-                <div class="co-table-wrap">
-                    <table class="co-product-table">
+                <div class="co-table-wrapper">
+                    <table class="co-clean-table">
                         <thead>
                             <tr>
-                                <th>MÃ SẢN PHẨM</th>
-                                <th>TÊN THÀNH PHẨM</th>
-                                <th>ĐƠN VỊ</th>
-                                <th>TỒN KHO</th>
-                                <th>GIÁ BÁN</th>
-                                <th>THAO TÁC</th>
+                                <th style="width: 40px; text-align: center;">STT</th>
+                                <th style="width: 140px;">Mã phiếu xuất</th>
+                                <th style="width: 130px;">Mã đơn đặt hàng</th>
+                                <th>Nhà thuốc / Khách hàng</th>
+                                <th style="width: 140px; text-align: center;">Thời điểm gửi</th>
+                                <th style="width: 90px; text-align: center;">Số loại thuốc</th>
+                                <th style="width: 120px; text-align: center;">Trạng thái kho</th>
                             </tr>
                         </thead>
-                        <tbody id="productList">
+                        <tbody>
+                            @if (!exportReceipts.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                                        Chưa có phiếu xuất kho thành phẩm nào được gửi yêu cầu.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int idx = 1;
+                                foreach (var receipt in exportReceipts)
+                                {
+                                    int orderKey = receipt.Orderid ?? 0;
+                                    string linkedCode = orderKey > 0 && orderLookup.ContainsKey(orderKey) ? orderLookup[orderKey].Code : $"DH-{orderKey}";
+                                    string linkedCustomer = orderKey > 0 && orderLookup.ContainsKey(orderKey) ? orderLookup[orderKey].Customer : "Khách hàng";
+                                    
+                                    bool isReceiptDone = string.Equals(receipt.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                                                         string.Equals(receipt.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
+                                                         string.Equals(receipt.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
+                                                         receipt.Status == "Tán thành" ||
+                                                         receipt.Status == "Đã xuất kho" || 
+                                                         receipt.Status == "Đã hoàn thành";
 
-                            <tr data-id="SP001"
-                                data-name="Paracetamol 500mg"
-                                data-unit="Hộp"
-                                data-stock="100"
-                                data-price="35000">
-                                <td><strong>SP001</strong></td>
-                                <td>
-                                    <div class="co-product-name">
-                                        <span class="co-medicine-icon">💊</span>
-                                        <span>Paracetamol 500mg</span>
-                                    </div>
-                                </td>
-                                <td>Hộp</td>
-                                <td><span class="co-stock">100</span></td>
-                                <td>35.000 ₫</td>
-                                <td>
-                                    <button type="button" class="co-add-btn">
-                                        ＋ Thêm
-                                    </button>
-                                </td>
-                            </tr>
+                                    bool isReceiptRejected = string.Equals(receipt.Status, "Rejected", StringComparison.OrdinalIgnoreCase) ||
+                                                             receipt.Status == "Từ chối";
 
-                            <tr data-id="SP002"
-                                data-name="Vitamin C 500mg"
-                                data-unit="Hộp"
-                                data-stock="80"
-                                data-price="45000">
-                                <td><strong>SP002</strong></td>
-                                <td>
-                                    <div class="co-product-name">
-                                        <span class="co-medicine-icon">💊</span>
-                                        <span>Vitamin C 500mg</span>
-                                    </div>
-                                </td>
-                                <td>Hộp</td>
-                                <td><span class="co-stock">80</span></td>
-                                <td>45.000 ₫</td>
-                                <td>
-                                    <button type="button" class="co-add-btn">
-                                        ＋ Thêm
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <tr data-id="SP003"
-                                data-name="Amoxicillin 500mg"
-                                data-unit="Hộp"
-                                data-stock="50"
-                                data-price="65000">
-                                <td><strong>SP003</strong></td>
-                                <td>
-                                    <div class="co-product-name">
-                                        <span class="co-medicine-icon">💊</span>
-                                        <span>Amoxicillin 500mg</span>
-                                    </div>
-                                </td>
-                                <td>Hộp</td>
-                                <td><span class="co-stock">50</span></td>
-                                <td>65.000 ₫</td>
-                                <td>
-                                    <button type="button" class="co-add-btn">
-                                        ＋ Thêm
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <tr data-id="SP004"
-                                data-name="Berberin 100mg"
-                                data-unit="Hộp"
-                                data-stock="60"
-                                data-price="28000">
-                                <td><strong>SP004</strong></td>
-                                <td>
-                                    <div class="co-product-name">
-                                        <span class="co-medicine-icon">💊</span>
-                                        <span>Berberin 100mg</span>
-                                    </div>
-                                </td>
-                                <td>Hộp</td>
-                                <td><span class="co-stock">60</span></td>
-                                <td>28.000 ₫</td>
-                                <td>
-                                    <button type="button" class="co-add-btn">
-                                        ＋ Thêm
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <tr data-id="SP005"
-                                data-name="Loratadin 10mg"
-                                data-unit="Hộp"
-                                data-stock="45"
-                                data-price="32000">
-                                <td><strong>SP005</strong></td>
-                                <td>
-                                    <div class="co-product-name">
-                                        <span class="co-medicine-icon">💊</span>
-                                        <span>Loratadin 10mg</span>
-                                    </div>
-                                </td>
-                                <td>Hộp</td>
-                                <td><span class="co-stock">45</span></td>
-                                <td>32.000 ₫</td>
-                                <td>
-                                    <button type="button" class="co-add-btn">
-                                        ＋ Thêm
-                                    </button>
-                                </td>
-                            </tr>
-
+                                    <tr>
+                                        <td style="text-align: center; color: var(--text-muted);">@(idx++)</td>
+                                        <td>
+                                            <strong style="color: var(--primary);">@receipt.Expreceiptcode</strong>
+                                        </td>
+                                        <td>
+                                            <a href="/Sales/CreateOrder?orderId=@receipt.Orderid" class="order-link">
+                                                @linkedCode
+                                            </a>
+                                        </td>
+                                        <td><strong>@linkedCustomer</strong></td>
+                                        <td style="text-align: center; color: var(--text-secondary);">
+                                            @(receipt.Createddate.HasValue ? receipt.Createddate.Value.ToString("dd/MM/yyyy HH:mm") : "—")
+                                        </td>
+                                        <td style="text-align: center; font-weight: 700;">
+                                            @(receipt.ProductExportReceiptDetails?.Count ?? 0) loại
+                                        </td>
+                                        <td style="text-align: center;">
+                                            @if (isReceiptDone)
+                                            {
+                                                <span class="pill-completed">Đã xuất kho</span>
+                                            }
+                                            else if (isReceiptRejected)
+                                            {
+                                                <span class="pill-rejected">✕ Bị từ chối</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="pill-waiting">Chờ xuất kho</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
                         </tbody>
                     </table>
                 </div>
-
-                <div class="co-demo-note">
-                    <span>ⓘ</span>
-                    Danh sách sản phẩm và giá bán hiện là dữ liệu minh họa,
-                    chưa kết nối bảng product trong database.
-                </div>
             </section>
 
-            <!-- SELECTED PRODUCTS -->
-            <section class="co-card">
-                <div class="co-section-heading co-cart-heading">
-                    <div class="co-section-icon">🛒</div>
-                    <div>
-                        <h2>Chi tiết đơn hàng</h2>
-                        <p>Danh sách thành phẩm khách hàng đã chọn mua.</p>
-                    </div>
-
-                    <span class="co-item-count" id="itemCount">0 sản phẩm</span>
-                </div>
-
-                <div class="co-table-wrap">
-                    <table class="co-product-table co-cart-table">
-                        <thead>
-                            <tr>
-                                <th>SẢN PHẨM</th>
-                                <th>ĐƠN VỊ</th>
-                                <th>SỐ LƯỢNG</th>
-                                <th>ĐƠN GIÁ</th>
-                                <th>THÀNH TIỀN</th>
-                                <th>THAO TÁC</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cartList">
-                            <tr class="co-empty-row" id="emptyCart">
-                                <td colspan="6">
-                                    <div class="co-empty">
-                                        <div>🛒</div>
-                                        <strong>Chưa có sản phẩm nào</strong>
-                                        <span>Vui lòng chọn thành phẩm ở phía trên để thêm vào đơn hàng.</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- TOTAL -->
-                <div class="co-total-area">
-                    <div class="co-total-row">
-                        <span>Tổng số loại sản phẩm</span>
-                        <strong id="totalTypes">0</strong>
-                    </div>
-
-                    <div class="co-total-row">
-                        <span>Tổng số lượng</span>
-                        <strong id="totalQuantity">0</strong>
-                    </div>
-
-                    <div class="co-total-final">
-                        <span>TỔNG THANH TOÁN</span>
-                        <strong id="totalAmount">0 ₫</strong>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ACTIONS -->
-            <div class="co-actions">
-                <a href="/Sales/Orders" class="co-btn-cancel">
-                    ← Quay lại
-                </a>
-
-                <button type="button" class="co-btn-reset" id="resetOrder">
-                    Làm mới
-                </button>
-
-                <button type="button" class="co-btn-submit" id="createOrder">
-                    ✓ Tạo đơn hàng
-                </button>
-            </div>
-
-            <div class="co-footer">
+            <footer class="order-page-footer">
                 <strong>PharmaMRP</strong>
-                <span>Hệ thống quản lý kho và bán hàng dược phẩm</span>
-            </div>
-
+                <span>Hệ thống quản lý kho thuốc và bán hàng</span>
+            </footer>
         </main>
     </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
+<!-- MODAL CHỌN ĐƠN HÀNG NHANH -->
+<div id="orderListModal" class="co-modal" style="display: none;">
+    <div class="co-modal-overlay" onclick="closeOrderModal()"></div>
+    <div class="co-modal-dialog">
+        <div class="co-modal-header">
+            <h3>Chọn mã đơn hàng cần xuất</h3>
+            <button type="button" class="btn-close-modal" onclick="closeOrderModal()">✕</button>
+        </div>
+        <div class="co-modal-body">
+            <input type="text" id="modalSearchInput" class="form-control" placeholder="Tìm theo mã đơn hoặc tên nhà thuốc..." onkeyup="filterModalOrders()" style="margin-bottom: 10px; height: 32px; font-size: 11.5px;" />
+            
+            <div class="modal-orders-list" id="modalOrderContainer">
+                @foreach (var ord in ordersList)
+                {
+                    bool ordDone = string.Equals(ord.Status, "Completed", StringComparison.OrdinalIgnoreCase) || ord.Status == "Đã xong";
+                    <div class="modal-order-card-item" data-code="@(ord.Ordercode ?? "")" data-cust="@(ord.Customername ?? "")" onclick="selectOrderModalItem(@ord.Orderid)">
+                        <div class="m-card-top">
+                            <strong style="color: var(--primary); font-size: 12px;">@(ord.Ordercode ?? ("DH-" + ord.Orderid))</strong>
+                            <span class="@(ordDone ? "pill-completed" : "pill-waiting")" style="font-size: 9.5px; padding: 1px 5px;">
+                                @(ordDone ? "Đã xong" : "Chờ xuất kho")
+                            </span>
+                        </div>
+                        <div class="m-card-mid">@ord.Customername</div>
+                        <div class="m-card-bottom">
+                            <span>@(ord.Orderdate.HasValue ? ord.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "")</span>
+                            <strong>@((ord.Totalamount ?? 0).ToString("N0")) đ</strong>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
 
-    const productList = document.getElementById("productList");
-    const cartList = document.getElementById("cartList");
-    const searchInput = document.getElementById("productSearch");
-
-    const cart = new Map();
-
-    const formatMoney = value =>
-        new Intl.NumberFormat("vi-VN").format(value) + " ₫";
-
-    // TÌM KIẾM SẢN PHẨM
-    searchInput.addEventListener("input", function () {
-        const keyword = this.value.trim().toLowerCase();
-
-        productList.querySelectorAll("tr[data-id]").forEach(row => {
-            const name = row.dataset.name.toLowerCase();
-            const id = row.dataset.id.toLowerCase();
-
-            row.style.display =
-                name.includes(keyword) || id.includes(keyword)
-                    ? ""
-                    : "none";
-        });
-    });
-
-    // THÊM SẢN PHẨM
-    productList.addEventListener("click", function (event) {
-        const button = event.target.closest(".co-add-btn");
-        if (!button) return;
-
-        const row = button.closest("tr");
-
-        const id = row.dataset.id;
-        const name = row.dataset.name;
-        const unit = row.dataset.unit;
-        const stock = Number(row.dataset.stock);
-        const price = Number(row.dataset.price);
-
-        if (cart.has(id)) {
-            alert("Sản phẩm này đã có trong đơn hàng. Bạn có thể chỉnh sửa số lượng ở phần chi tiết.");
-            return;
+@section Scripts {
+    <script>
+        function applySelectedOrder() {
+            const dropdown = document.getElementById('selectOrderDropdown');
+            if (dropdown && dropdown.value) {
+                window.location.href = '/Sales/CreateOrder?orderId=' + dropdown.value;
+            }
         }
 
-        cart.set(id, {
-            id,
-            name,
-            unit,
-            stock,
-            price,
-            quantity: 1
-        });
+        function openOrderModal() {
+            document.getElementById('orderListModal').style.display = 'block';
+        }
 
-        renderCart();
-    });
+        function closeOrderModal() {
+            document.getElementById('orderListModal').style.display = 'none';
+        }
 
-    // HIỂN THỊ GIỎ HÀNG
-    function renderCart() {
-        cartList.innerHTML = "";
+        function selectOrderModalItem(orderId) {
+            window.location.href = '/Sales/CreateOrder?orderId=' + orderId;
+        }
 
-        if (cart.size === 0) {
-            cartList.innerHTML = `
-                <tr class="co-empty-row">
-                    <td colspan="6">
-                        <div class="co-empty">
-                            <div>🛒</div>
-                            <strong>Chưa có sản phẩm nào</strong>
-                            <span>Vui lòng chọn thành phẩm ở phía trên để thêm vào đơn hàng.</span>
-                        </div>
-                    </td>
-                </tr>`;
-        } else {
-            cart.forEach(item => {
-                const row = document.createElement("tr");
-
-                row.innerHTML = `
-                    <td>
-                        <div class="co-cart-product">
-                            <strong>${item.name}</strong>
-                            <small>${item.id}</small>
-                        </div>
-                    </td>
-                    <td>${item.unit}</td>
-                    <td>
-                        <div class="co-quantity-control">
-                            <button type="button"
-                                    class="co-quantity-btn"
-                                    data-action="minus"
-                                    data-id="${item.id}">−</button>
-
-                            <input type="number"
-                                   min="1"
-                                   max="${item.stock}"
-                                   value="${item.quantity}"
-                                   data-id="${item.id}"
-                                   class="co-quantity-input" />
-
-                            <button type="button"
-                                    class="co-quantity-btn"
-                                    data-action="plus"
-                                    data-id="${item.id}">+</button>
-                        </div>
-                        <small class="co-stock-hint">Tồn: ${item.stock}</small>
-                    </td>
-                    <td>${formatMoney(item.price)}</td>
-                    <td class="co-line-total">
-                        ${formatMoney(item.price * item.quantity)}
-                    </td>
-                    <td>
-                        <button type="button"
-                                class="co-remove-btn"
-                                data-id="${item.id}"
-                                title="Xóa sản phẩm">✕</button>
-                    </td>`;
-
-                cartList.appendChild(row);
+        function filterModalOrders() {
+            const query = document.getElementById('modalSearchInput').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.modal-order-card-item');
+            cards.forEach(card => {
+                const code = card.getAttribute('data-code').toLowerCase();
+                const cust = card.getAttribute('data-cust').toLowerCase();
+                card.style.display = (code.includes(query) || cust.includes(query)) ? 'block' : 'none';
             });
         }
 
-        updateTotals();
-    }
+        async function submitExportSlip(orderId, btn) {
+            if (!confirm('Xác nhận gửi yêu cầu xuất kho sang bộ phận Kho?')) return;
 
-    // THAY ĐỔI SỐ LƯỢNG / XÓA SẢN PHẨM
-    cartList.addEventListener("click", function (event) {
-        const button = event.target.closest("button");
-        if (!button) return;
+            if (btn) {
+                btn.style.pointerEvents = 'none';
+                btn.innerHTML = 'Đang gửi...';
+            }
 
-        const id = button.dataset.id;
-        const item = cart.get(id);
+            try {
+                const res = await fetch('/Sales/CreateOrder/RequestExportSlip?orderId=' + orderId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-        if (!item) return;
-
-        if (button.classList.contains("co-remove-btn")) {
-            cart.delete(id);
-        }
-
-        if (button.classList.contains("co-quantity-btn")) {
-            if (button.dataset.action === "plus") {
-                if (item.quantity < item.stock) {
-                    item.quantity++;
+                const data = await res.json();
+                if (data.success) {
+                    alert('✓ ' + data.message);
+                    window.location.reload();
                 } else {
-                    alert("Số lượng đặt không được vượt quá tồn kho minh họa.");
+                    alert('✕ ' + data.message);
+                    if (btn) {
+                        btn.style.pointerEvents = 'auto';
+                        btn.innerHTML = 'Yêu cầu xuất kho';
+                    }
+                }
+            } catch (err) {
+                alert('✕ Lỗi: ' + err.message);
+                if (btn) {
+                    btn.style.pointerEvents = 'auto';
+                    btn.innerHTML = 'Yêu cầu xuất kho';
                 }
             }
+        }
 
-            if (button.dataset.action === "minus") {
-                if (item.quantity > 1) {
-                    item.quantity--;
+        async function confirmCompleteOrder(orderId, btn) {
+            if (!confirm('Xác nhận duyệt hoàn tất đơn hàng và chuyển trạng thái sang ĐÃ XONG (Completed)?')) return;
+
+            if (btn) {
+                btn.style.pointerEvents = 'none';
+                btn.innerHTML = 'Đang duyệt...';
+            }
+
+            try {
+                const res = await fetch('/Sales/CreateOrder/CompleteOrderFromSlip?orderId=' + orderId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('✓ ' + data.message);
+                    window.location.reload();
+                } else {
+                    alert('✕ ' + data.message);
+                    if (btn) {
+                        btn.style.pointerEvents = 'auto';
+                        btn.innerHTML = '✔ Duyệt đơn ĐÃ XONG';
+                    }
+                }
+            } catch (err) {
+                alert('✕ Lỗi: ' + err.message);
+                if (btn) {
+                    btn.style.pointerEvents = 'auto';
+                    btn.innerHTML = '✔ Duyệt đơn ĐÃ XONG';
                 }
             }
         }
 
-        renderCart();
-    });
-
-    // NHẬP SỐ LƯỢNG TRỰC TIẾP
-    cartList.addEventListener("change", function (event) {
-        if (!event.target.classList.contains("co-quantity-input")) return;
-
-        const id = event.target.dataset.id;
-        const item = cart.get(id);
-
-        if (!item) return;
-
-        let quantity = Number(event.target.value);
-
-        if (!Number.isInteger(quantity) || quantity < 1) {
-            quantity = 1;
+        async function resetReceiptForTest(orderId) {
+            if (!confirm('Xóa phiếu xuất của đơn này để kiểm tra lại nút Yêu cầu xuất kho?')) return;
+            try {
+                const res = await fetch('/Sales/CreateOrder/ClearReceiptForTest?orderId=' + orderId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('✕ Lỗi: ' + data.message);
+                }
+            } catch (err) {
+                alert('✕ Lỗi: ' + err.message);
+            }
         }
-
-        if (quantity > item.stock) {
-            quantity = item.stock;
-            alert("Số lượng không được vượt quá tồn kho minh họa.");
-        }
-
-        item.quantity = quantity;
-        renderCart();
-    });
-
-    // TÍNH TỔNG TIỀN
-    function updateTotals() {
-        let totalQuantity = 0;
-        let totalAmount = 0;
-
-        cart.forEach(item => {
-            totalQuantity += item.quantity;
-            totalAmount += item.quantity * item.price;
-        });
-
-        const types = cart.size;
-
-        document.getElementById("summaryProducts").textContent = types;
-        document.getElementById("summaryQuantity").textContent = totalQuantity;
-        document.getElementById("summaryTotal").textContent = formatMoney(totalAmount);
-
-        document.getElementById("itemCount").textContent = types + " sản phẩm";
-        document.getElementById("totalTypes").textContent = types;
-        document.getElementById("totalQuantity").textContent = totalQuantity;
-        document.getElementById("totalAmount").textContent = formatMoney(totalAmount);
-    }
-
-    // LÀM MỚI ĐƠN HÀNG
-    document.getElementById("resetOrder").addEventListener("click", function () {
-        if (!confirm("Bạn có chắc muốn xóa toàn bộ thông tin đơn hàng đang nhập?")) {
-            return;
-        }
-
-        cart.clear();
-
-        document.getElementById("customerName").value = "";
-        document.getElementById("customerPhone").value = "";
-        document.getElementById("shippingAddress").value = "";
-        document.getElementById("orderNote").value = "";
-        searchInput.value = "";
-
-        productList.querySelectorAll("tr[data-id]").forEach(row => {
-            row.style.display = "";
-        });
-
-        renderCart();
-    });
-
-    // TẠO ĐƠN HÀNG - UI CHƯA KẾT NỐI BACKEND
-    document.getElementById("createOrder").addEventListener("click", function () {
-        const name = document.getElementById("customerName").value.trim();
-        const phone = document.getElementById("customerPhone").value.trim();
-        const address = document.getElementById("shippingAddress").value.trim();
-
-        if (!name || !phone || !address) {
-            alert("Vui lòng nhập đầy đủ tên khách hàng, số điện thoại và địa chỉ giao hàng.");
-            return;
-        }
-
-        if (!/^[0-9]{10,11}$/.test(phone)) {
-            alert("Số điện thoại phải gồm 10 hoặc 11 chữ số.");
-            return;
-        }
-
-        if (cart.size === 0) {
-            alert("Vui lòng chọn ít nhất một sản phẩm.");
-            return;
-        }
-
-        alert(
-            "Thông tin đơn hàng đã được kiểm tra trên giao diện!\n\n" +
-            "Khách hàng: " + name +
-            "\nSố sản phẩm: " + cart.size +
-            "\n\nChức năng lưu đơn hàng sẽ được bổ sung khi kết nối Backend."
-        );
-    });
-
-    renderCart();
-});
-</script>
+    </script>
+}

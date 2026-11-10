@@ -1,1133 +1,599 @@
-
-/* =========================================
-   PHARMAMRP - TRANSACTION HISTORY
+/* ==========================================================================
+   PHARMAMRP - TRANSACTION HISTORY STYLING (CLEAN & BALANCED ERP THEME)
    File: wwwroot/css/transaction-history.css
-   Sidebar dong bo voi Sales Account
-========================================= */
+   ========================================================================== */
 
+:root {
+    --primary: #158058;
+    --primary-hover: #0f6243;
+    --primary-light: #eef7f3;
+    --primary-border: #c8e6d9;
 
-/* =========================================
-   1. COLOR & BASE
-========================================= */
+    --text-title: #0f172a;
+    --text-body: #334155;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
 
-.history-page {
-    --history-primary: #176B50;
-    --history-primary-dark: #124B38;
-    --history-primary-light: #E8F2EB;
-    --history-text: #244333;
-    --history-muted: #718277;
-    --history-border: #DFE9E2;
-    --history-bg: #F5F8F5;
+    --border-soft: #e2e8f0;
+    --border-light: #f1f5f9;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
 
-    width: 100%;
-    max-width: 100%;
+    /* Theme colors pastel dịu mắt */
+    --theme-green-text: #166534;
+    --theme-green-bg: #f0fdf4;
+    --theme-green-border: #bbf7d0;
+
+    --theme-amber-text: #92400e;
+    --theme-amber-bg: #fffbeb;
+    --theme-amber-border: #fde68a;
+
+    --theme-blue-text: #0369a1;
+    --theme-blue-bg: #f0f9ff;
+    --theme-blue-border: #bae6fd;
+}
+
+/* ==========================================================================
+   1. MAIN WORKSPACE
+   ========================================================================== */
+.history-main {
+    margin-left: 260px;
+    flex: 1;
+    padding: 18px 26px 28px;
     min-width: 0;
-    min-height: calc(100vh - 72px);
-
-    margin: 0;
-    padding: 30px;
-
-    color: var(--history-text);
-    background: var(--history-bg);
-    font-family: "Segoe UI", Arial, sans-serif;
-    font-size: 13px;
-
-    box-sizing: border-box;
-    overflow-x: hidden;
+    max-width: 1260px;
 }
 
-.history-page *,
-.history-page *::before,
-.history-page *::after {
-    box-sizing: border-box;
-}
-
-.history-page img,
-.history-page input,
-.history-page select {
-    max-width: 100%;
-}
-
-
-/* =========================================
-   2. BỐ CỤC CHUNG
-========================================= */
-
-.history-page .history-workspace {
-    display: grid;
-    grid-template-columns: 250px minmax(0, 1fr);
-    align-items: stretch;
-    gap: 0;
-
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    min-height: calc(100vh - 102px);
-}
-
-.history-page .history-workspace > * {
-    min-width: 0;
-    max-width: 100%;
-}
-
-.history-page .history-main {
-    grid-column: 2;
-
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-
-    padding-left: 30px;
-    overflow-x: hidden;
-}
-
-
-/* =========================================
-   3. SIDEBAR
-   ĐỒNG BỘ VỚI SALES ACCOUNT
-========================================= */
-
-/* SIDEBAR */
-
-.history-page .sales-sidebar {
-    position: fixed;
-    top: 72px;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-
+/* ==========================================================================
+   2. HEADING SECTION
+   ========================================================================== */
+.history-heading {
     display: flex;
-    flex-direction: column;
-
-    width: 250px;
-    min-width: 250px;
-    min-height: 0;
-    height: auto;
-
-    margin: 0;
-    padding: 25px 15px 18px;
-
-    overflow-x: hidden;
-    overflow-y: auto;
-
-    background: #FFFFFF;
-    border: none;
-    border-right: 1px solid #DFE9E2;
-    border-radius: 0;
-    box-shadow: 2px 0 12px rgba(25, 65, 45, 0.04);
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
 }
 
-/* BRAND */
-
-.history-page .sales-sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-
-    min-width: 0;
-    padding: 2px 7px 23px;
-
-    border-bottom: 1px solid #EDF2EE;
+.history-heading .breadcrumb {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
 }
 
-.history-page .sales-brand-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 43px;
-    width: 43px;
-    height: 43px;
-
-    color: #FFFFFF;
-    background: linear-gradient(135deg, #176B50, #2C9670);
-    border-radius: 13px;
-
-    font-size: 26px;
-    font-weight: 700;
+.history-heading .breadcrumb strong {
+    color: var(--primary);
 }
 
-.history-page .sales-sidebar-brand h2 {
-    margin: 0 0 5px;
-
-    color: #176B50;
+.history-heading h1 {
     font-size: 17px;
     font-weight: 800;
+    color: var(--text-title);
+    margin: 0 0 2px;
+    letter-spacing: -0.3px;
 }
 
-.history-page .sales-sidebar-brand span {
-    color: #718277;
-    font-size: 8px;
-    font-weight: 750;
-    letter-spacing: 0.7px;
+.history-heading p {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
-/* MENU TITLE */
-
-.history-page .sales-sidebar-label {
-    margin: 24px 8px 12px;
-
-    color: #849188;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-}
-
-/* MENU */
-
-.history-page .sales-sidebar-nav {
+.heading-actions {
     display: flex;
-    flex-direction: column;
     gap: 6px;
 }
 
-.history-page .sales-sidebar-nav .sales-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-
-    min-width: 0;
-    padding: 12px 10px;
-
-    color: #52695B;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 10px;
-
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 650;
-    line-height: 1.55;
+.btn-back-orders {
+    background: var(--primary);
+    color: #ffffff;
     text-decoration: none;
-
-    transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        border-color 0.2s ease;
-}
-
-.history-page .sales-sidebar-nav .sales-nav-item:hover {
-    color: #176B50;
-    background: #F1F7F3;
-    border-color: #E5F0E8;
-}
-
-.history-page .sales-sidebar-nav .sales-nav-item.active {
-    color: #176B50;
-    background: #E8F2EB;
-    border-color: #DCECE1;
-    font-weight: 800;
-}
-
-/* MENU ICON */
-
-.history-page .sales-sidebar-nav .sales-nav-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 27px;
-    width: 27px;
-    height: 27px;
-
-    color: #718277;
-    background: #F3F6F3;
-    border-radius: 8px;
-
-    font-size: 17px;
-}
-
-.history-page .sales-sidebar-nav .sales-nav-item.active .sales-nav-icon {
-    color: #176B50;
-    background: #D6EBDD;
-}
-
-.history-page .sales-sidebar-nav .sales-nav-item > span:nth-child(2) {
-    min-width: 0;
-}
-
-.history-page .sales-sidebar-nav .sales-nav-arrow {
-    margin-left: auto;
-
-    color: #176B50;
-    font-size: 22px;
-    line-height: 1;
-}
-
-.history-page .sales-sidebar-nav .sales-nav-item:focus-visible {
-    outline: 2px solid #176B50;
-    outline-offset: 2px;
-}
-
-/* SIDEBAR USER */
-
-.history-page .sales-sidebar-bottom {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    min-width: 0;
-    margin-top: auto;
-    padding: 18px 5px 3px;
-
-    border-top: 1px solid #EDF2EE;
-}
-
-.history-page .sales-sidebar-user-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 37px;
-    height: 37px;
-    flex-shrink: 0;
-
-    color: #176B50;
-    background: #E6F3E9;
-    border-radius: 11px;
-
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.history-page .sales-sidebar-user-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    min-width: 0;
-}
-
-.history-page .sales-sidebar-user-info strong {
-    overflow-wrap: anywhere;
-
-    color: #344C3D;
-    font-size: 10px;
-    font-weight: 800;
-}
-
-.history-page .sales-sidebar-user-info span {
-    color: #718277;
-    font-size: 10px;
-    font-weight: 500;
-}
-
-
-/* =========================================
-   4. TIÊU ĐỀ TRANG
-========================================= */
-
-.history-page .history-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-
-    width: 100%;
-    min-width: 0;
-    margin: 4px 0 30px;
-}
-
-.history-page .breadcrumb {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-
-    margin: 0 0 13px;
-
-    color: var(--history-muted);
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.history-page .breadcrumb strong {
-    color: var(--history-primary);
-    font-weight: 750;
-}
-
-.history-page .history-heading h1 {
-    margin: 0 0 8px;
-
-    color: var(--history-primary-dark);
-    font-size: 29px;
-    line-height: 1.3;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-}
-
-.history-page .history-heading p {
-    margin: 0;
-
-    color: var(--history-muted);
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-
-/* =========================================
-   5. NÚT XUẤT DỮ LIỆU
-========================================= */
-
-.history-page .btn-export {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 7px;
-
-    flex: 0 0 auto;
-    min-height: 42px;
-    padding: 11px 16px;
-
-    color: #FFFFFF;
-    background: var(--history-primary);
-    border: 1px solid var(--history-primary);
-    border-radius: 9px;
-
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 750;
-    white-space: nowrap;
-    text-decoration: none;
-
-    cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
 }
 
-.history-page .btn-export:hover {
-    color: #FFFFFF;
-    background: var(--history-primary-dark);
-    border-color: var(--history-primary-dark);
+.btn-back-orders:hover {
+    background: var(--primary-hover);
 }
 
-
-/* =========================================
-   6. THẺ THỐNG KÊ
-========================================= */
-
-.history-page .history-statistics {
+/* ==========================================================================
+   3. 3 THẺ THỐNG KÊ (SUMMARY CARDS)
+   ========================================================================== */
+.history-statistics {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-
-    width: 100%;
-    min-width: 0;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
-.history-page .stat-card {
-    min-width: 0;
-    padding: 20px;
-
-    background: #FFFFFF;
-    border: 1px solid var(--history-border);
-    border-radius: 15px;
-    box-shadow: 0 3px 12px rgba(25, 65, 45, 0.025);
-
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 9px 13px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
-.history-page .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(25, 65, 45, 0.06);
-}
-
-.history-page .stat-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-
-    color: #607166;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.history-page .stat-icon {
-    display: grid;
-    place-items: center;
-
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
-
-    color: #53675A;
-    background: #EDF2EF;
-    border-radius: 11px;
-
-    font-size: 20px;
-}
-
-.history-page .stat-icon.green {
-    color: #21815A;
-    background: #E8F7EE;
-}
-
-.history-page .stat-icon.blue {
-    color: #3976D5;
-    background: #EDF4FF;
-}
-
-.history-page .stat-icon.orange {
-    color: #B7791F;
-    background: #FFF4DF;
-}
-
-.history-page .stat-card h2 {
-    margin: 13px 0 7px;
-
-    color: var(--history-primary-dark);
-    font-size: 28px;
-    font-weight: 800;
-    line-height: 1.3;
-}
-
-.history-page .stat-card small {
-    color: var(--history-muted);
-    font-size: 11px;
-    line-height: 1.6;
-}
-
-
-/* =========================================
-   7. KHUNG DANH SÁCH GIAO DỊCH
-========================================= */
-
-.history-page .history-panel {
-    width: 100%;
-    min-width: 0;
-
-    margin-bottom: 22px;
-    overflow: hidden;
-
-    background: #FFFFFF;
-    border: 1px solid var(--history-border);
-    border-radius: 15px;
-    box-shadow: 0 4px 16px rgba(25, 65, 45, 0.025);
-}
-
-.history-page .panel-heading {
-    padding: 23px 25px;
-    border-bottom: 1px solid #EDF2EE;
-}
-
-.history-page .panel-heading h3 {
-    margin: 0 0 7px;
-
-    color: var(--history-primary-dark);
-    font-size: 18px;
-    font-weight: 800;
-    line-height: 1.4;
-}
-
-.history-page .panel-heading p {
-    margin: 0;
-
-    color: var(--history-muted);
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-
-/* =========================================
-   8. BỘ LỌC
-========================================= */
-
-.history-page .history-filters {
-    display: grid;
-    grid-template-columns:
-        minmax(150px, 1.5fr)
-        repeat(4, minmax(110px, 1fr))
-        auto;
-
-    align-items: end;
-    gap: 14px;
-
-    padding: 22px 25px;
-
-    background: #FBFCFB;
-    border-bottom: 1px solid var(--history-border);
-}
-
-.history-page .filter-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    min-width: 0;
-}
-
-.history-page .filter-item label {
-    color: #52645A;
-    font-size: 12px;
-    font-weight: 750;
-    line-height: 1.4;
-}
-
-.history-page .filter-item input,
-.history-page .filter-item select {
+.stat-label {
     display: block;
-
-    width: 100%;
-    min-width: 0;
-    min-height: 45px;
-
-    padding: 10px 12px;
-
-    color: var(--history-text);
-    background: #FFFFFF;
-    border: 1px solid var(--history-border);
-    border-radius: 9px;
-    outline: none;
-
-    font-family: inherit;
-    font-size: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
 }
 
-.history-page .filter-item input:focus,
-.history-page .filter-item select:focus {
-    border-color: #81BBA0;
-    box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.08);
-}
-
-.history-page .btn-reset {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    min-height: 45px;
-    padding: 10px 15px;
-
-    color: #52685A;
-    background: #FFFFFF;
-    border: 1px solid var(--history-border);
-    border-radius: 9px;
-
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 750;
-    white-space: nowrap;
-
-    cursor: pointer;
-    transition:
-        background 0.2s ease,
-        color 0.2s ease;
-}
-
-.history-page .btn-reset:hover {
-    color: var(--history-primary);
-    background: #F1F7F3;
-}
-
-
-/* =========================================
-   9. BẢNG DỮ LIỆU
-========================================= */
-
-.history-page .table-wrapper {
-    width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-}
-
-.history-page .history-table {
-    width: 100%;
-    min-width: 850px;
-
-    border-collapse: collapse;
-    text-align: left;
-    white-space: nowrap;
-}
-
-.history-page .history-table thead {
-    background: #F5F8F5;
-}
-
-.history-page .history-table th {
-    padding: 15px 16px;
-
-    color: #52685A;
-    font-size: 11px;
+.stat-card strong {
+    display: block;
+    font-size: 17px;
     font-weight: 800;
-    line-height: 1.5;
-
-    border-bottom: 1px solid var(--history-border);
+    color: var(--text-title);
+    line-height: 1.2;
 }
 
-.history-page .history-table td {
-    padding: 17px 16px;
-
-    color: #52645A;
-    font-size: 12px;
-    line-height: 1.5;
-
-    border-bottom: 1px solid #EDF1EE;
+.stat-card strong.amount-accent {
+    color: var(--theme-green-text);
 }
 
-.history-page .history-table tbody tr {
-    transition: background 0.15s ease;
+.stat-card small {
+    display: block;
+    font-size: 9.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
-.history-page .history-table tbody tr:hover {
-    background: #FBFDFB;
+/* ==========================================================================
+   4. PANEL & BỘ LỌC
+   ========================================================================== */
+.history-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+    margin-bottom: 12px;
 }
 
-.history-page .history-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.history-page .history-table td strong {
-    color: var(--history-text);
-    font-weight: 800;
-}
-
-
-/* =========================================
-   10. NHÃN LOẠI VÀ TRẠNG THÁI
-========================================= */
-
-.history-page .type-badge,
-.history-page .status-badge {
-    display: inline-flex;
+.panel-heading {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+}
 
-    padding: 7px 10px;
-
-    border-radius: 20px;
-    font-size: 11px;
+.panel-heading h3 {
+    font-size: 13px;
     font-weight: 750;
-    line-height: 1.3;
+    color: var(--text-title);
+    margin: 0 0 1px;
 }
 
-.history-page .type-import,
-.history-page .status-complete {
-    color: #21815A;
-    background: #E6F6ED;
+.panel-heading p {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
-.history-page .type-export {
-    color: #3478D4;
-    background: #EAF1FF;
-}
-
-.history-page .status-pending {
-    color: #A66A0C;
-    background: #FFF3DC;
-}
-
-.history-page .status-cancelled {
-    color: #C34444;
-    background: #FFEDED;
-}
-
-
-/* =========================================
-   11. NÚT CHI TIẾT
-========================================= */
-
-.history-page .btn-detail {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    min-height: 36px;
-    padding: 8px 12px;
-
-    color: var(--history-primary-dark);
-    background: var(--history-primary-light);
-    border: none;
+.badge-total-pill {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
     border-radius: 8px;
+    border: 1px solid var(--border-soft);
+}
 
-    font-family: inherit;
+.history-filters-simple {
+    display: flex;
+    gap: 8px;
+    background: #fbfcfb;
+    border: 1px solid var(--border-soft);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    align-items: flex-end;
+}
+
+.filter-search {
+    flex: 1;
+}
+
+.filter-item label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 650;
+    color: #475569;
+    margin-bottom: 3px;
+}
+
+.history-filters-simple .form-control {
+    width: 100%;
+    height: 32px;
+    padding: 4px 9px;
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    font-size: 11.5px;
+    outline: none;
+    background: #ffffff;
+    transition: border-color 0.15s ease;
+}
+
+.history-filters-simple .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.btn-filter-submit {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 5px;
     font-size: 11px;
-    font-weight: 750;
-    white-space: nowrap;
-
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
 }
 
-.history-page .btn-detail:hover {
-    background: #D5EFDF;
+.btn-filter-submit:hover {
+    background: var(--primary-hover);
 }
 
-.history-page .empty-state {
-    padding: 35px !important;
+.btn-filter-reset {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    color: var(--text-secondary);
+    text-decoration: none;
+    height: 32px;
+    padding: 0 11px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.15s ease;
+}
 
-    color: var(--history-muted) !important;
+.btn-filter-reset:hover {
+    color: var(--text-title);
+    border-color: #cbd5e1;
+}
+
+/* ==========================================================================
+   5. BẢNG DỮ LIỆU CHUẨN GỌN GÀNG
+   ========================================================================== */
+.table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    text-align: left;
+}
+
+.history-table th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-weight: 750;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    white-space: nowrap;
+}
+
+.history-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.history-table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+.code-primary {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 11.5px;
+}
+
+.partner-name {
+    color: var(--text-title);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.partner-phone {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.amount-val {
+    font-size: 12.5px;
+    font-weight: 850;
+    color: #0f172a;
+}
+
+/* Pill xanh pastel đồng bộ */
+.badge-status-completed {
+    display: inline-flex;
+    align-items: center;
+    background: var(--theme-green-bg);
+    color: var(--theme-green-text);
+    border: 1px solid var(--theme-green-border);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1.25;
+}
+
+.btn-view-detail {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    color: var(--text-body);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-view-detail:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary-border);
+}
+
+.table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px 0;
+    font-size: 10.5px;
+    color: var(--text-muted);
+}
+
+.history-empty-cell {
     text-align: center;
-    white-space: normal;
+    padding: 28px 14px !important;
+    color: var(--text-muted);
 }
 
-.history-page .table-footer {
-    padding: 15px 20px;
-
-    color: var(--history-muted);
-    font-size: 12px;
-    line-height: 1.6;
-
-    border-top: 1px solid #EDF1EE;
+.btn-goto-export {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 5px;
+    display: inline-block;
+    margin-top: 6px;
+    transition: all 0.15s ease;
 }
 
-
-/* =========================================
-   12. THÔNG BÁO DỮ LIỆU MẪU
-========================================= */
-
-.history-page .demo-notice {
-    margin-top: 16px;
-    padding: 13px 15px;
-
-    color: #8A641E;
-    background: #FFF9EB;
-    border: 1px solid #F4E6C6;
-    border-radius: 9px;
-
-    font-size: 12px;
-    line-height: 1.7;
+.btn-goto-export:hover {
+    background: #d1e5da;
 }
 
+/* ==========================================================================
+   6. MODAL CHI TIẾT
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
 
-/* =========================================
-   13. MODAL CHI TIẾT
-========================================= */
-
-.history-page .modal-overlay[hidden] {
+.modal-overlay[hidden] {
     display: none !important;
 }
 
-.history-page .modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 20px;
-    background: rgba(18, 32, 24, 0.45);
-}
-
-.history-page .detail-modal {
-    width: min(650px, 100%);
+.detail-modal {
+    background: #ffffff;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 700px;
     max-height: 85vh;
-
     overflow-y: auto;
-    padding: 24px;
-
-    background: #FFFFFF;
-    border: 1px solid var(--history-border);
-    border-radius: 15px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border-soft);
 }
 
-.history-page .modal-header {
+.modal-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 15px;
-
-    margin-bottom: 20px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    background: #f8fafc;
 }
 
-.history-page .modal-header h3 {
-    margin: 0 0 7px;
+.modal-badge-status {
+    background: var(--theme-green-bg);
+    color: var(--theme-green-text);
+    border: 1px solid var(--theme-green-border);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 2px;
+}
 
-    color: var(--history-primary-dark);
-    font-size: 19px;
+.modal-title {
+    font-size: 13.5px;
     font-weight: 800;
-    line-height: 1.4;
+    color: var(--text-title);
+    margin: 0 0 1px;
 }
 
-.history-page .modal-header p {
+.modal-subtitle {
+    font-size: 11px;
+    color: var(--text-secondary);
     margin: 0;
-
-    color: var(--history-muted);
-    font-size: 12px;
-    line-height: 1.6;
 }
 
-.history-page .modal-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 34px;
-    width: 34px;
-    height: 34px;
-
-    color: #52645A;
-    background: #F1F5F1;
+.modal-close {
+    background: none;
     border: none;
-    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
 
-    font-size: 23px;
+.modal-close:hover {
+    color: var(--text-title);
+}
+
+.modal-body-content {
+    padding: 12px 14px;
+}
+
+.modal-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.info-card {
+    background: #f8fafc;
+    border: 1px dashed var(--border-soft);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.info-card h4 {
+    font-size: 9.5px;
+    font-weight: 750;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 6px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 3px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+.info-row span {
+    color: var(--text-secondary);
+}
+
+.info-row strong {
+    color: var(--text-title);
+}
+
+.modal-products-section h4 {
+    font-size: 11.5px;
+    font-weight: 750;
+    color: var(--text-title);
+    margin: 0 0 6px;
+}
+
+.modal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.modal-table th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.modal-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.modal-table tfoot td {
+    background: #f8fafc;
+    border-top: 1px solid var(--border-soft);
+    padding: 7px 8px;
+    font-size: 11.5px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border-soft);
+    background: #f8fafc;
+}
+
+.btn-print {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    color: var(--text-body);
+    padding: 4px 11px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
     cursor: pointer;
 }
 
-.history-page .modal-close:hover {
-    background: #E5EEE8;
+.btn-close-modal {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 4px 13px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
 }
 
-.history-page .detail-info {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px 18px;
-
-    margin-bottom: 20px;
-}
-
-.history-page .detail-info p {
-    color: #52645A;
-    font-size: 13px;
-    line-height: 1.7;
-    overflow-wrap: anywhere;
-}
-
-.history-page .detail-info strong {
-    color: var(--history-text);
-    font-weight: 750;
-}
-
-.history-page .modal-actions {
+/* FOOTER */
+.order-page-footer {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-
+    justify-content: space-between;
+    padding: 14px 0 6px;
+    border-top: 1px solid var(--border-soft);
     margin-top: 18px;
-}
-
-
-/* =========================================
-   14. RESPONSIVE - LAPTOP
-   Đồng bộ breakpoint với Sales Account
-========================================= */
-
-@media (max-width: 1100px) and (min-width: 761px) {
-
-    .history-page {
-        padding: 22px;
-    }
-
-    .history-page .history-workspace {
-        grid-template-columns: 230px minmax(0, 1fr);
-    }
-
-    .history-page .sales-sidebar {
-        width: 230px;
-        min-width: 230px;
-    }
-
-    .history-page .history-main {
-        padding-left: 22px;
-    }
-
-    .history-page .history-statistics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .history-page .history-filters {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .history-page .search-filter {
-        grid-column: 1 / -1;
-    }
-}
-
-
-/* =========================================
-   15. RESPONSIVE - TABLET
-   Đồng bộ với Sales Account
-========================================= */
-
-@media (max-width: 760px) {
-
-    .history-page {
-        min-height: auto;
-        padding: 16px 12px;
-    }
-
-    .history-page .history-workspace {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-
-        min-height: auto;
-    }
-
-    .history-page .sales-sidebar {
-        position: static;
-
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-
-        height: auto;
-        min-height: 0;
-        max-height: none;
-
-        margin: 0;
-        padding: 15px;
-
-        border: 1px solid #DFE9E2;
-        border-radius: 12px;
-        box-shadow: none;
-    }
-
-    .history-page .sales-sidebar-brand {
-        padding-bottom: 15px;
-    }
-
-    .history-page .sales-sidebar-label {
-        margin-top: 17px;
-    }
-
-    .history-page .sales-sidebar-nav {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .history-page .sales-sidebar-nav .sales-nav-item {
-        align-items: flex-start;
-        padding: 10px 8px;
-        font-size: 11px;
-    }
-
-    .history-page .sales-sidebar-nav .sales-nav-icon {
-        flex: 0 0 24px;
-        width: 24px;
-        height: 24px;
-    }
-
-    .history-page .sales-sidebar-bottom {
-        margin-top: 17px;
-    }
-
-    .history-page .history-main {
-        grid-column: auto;
-
-        width: 100%;
-        max-width: 100%;
-
-        padding-left: 0;
-    }
-
-    .history-page .history-filters {
-        padding: 18px;
-    }
-}
-
-
-/* =========================================
-   16. RESPONSIVE - MOBILE
-========================================= */
-
-@media (max-width: 600px) {
-
-    .history-page {
-        padding: 12px;
-    }
-
-    .history-page .history-heading {
-        flex-direction: column;
-        gap: 14px;
-
-        margin-bottom: 20px;
-    }
-
-    .history-page .history-heading h1 {
-        font-size: 24px;
-    }
-
-    .history-page .btn-export {
-        width: 100%;
-    }
-
-    .history-page .history-statistics {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .history-page .stat-card {
-        padding: 16px;
-    }
-
-    .history-page .history-panel {
-        border-radius: 12px;
-    }
-
-    .history-page .panel-heading {
-        padding: 17px;
-    }
-
-    .history-page .history-filters {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 14px;
-
-        padding: 16px;
-    }
-
-    .history-page .search-filter {
-        grid-column: auto;
-    }
-
-    .history-page .detail-info {
-        grid-template-columns: 1fr;
-    }
-
-    .history-page .detail-modal {
-        padding: 18px;
-    }
-}
-
-
-/* =========================================
-   17. RESPONSIVE - MOBILE NHỎ
-   Đồng bộ với Sales Account
-========================================= */
-
-@media (max-width: 420px) {
-
-    .history-page .sales-sidebar-nav {
-        grid-template-columns: 1fr;
-    }
-}
-
-
-/* =========================================
-   18. RESPONSIVE - MÀN HÌNH RẤT NHỎ
-========================================= */
-
-@media (max-width: 360px) {
-
-    .history-page .history-heading h1 {
-        font-size: 21px;
-    }
-}
-/* MŨI TÊN BÊN PHẢI MENU SIDEBAR */
-.history-page .sales-sidebar-nav .sales-nav-arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 16px;
-    width: 16px;
-    height: 20px;
-
-    margin-left: auto;
-
-    color: #176B50;
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-/* Mũi tên hiện rõ khi menu được chọn */
-.history-page .sales-sidebar-nav .sales-nav-item.active .sales-nav-arrow {
-    color: #176B50;
+    font-size: 10px;
+    color: var(--text-muted);
 }

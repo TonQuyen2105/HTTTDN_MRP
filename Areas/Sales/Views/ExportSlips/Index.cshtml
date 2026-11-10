@@ -1,0 +1,341 @@
+@model IEnumerable<httt.Models.ProductExportReceipt>
+
+@{
+    ViewData["Title"] = "Theo dõi phiếu xuất kho thành phẩm";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var slipsList = Model?.ToList() ?? new List<httt.Models.ProductExportReceipt>();
+    var totalSlips = slipsList.Count;
+
+    // Helper: Kiểm tra trạng thái độc lập của từng phiếu xuất
+    bool CheckSlipCompleted(string? s) => string.Equals(s, "Completed", StringComparison.OrdinalIgnoreCase) 
+                                       || s == "Đã hoàn thành" || s == "Đã xong";
+
+    bool CheckSlipReady(string? s) => string.Equals(s, "Exported", StringComparison.OrdinalIgnoreCase)
+                                   || string.Equals(s, "Approved", StringComparison.OrdinalIgnoreCase)
+                                   || s == "Tán thành" || s == "Đã duyệt" || s == "Đã xuất kho";
+
+    bool CheckSlipRejected(string? s) => string.Equals(s, "Rejected", StringComparison.OrdinalIgnoreCase) 
+                                      || s == "Từ chối";
+
+    var completedSlips = slipsList.Count(s => CheckSlipCompleted(s.Status));
+    var readyToCompleteSlips = slipsList.Count(s => CheckSlipReady(s.Status) && !CheckSlipCompleted(s.Status));
+    var rejectedSlips = slipsList.Count(s => CheckSlipRejected(s.Status));
+    var waitingSlips = slipsList.Count(s => !CheckSlipCompleted(s.Status) && !CheckSlipReady(s.Status) && !CheckSlipRejected(s.Status));
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/export-slips.css" asp-append-version="true" />
+}
+
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
+            </div>
+
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item" href="/Sales/Orders">
+                    <span>Xem đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
+                </a>
+                <a class="order-nav-item active" href="/Sales/ExportSlips">
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/SalesAccount">
+                    <span>Tài khoản của tôi</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/RevenueReport">
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user • Pharma Store</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="order-main">
+            <div class="order-heading">
+                <div>
+                    <div class="order-breadcrumb">
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>Theo dõi phiếu xuất kho</strong>
+                    </div>
+                    <h1>Theo dõi phiếu xuất kho thành phẩm</h1>
+                    <p>Đối soát tiến trình giao nhận hàng từ kho và xác nhận hoàn tất đơn hàng.</p>
+                </div>
+            </div>
+
+            <!-- 4 THẺ TỔNG QUAN TIẾN ĐỘ -->
+            <div class="order-summary-grid">
+                <div class="order-summary-card">
+                    <div>
+                        <span>Tổng phiếu xuất</span>
+                        <strong>@totalSlips.ToString("D2")</strong>
+                        <small>Phiếu trong hệ thống</small>
+                    </div>
+                </div>
+                <div class="order-summary-card card-waiting">
+                    <div>
+                        <span>Chờ kho xử lý</span>
+                        <strong>@waitingSlips.ToString("D2")</strong>
+                        <small>Kho đang soạn hàng</small>
+                    </div>
+                </div>
+                <div class="order-summary-card card-ready">
+                    <div>
+                        <span>Kho đã xuất hàng</span>
+                        <strong>@readyToCompleteSlips.ToString("D2")</strong>
+                        <small>Chờ duyệt thủ công</small>
+                    </div>
+                </div>
+                <div class="order-summary-card card-done">
+                    <div>
+                        <span>Đã chốt hoàn tất</span>
+                        <strong>@completedSlips.ToString("D2")</strong>
+                        <small>Đã ghi nhận doanh thu</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DANH SÁCH PHIẾU XUẤT KHO -->
+            <section class="order-list-section">
+                <div class="order-list-heading">
+                    <h2>Danh sách phiếu xuất kho gần đây</h2>
+                    <span class="order-count">@totalSlips.ToString("D2") phiếu</span>
+                </div>
+
+                @if (!slipsList.Any())
+                {
+                    <div class="order-empty-box">
+                        <div class="empty-icon">📋</div>
+                        <h3>Chưa có phiếu xuất kho nào</h3>
+                        <p>Bạn có thể chuyển sang trang lập phiếu để tạo yêu cầu xuất kho mới.</p>
+                        <a href="/Sales/CreateOrder" class="btn-primary-soft">
+                            + Tạo phiếu xuất kho ngay
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var slip in slipsList)
+                    {
+                        bool isSlipDone = CheckSlipCompleted(slip.Status);
+                        bool isSlipRejected = CheckSlipRejected(slip.Status);
+                        bool isSlipReady = CheckSlipReady(slip.Status) && !isSlipDone;
+
+                        var slipCode = !string.IsNullOrWhiteSpace(slip.Expreceiptcode) ? slip.Expreceiptcode : ("PX-" + slip.Exportreceiptid);
+                        var orderCode = slip.SaleOrder?.Ordercode ?? (slip.Orderid.HasValue ? ("HD-" + slip.Orderid.Value) : "Đơn ngoài");
+                        decimal totalVal = slip.ProductExportReceiptDetails?.Sum(d => (d.Price ?? 0) * d.Quantity) ?? (slip.SaleOrder?.Totalamount ?? 0);
+
+                        string cardClass = isSlipDone ? "card-theme-done" : (isSlipRejected ? "card-theme-rejected" : (isSlipReady ? "card-theme-ready" : ""));
+
+                        <article class="slip-card @cardClass">
+                            <div class="slip-card-top">
+                                <div class="slip-id-wrap">
+                                    <span class="slip-label">MÃ PHIẾU:</span>
+                                    <span class="slip-code">@slipCode</span>
+                                </div>
+
+                                <div class="slip-actions-wrap">
+                                    @if (isSlipDone)
+                                    {
+                                        <span class="pill-badge pill-done">
+                                            ✓ Đã xong (Completed)
+                                        </span>
+                                    }
+                                    else if (isSlipRejected)
+                                    {
+                                        <span class="pill-badge pill-rejected">
+                                            ✕ Kho từ chối xuất
+                                        </span>
+                                    }
+                                    else if (isSlipReady)
+                                    {
+                                        <span class="pill-badge pill-ready">
+                                            🔔 Kho đã xuất hàng
+                                        </span>
+                                        <button type="button" class="btn-confirm-action" onclick="confirmOrderDone(@slip.Exportreceiptid, '@slipCode', this)">
+                                            Duyệt đơn ĐÃ XONG
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill-badge pill-waiting">
+                                            ⏳ Chờ kho duyệt
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="slip-card-body">
+                                <div class="slip-main-row">
+                                    <!-- Khối khách hàng -->
+                                    <div class="slip-col-customer">
+                                        <span class="meta-caption">KHÁCH NHẬN / ĐƠN HÀNG</span>
+                                        <h3 class="customer-title">@(slip.SaleOrder?.Customername ?? "Khách hàng mua thuốc")</h3>
+                                        <div class="order-subline">
+                                            <span>Mã đơn:</span>
+                                            @if (slip.Orderid.HasValue)
+                                            {
+                                                <a href="/Sales/Order/Details/@slip.Orderid.Value" class="link-order-id">
+                                                    @orderCode
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="link-order-id">@orderCode</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(slip.SaleOrder?.Customerphone))
+                                            {
+                                                <span class="text-sep">•</span>
+                                                <span class="text-phone">@slip.SaleOrder.Customerphone</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Khối thông số ngày & trạng thái -->
+                                    <div class="slip-col-meta">
+                                        <div class="meta-item">
+                                            <span class="meta-caption">NGÀY LẬP</span>
+                                            <strong>@(slip.Createddate.HasValue ? slip.Createddate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
+                                        </div>
+                                        <div class="meta-item">
+                                            <span class="meta-caption">TRẠNG THÁI KHO</span>
+                                            @if (isSlipDone)
+                                            {
+                                                <strong class="color-green">Đã xuất kho</strong>
+                                            }
+                                            else if (isSlipRejected)
+                                            {
+                                                <strong class="color-red">Bị từ chối</strong>
+                                            }
+                                            else if (isSlipReady)
+                                            {
+                                                <strong class="color-amber">Đã bàn giao</strong>
+                                            }
+                                            else
+                                            {
+                                                <strong class="color-blue">Đang chuẩn bị</strong>
+                                            }
+                                        </div>
+                                        <div class="meta-item text-right">
+                                            <span class="meta-caption">TỔNG GIÁ TRỊ</span>
+                                            <strong class="amount-val">@totalVal.ToString("N0") đ</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Chi tiết danh mục thuốc bàn giao -->
+                                @if (slip.ProductExportReceiptDetails != null && slip.ProductExportReceiptDetails.Any())
+                                {
+                                    <div class="slip-details-strip">
+                                        <span class="details-caption">Sản phẩm xuất:</span>
+                                        <div class="details-chips">
+                                            @foreach (var detail in slip.ProductExportReceiptDetails)
+                                            {
+                                                var pName = !string.IsNullOrWhiteSpace(detail.Product?.Productname) 
+                                                          ? detail.Product.Productname 
+                                                          : $"SP #{detail.Productid}";
+                                                var unit = !string.IsNullOrWhiteSpace(detail.Product?.Unit) ? detail.Product.Unit : "Hộp";
+                                                <span class="detail-chip">
+                                                    <strong>@pName</strong>: @detail.Quantity @unit × @((detail.Price ?? 0).ToString("N0")) đ
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </article>
+                    }
+                }
+            </section>
+
+            <footer class="order-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho thuốc và bán hàng</span>
+            </footer>
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmOrderDone(receiptId, slipCode, btn) {
+            if (!confirm(`Xác nhận hoàn tất đơn hàng cho phiếu ${slipCode}? Cả đơn hàng và phiếu xuất sẽ cập nhật thành ĐÃ XONG.`)) {
+                return;
+            }
+
+            if (btn) {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.6';
+                btn.innerHTML = 'Đang duyệt...';
+            }
+
+            fetch('/Sales/ExportSlips/ApproveCompletedOrder?receiptId=' + receiptId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert("✕ " + data.message);
+                    if (btn) {
+                        btn.style.pointerEvents = 'auto';
+                        btn.style.opacity = '1';
+                        btn.innerHTML = 'Duyệt đơn ĐÃ XONG';
+                    }
+                }
+            })
+            .catch(err => {
+                alert("✕ Lỗi kết nối: " + err);
+                if (btn) {
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.opacity = '1';
+                    btn.innerHTML = 'Duyệt đơn ĐÃ XONG';
+                }
+            });
+        }
+    </script>
+}

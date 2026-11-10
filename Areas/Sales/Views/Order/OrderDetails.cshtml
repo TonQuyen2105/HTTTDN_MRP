@@ -1,0 +1,337 @@
+@model httt.Models.SaleOrder
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng - " + Model.Ordercode;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var allDetails = Model.SaleOrderDetails?.ToList() ?? new List<httt.Models.SaleOrderDetail>();
+    var totalOrderQty = allDetails.Sum(d => d.Quantity);
+    var availableStockDict = ViewBag.AvailableStock as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    var latestReceipt = ViewBag.LatestReceipt as httt.Models.ProductExportReceipt;
+    bool hasSlip = latestReceipt != null;
+    bool isWarehouseExported = latestReceipt != null && (
+        string.Equals(latestReceipt.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(latestReceipt.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
+        latestReceipt.Status == "Đã xuất kho" || 
+        latestReceipt.Status == "Đã hoàn thành");
+
+    // Nhận diện trạng thái ĐÃ XONG
+    var isDone = string.Equals(Model.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                 Model.Status == "Đã xong" || 
+                 Model.Status == "Đã hoàn thành" || 
+                 Model.Status == "Đã soạn xong" || 
+                 isWarehouseExported;
+
+    // Nhận diện trạng thái GIỮ CHỐT KHO
+    var isHolding = string.Equals(Model.Status, "Holding", StringComparison.OrdinalIgnoreCase) ||
+                    Model.Status == "Đã giữ chốt số lượng" || 
+                    Model.Status == "Chờ xuất kho" || 
+                    Model.Status == "Đã chốt lô" || 
+                    Model.Status == "Đã gửi yêu cầu duyệt";
+
+    // Kiểm tra thiếu hàng khi đơn chưa xong
+    var hasShortage = !isDone && allDetails.Any(d => {
+        int avail = availableStockDict.ContainsKey(d.Productid) ? availableStockDict[d.Productid] : (d.Product?.Quantity ?? 0);
+        return d.Quantity > avail;
+    });
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/order-details.css" asp-append-version="true" />
+}
+
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR BÁN HÀNG -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
+            </div>
+
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item active" href="/Sales/Orders">
+                    <span>Xem đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/ExportSlips">
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/SalesAccount">
+                    <span>Tài khoản của tôi</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/RevenueReport">
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user • Pharma Store</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN WORKSPACE -->
+        <main class="order-main">
+
+            <div class="order-heading">
+                <div>
+                    <div class="order-breadcrumb">
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <a href="/Sales/Orders" class="breadcrumb-link">Đơn hàng</a> / <strong>Chi tiết @Model.Ordercode</strong>
+                    </div>
+                    <h1>Chi tiết đơn hàng: @(Model.Ordercode ?? ("DH-" + Model.Orderid))</h1>
+                    <p>Đối chiếu số lượng đặt với tồn kho khả dụng (đã trừ phần các đơn khác giữ trước).</p>
+                </div>
+
+                <div class="order-heading-actions">
+                    <!-- BADGE TRẠNG THÁI TIẾN TRÌNH -->
+                    @if (isDone)
+                    {
+                        <span class="order-status status-completed">
+                            ✓ Đã xong (Completed)
+                        </span>
+                    }
+                    else if (hasSlip || isHolding)
+                    {
+                        <span class="order-status status-holding">
+                            @(isHolding ? "Đã giữ chốt kho" : "Chờ xuất kho")
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="order-status status-pending">
+                            Đang chờ xử lý
+                        </span>
+                    }
+
+                    <!-- NÚT CHỐT HOẶC HỦY GIỮ CHỖ TỒN KHO -->
+                    @if (!isDone)
+                    {
+                        <button type="button" 
+                                id="btnToggleHold"
+                                class="btn-action @(isHolding ? "btn-hold-active" : "btn-lock")" 
+                                onclick="toggleOrderHold(@Model.Orderid)"
+                                title="@(isHolding ? "Bấm để hủy chốt giữ tồn kho" : "Bấm để chốt giữ chỗ số lượng trong kho")">
+                            @(isHolding ? "✓ Đã giữ chốt số lượng" : "Chốt giữ số lượng")
+                        </button>
+                    }
+
+                    <a href="/Sales/Orders" class="btn-action btn-close-detail" title="Đóng chi tiết">
+                        Đóng
+                    </a>
+                </div>
+            </div>
+
+            <!-- CẢNH BÁO TỒN KHO -->
+            @if (hasShortage)
+            {
+                <div class="order-alert-box alert-danger-custom">
+                    <div>
+                        <strong>CẢNH BÁO THIẾU HÀNG:</strong> Đơn hàng có sản phẩm vượt quá tồn kho khả dụng (kho không đủ hoặc đã bị đơn khác giữ chỗ).
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="order-alert-box alert-success-custom">
+                    <div>
+                        <strong>TỒN KHO ĐẢM BẢO:</strong> @(isDone ? "Đơn hàng đã được bên kho xuất thành phẩm đầy đủ." : "Tất cả sản phẩm đều đủ tồn kho khả dụng để tiến hành xuất hàng.")
+                    </div>
+                </div>
+            }
+
+            <!-- KHỐI THÔNG TIN CHUNG (CARD GỌN ĐẸP) -->
+            <div class="order-detail-cards-grid">
+                <div class="detail-info-card">
+                    <div class="card-icon-title">
+                        <h3>Thông tin khách hàng</h3>
+                    </div>
+                    <div class="detail-info-row">
+                        <span>Nhà thuốc:</span>
+                        <strong>@Model.Customername</strong>
+                    </div>
+                    <div class="detail-info-row">
+                        <span>Số điện thoại:</span>
+                        <strong>@(string.IsNullOrWhiteSpace(Model.Customerphone) ? "—" : Model.Customerphone)</strong>
+                    </div>
+                    <div class="detail-info-row">
+                        <span>Địa chỉ nhận:</span>
+                        <p>@(string.IsNullOrWhiteSpace(Model.Shippingaddress) ? "—" : Model.Shippingaddress)</p>
+                    </div>
+                </div>
+
+                <div class="detail-info-card">
+                    <div class="card-icon-title">
+                        <h3>Thông tin đơn hàng</h3>
+                    </div>
+                    <div class="detail-info-row">
+                        <span>Mã đơn:</span>
+                        <strong class="code-text">@(Model.Ordercode ?? ("DH-" + Model.Orderid))</strong>
+                    </div>
+                    <div class="detail-info-row">
+                        <span>Trạng thái tiến trình:</span>
+                        <span id="orderStatusPill" class="status-pill @(isDone ? "status-completed" : (isHolding ? "status-holding" : "status-pending"))">
+                            @(isDone ? "Đã xong" : (isHolding ? "Đã giữ chốt kho" : "Đang chờ xử lý"))
+                        </span>
+                    </div>
+                    <div class="detail-info-row total-highlight">
+                        <span>Tổng tiền thanh toán:</span>
+                        <strong class="total-amount-text">@((Model.Totalamount ?? 0).ToString("N0")) đ</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BẢNG ĐỐI CHIẾU SẢN PHẨM & TỒN KHẢ DỤNG -->
+            <section class="order-detail-table-section">
+                <div class="table-section-header">
+                    <div>
+                        <h2>Danh sách mặt hàng & Tồn khả dụng giữ chỗ</h2>
+                        <span class="order-count">@allDetails.Count mặt hàng (@totalOrderQty đơn vị)</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive-wrapper">
+                    <table class="detail-stock-table">
+                        <thead>
+                            <tr>
+                                <th class="col-center" style="width: 40px;">STT</th>
+                                <th style="width: 120px;">Mã thuốc</th>
+                                <th>Tên thuốc</th>
+                                <th class="col-center" style="width: 80px;">SL đặt</th>
+                                <th class="col-center" style="width: 90px;">Tồn thực tế</th>
+                                <th class="col-center" style="width: 95px;">Tồn khả dụng</th>
+                                <th class="col-right" style="width: 110px;">Đơn giá</th>
+                                <th class="col-right" style="width: 125px;">Thành tiền</th>
+                                <th class="col-center" style="width: 110px;">Tình trạng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < allDetails.Count; i++)
+                            {
+                                var item = allDetails[i];
+                                var physicalStock = item.Product?.Quantity ?? 0;
+                                var availableStock = availableStockDict.ContainsKey(item.Productid)
+                                    ? availableStockDict[item.Productid]
+                                    : physicalStock;
+
+                                var isLack = !isDone && (item.Quantity > availableStock);
+                                var lackQty = item.Quantity - availableStock;
+
+                                <tr class="@(isLack ? "row-shortage" : "")">
+                                    <td class="col-center text-muted">@(i + 1)</td>
+                                    <td><strong style="color: var(--primary);">SP-@item.Productid.ToString("D4")</strong></td>
+                                    <td>
+                                        <span class="product-name">@(item.Product?.Productname ?? $"Sản phẩm #{item.Productid}")</span>
+                                        <span class="product-unit-text">Đơn vị: @(item.Product?.Unit ?? "Hộp")</span>
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="qty-badge">@item.Quantity</span>
+                                    </td>
+                                    <td class="col-center text-muted">
+                                        @physicalStock
+                                    </td>
+                                    <td class="col-center">
+                                        <span class="@(isDone || availableStock > 0 ? "stock-val" : "stock-val-zero")">
+                                            @(isDone ? item.Quantity : availableStock)
+                                        </span>
+                                    </td>
+                                    <td class="col-right">@((item.Unitprice ?? 0).ToString("N0")) đ</td>
+                                    <td class="col-right" style="font-weight: 700;">@(((item.Unitprice ?? 0) * item.Quantity).ToString("N0")) đ</td>
+                                    <td class="col-center">
+                                        @if (isDone)
+                                        {
+                                            <span class="tag-status tag-success">Đã xuất đủ</span>
+                                        }
+                                        else if (isLack)
+                                        {
+                                            <span class="tag-status tag-danger">Thiếu @lackQty @(item.Product?.Unit ?? "Hộp")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag-status tag-success">Đủ khả dụng</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-section-footer">
+                    <a href="/Sales/Orders" class="order-btn-reset">
+                        ← Quay lại danh sách đơn hàng
+                    </a>
+                </div>
+            </section>
+
+            <footer class="order-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho và bán hàng dược phẩm</span>
+            </footer>
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function toggleOrderHold(orderId) {
+            const btn = document.getElementById('btnToggleHold');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+            }
+
+            try {
+                const res = await fetch('/Sales/Order/ToggleOrderHold/' + orderId, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('✕ ' + data.message);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }
+            } catch (err) {
+                window.location.reload();
+            }
+        }
+    </script>
+}

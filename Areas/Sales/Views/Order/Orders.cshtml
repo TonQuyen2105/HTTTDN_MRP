@@ -1,7 +1,77 @@
-```cshtml
+@model IEnumerable<httt.Models.SaleOrder>
+
 @{
-    ViewData["Title"] = "Xem đơn hàng";
+    ViewData["Title"] = "Xem đơn hàng & Nhà cung cấp";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var ordersList = Model?.ToList() ?? new List<httt.Models.SaleOrder>();
+    var totalOrders = ordersList.Count;
+
+    var suppliersList = ViewBag.Suppliers as IEnumerable<httt.Models.Supplier> ?? new List<httt.Models.Supplier>();
+    var isSupplierTab = (ViewBag.ActiveTab as string) == "supplier";
+
+    var shortageDict = ViewBag.OrderShortageDict as Dictionary<int, bool> ?? new Dictionary<int, bool>();
+    var receiptStatusDict = ViewBag.ReceiptStatusDict as Dictionary<int, string> ?? new Dictionary<int, string>();
+
+    // Helper kiểm tra đơn đã hoàn tất
+    bool CheckOrderIsDone(httt.Models.SaleOrder ord)
+    {
+        if (string.Equals(ord.Status, "Completed", StringComparison.OrdinalIgnoreCase) || 
+            ord.Status == "Đã xong" || 
+            ord.Status == "Đã hoàn thành") return true;
+
+        if (receiptStatusDict.ContainsKey(ord.Orderid))
+        {
+            var st = receiptStatusDict[ord.Orderid];
+            if (string.Equals(st, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(st, "Exported", StringComparison.OrdinalIgnoreCase) || 
+                st == "Đã xuất kho" || 
+                st == "Đã hoàn thành") return true;
+        }
+        return false;
+    }
+
+    // Helper kiểm tra đơn đang THỰC SỰ chờ xuất kho (đã gửi phiếu và KHÔNG bị từ chối)
+    bool CheckOrderIsWaitingExport(httt.Models.SaleOrder ord)
+    {
+        if (CheckOrderIsDone(ord)) return false;
+
+        string receiptStatus = receiptStatusDict.ContainsKey(ord.Orderid) ? receiptStatusDict[ord.Orderid] : "Chưa gửi";
+        
+        // Nếu kho từ chối xuất (Rejected) -> Đơn không còn ở nhóm Chờ xuất kho
+        if (string.Equals(receiptStatus, "Rejected", StringComparison.OrdinalIgnoreCase) || receiptStatus == "Từ chối")
+        {
+            return false;
+        }
+
+        bool hasValidSlip = receiptStatus != "Chưa gửi" && receiptStatus != "Chưa gửi phiếu";
+        bool isHoldingStatus = string.Equals(ord.Status, "Holding", StringComparison.OrdinalIgnoreCase) 
+                            || string.Equals(ord.Status, "PendingApproval", StringComparison.OrdinalIgnoreCase)
+                            || ord.Status == "Chờ xuất kho" 
+                            || ord.Status == "Đã giữ chốt số lượng" 
+                            || ord.Status == "Đã gửi yêu cầu duyệt";
+
+        return hasValidSlip || isHoldingStatus;
+    }
+
+    // Helper kiểm tra kho đã duyệt xuất hàng (chờ bên bán xác nhận nếu có quy trình 2 bước)
+    bool CheckWarehouseApproved(int orderId)
+    {
+        if (receiptStatusDict.ContainsKey(orderId))
+        {
+            var st = receiptStatusDict[orderId];
+            return string.Equals(st, "Approved", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(st, "Exported", StringComparison.OrdinalIgnoreCase) ||
+                   st == "Tán thành" ||
+                   st == "Đã xuất kho";
+        }
+        return false;
+    }
+
+    var completedOrders = ordersList.Count(o => CheckOrderIsDone(o));
+    var pendingExportOrders = ordersList.Count(o => CheckOrderIsWaitingExport(o));
+    // Đơn chờ xử lý: Các đơn chưa xong và không nằm trong nhóm chờ xuất kho (Bao gồm đơn Pending và đơn bị Rejected)
+    var pendingOrders = ordersList.Count(o => !CheckOrderIsDone(o) && !CheckOrderIsWaitingExport(o));
 }
 
 @section Styles {
@@ -11,322 +81,466 @@
 <div class="order-page">
     <div class="order-workspace">
 
-        <!-- SIDEBAR -->
+        <!-- SIDEBAR BÁN HÀNG -->
         <aside class="order-sidebar">
             <div class="order-sidebar-brand">
-                <div class="order-brand-icon">✚</div>
-                <div>
-                    <h2>PharmaMRP</h2>
-                    <span>HỆ THỐNG BÁN HÀNG</span>
-                </div>
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
             </div>
 
             <div class="order-sidebar-label">MENU BÁN HÀNG</div>
 
             <nav class="order-sidebar-nav">
                 <a class="order-nav-item active" href="/Sales/Orders">
-                    <span class="order-nav-icon">▤</span>
                     <span>Xem đơn hàng</span>
-                    <span class="order-nav-arrow">›</span>
                 </a>
-
                 <a class="order-nav-item" href="/Sales/CreateOrder">
-                    <span class="order-nav-icon">＋</span>
-                    <span>Tạo đơn hàng thành phẩm</span>
+                    <span>Tạo phiếu xuất thành phẩm</span>
                 </a>
-
                 <a class="order-nav-item" href="/Sales/TransactionHistory">
-                    <span class="order-nav-icon">◷</span>
-                    <span>Lịch sử đơn hàng nhập xuất</span>
+                    <span>Lịch sử đơn hàng</span>
                 </a>
-
                 <a class="order-nav-item" href="/Sales/ExportSlips">
-                    <span class="order-nav-icon">⇧</span>
                     <span>Theo dõi phiếu xuất kho</span>
                 </a>
-
                 <a class="order-nav-item" href="/Sales/MedicineInventory">
-                    <span class="order-nav-icon">▦</span>
                     <span>Tra cứu thuốc và tồn kho</span>
                 </a>
-
                 <a class="order-nav-item" href="/Sales/SalesAccount">
-                    <span class="order-nav-icon">♙</span>
                     <span>Tài khoản của tôi</span>
                 </a>
-
                 <a class="order-nav-item" href="/Sales/RevenueReport">
-                    <span class="order-nav-icon">▥</span>
                     <span>Thống kê, báo cáo doanh thu</span>
                 </a>
             </nav>
 
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
             <div class="order-sidebar-bottom">
-                <div class="order-user-avatar">NV</div>
                 <div class="order-user-info">
                     <strong>Nhân viên bán hàng</strong>
-                    <span>sales_user</span>
+                    <span>sales_user • Pharma Store</span>
                 </div>
             </div>
         </aside>
 
-        <!-- MAIN CONTENT -->
+        <!-- NỘI DUNG CHÍNH -->
         <main class="order-main">
 
             <div class="order-heading">
                 <div>
                     <div class="order-breadcrumb">
-                        <span>Trang chủ</span>
-                        <span>/</span>
-                        <span>Bán hàng</span>
-                        <span>/</span>
-                        <strong>Đơn hàng</strong>
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>@(isSupplierTab ? "Nhà cung cấp" : "Đơn hàng khách hàng")</strong>
                     </div>
-                    <h1>Danh sách đơn hàng bán</h1>
-                    <p>Theo dõi và quản lý các đơn hàng của nhà thuốc.</p>
-                </div>
-                <div class="order-heading-icon">▤</div>
-            </div>
-
-            <!-- SUMMARY -->
-            <div class="order-summary-grid">
-                <div class="order-summary-card">
-                    <div class="order-summary-icon summary-green">▤</div>
-                    <div>
-                        <span>Tổng đơn hàng</span>
-                        <strong>04</strong>
-                        <small>Đơn hàng minh họa</small>
-                    </div>
-                </div>
-
-                <div class="order-summary-card">
-                    <div class="order-summary-icon summary-orange">◷</div>
-                    <div>
-                        <span>Chờ chốt lô</span>
-                        <strong>03</strong>
-                        <small>Đang chờ xử lý</small>
-                    </div>
-                </div>
-
-                <div class="order-summary-card">
-                    <div class="order-summary-icon summary-blue">✓</div>
-                    <div>
-                        <span>Đã soạn xong</span>
-                        <strong>01</strong>
-                        <small>Đã hoàn tất soạn hàng</small>
-                    </div>
+                    <h1>@(isSupplierTab ? "Danh sách Nhà cung cấp" : "Danh sách đơn hàng của khách hàng")</h1>
+                    <p>@(isSupplierTab ? "Tra cứu thông tin các công ty, nhà máy cung ứng nguyên dược liệu." : "Theo dõi đơn đặt mua, đối chiếu tồn kho và xác nhận hoàn tất đơn.")</p>
                 </div>
             </div>
 
-            <!-- FILTER -->
-            <section class="order-filter-card">
-                <div class="order-section-heading">
-                    <div>
-                        <h2>Tìm kiếm đơn hàng</h2>
-                        <p>Lọc đơn hàng theo mã, trạng thái hoặc ngày đặt.</p>
+            <!-- THÔNG BÁO HỆ THỐNG -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: bold; font-size: 14px;">✓</span>
+                    <span>@TempData["SuccessMessage"]</span>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: bold; font-size: 14px;">⚠</span>
+                    <span>@TempData["ErrorMessage"]</span>
+                </div>
+            }
+
+            <!-- THANH CHUYỂN TAB -->
+            <div class="order-tabs-bar">
+                <a href="/Sales/Orders?tab=sales" class="order-tab-link @(!isSupplierTab ? "active" : "")">
+                    <span>Đơn hàng của khách hàng</span>
+                    @if (!isSupplierTab)
+                    {
+                        <span class="order-tab-badge">@totalOrders đơn</span>
+                    }
+                </a>
+                <a href="/Sales/Orders?tab=supplier" class="order-tab-link @(isSupplierTab ? "active" : "")">
+                    <span>Danh sách Nhà cung cấp (Bên kho quản lý)</span>
+                    @if (isSupplierTab)
+                    {
+                        <span class="order-tab-badge">@suppliersList.Count() NCC</span>
+                    }
+                </a>
+            </div>
+
+            @if (!isSupplierTab)
+            {
+                <!-- 3 THẺ TỔNG QUAN -->
+                <div class="order-summary-grid">
+                    <div class="order-summary-card">
+                        <div>
+                            <span>Đang chờ xử lý</span>
+                            <strong style="color: #D97706;">@pendingOrders.ToString("D2")</strong>
+                            <small>Chờ duyệt / Bị từ chối</small>
+                        </div>
+                    </div>
+                    <div class="order-summary-card">
+                        <div>
+                            <span>Chờ xuất kho</span>
+                            <strong style="color: #0284C7;">@pendingExportOrders.ToString("D2")</strong>
+                            <small>Đang giữ chỗ / Đã gửi phiếu</small>
+                        </div>
+                    </div>
+                    <div class="order-summary-card">
+                        <div>
+                            <span>Đã xong</span>
+                            <strong style="color: #166534;">@completedOrders.ToString("D2")</strong>
+                            <small>Đã xuất kho hoàn tất</small>
+                        </div>
                     </div>
                 </div>
 
-                <form method="get" action="/Sales/Orders" class="order-filter-form">
-                    <div class="order-filter-field order-keyword-field">
-                        <label for="keyword">Mã đơn hàng / Nhà thuốc</label>
-                        <input id="keyword"
-                               type="text"
-                               name="keyword"
-                               class="form-control"
-                               placeholder="Nhập từ khóa tìm kiếm..." />
+                <section class="order-filter-card">
+                    <div class="order-section-heading">
+                        <h2>Tìm kiếm & Giả lập đơn hàng</h2>
+                        <p>Lọc đơn hàng theo từ khóa hoặc tạo đơn giả lập từ các thành phẩm đã có công thức BOM.</p>
                     </div>
 
-                    <div class="order-filter-field">
-                        <label for="status">Trạng thái</label>
-                        <select id="status" name="status" class="form-select">
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="chotlo">Chờ chốt lô</option>
-                            <option value="soanzong">Đã soạn xong</option>
-                        </select>
+                    <form method="get" action="/Sales/Orders" class="order-filter-form">
+                        <input type="hidden" name="tab" value="sales" />
+
+                        <div class="order-filter-field">
+                            <label for="keyword">Mã đơn / Tên nhà thuốc</label>
+                            <input id="keyword" type="text" name="keyword" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập mã đơn hoặc tên nhà thuốc..." />
+                        </div>
+
+                        <div class="order-filter-field">
+                            <label for="status">Trạng thái</label>
+                            <select id="status" name="status" class="form-select">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="Pending" selected="@(Context.Request.Query["status"] == "Pending" ? "selected" : null)">Đang chờ xử lý</option>
+                                <option value="Holding" selected="@(Context.Request.Query["status"] == "Holding" ? "selected" : null)">Đã giữ chốt kho</option>
+                                <option value="PendingApproval" selected="@(Context.Request.Query["status"] == "PendingApproval" ? "selected" : null)">Chờ xuất kho</option>
+                                <option value="Completed" selected="@(Context.Request.Query["status"] == "Completed" ? "selected" : null)">Đã xong</option>
+                            </select>
+                        </div>
+
+                        <div class="order-filter-field">
+                            <label for="date">Ngày đặt hàng</label>
+                            <input id="date" type="date" name="date" value="@Context.Request.Query["date"]" class="form-control" />
+                        </div>
+
+                        <div class="order-filter-actions">
+                            <a href="/Sales/Order/GenerateMockOrders" class="order-btn-generate" onclick="this.style.pointerEvents='none'; this.innerHTML='Đang tạo đơn...';" title="Tạo 1 đơn hàng mới từ các thành phẩm đã có công thức BOM">
+                                Tạo mới 1 đơn hàng
+                            </a>
+                            <button type="submit" formaction="/Sales/Order/ResetOrders" formmethod="post" class="order-btn-danger" onclick="if(!confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ đơn hàng đã tạo?')) return false; this.style.pointerEvents='none'; this.innerHTML='Đang reset...';">
+                                Reset đơn hàng
+                            </button>
+                            <button type="submit" class="order-btn-primary">Lọc dữ liệu</button>
+                            <a href="/Sales/Orders?tab=sales" class="order-btn-reset">Xóa lọc</a>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="order-list-section">
+                    <div class="order-list-heading">
+                        <h2>Danh sách đơn bán gần đây</h2>
+                        <span class="order-count">@totalOrders.ToString("D2") đơn</span>
                     </div>
 
-                    <div class="order-filter-field">
-                        <label for="date">Ngày đặt hàng</label>
-                        <input id="date"
-                               type="date"
-                               name="date"
-                               class="form-control" />
+                    @if (!ordersList.Any())
+                    {
+                        <div class="order-empty-box" style="padding: 40px 20px; text-align: center; color: #64748B; background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; margin: 10px 0;">
+                            <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+                            <h3 style="font-size: 15px; font-weight: 700; color: #1E293B; margin-bottom: 4px;">Chưa có đơn hàng nào trong hệ thống</h3>
+                            <p style="font-size: 12px; margin: 0 0 16px 0; color: #64748B;">Bấm nút bên dưới để tạo 1 đơn hàng giả lập có định mức BOM.</p>
+                            <a href="/Sales/Order/GenerateMockOrders" class="order-btn-generate" style="display: inline-block; text-decoration: none;">
+                                + Tạo mới 1 đơn hàng
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var order in ordersList)
+                        {
+                            var isDone = CheckOrderIsDone(order);
+                            var isWaitingExport = CheckOrderIsWaitingExport(order);
+                            var isWarehouseApproved = CheckWarehouseApproved(order.Orderid);
+                            var isShortage = shortageDict.ContainsKey(order.Orderid) ? shortageDict[order.Orderid] : false;
+                            
+                            string receiptStatus = receiptStatusDict.ContainsKey(order.Orderid) ? receiptStatusDict[order.Orderid] : "Chưa gửi";
+                            bool isRejected = string.Equals(receiptStatus, "Rejected", StringComparison.OrdinalIgnoreCase) || receiptStatus == "Từ chối";
+                            bool isHoldingOrder = string.Equals(order.Status, "Holding", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã giữ chốt số lượng";
+
+                            <article class="order-card @(isDone ? "card-completed" : "")">
+                                <div class="order-card-top">
+                                    <div class="order-id-group">
+                                        <span class="order-id-label">MÃ ĐƠN HÀNG</span>
+                                        <a href="/Sales/Order/Details/@order.Orderid" class="order-id">
+                                            @(order.Ordercode ?? ("DH-" + order.Orderid))
+                                        </a>
+                                    </div>
+
+                                    <div class="order-card-actions" style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                                        <div style="display: flex; gap: 8px; align-items: center;">
+                                            @if (!isDone)
+                                            {
+                                                if (isShortage)
+                                                {
+                                                    <span class="stock-tag-danger">Thiếu hàng</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="stock-tag-ok">Đủ hàng</span>
+                                                }
+                                            }
+
+                                            @if (isDone)
+                                            {
+                                                <span class="order-status status-completed">
+                                                    Đã xong (Completed)
+                                                </span>
+                                            }
+                                            else if (isHoldingOrder)
+                                            {
+                                                <span class="order-status status-locked" style="background: #E0E7FF; color: #3730A3;">
+                                                    Đã giữ chốt kho
+                                                </span>
+                                            }
+                                            else if (isWaitingExport)
+                                            {
+                                                <span class="order-status status-locked">
+                                                    Chờ xuất kho
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="order-status status-pending">
+                                                    Đang chờ xử lý
+                                                </span>
+                                            }
+                                        </div>
+
+                                        <div class="sub-status-action">
+                                            @if (isDone)
+                                            {
+                                                <span style="font-size: 11px; font-weight: 750; color: #166534; background: #DCFCE7; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                    ✓ Kho đã xuất hàng thành công
+                                                </span>
+                                            }
+                                            else if (isRejected)
+                                            {
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <span style="font-size: 11px; font-weight: 700; color: #DC2626; background: #FEE2E2; padding: 3px 8px; border-radius: 4px;">
+                                                        ✕ Kho từ chối xuất
+                                                    </span>
+                                                    <a href="/Sales/CreateOrder?orderId=@order.Orderid" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 600;">
+                                                        Lập lại phiếu xuất
+                                                    </a>
+                                                </div>
+                                            }
+                                            else if (isWarehouseApproved && !isDone)
+                                            {
+                                                <button type="button" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 700; background: #166534; color: #FFF; border: none; border-radius: 4px; cursor: pointer;" onclick="quickCompleteOrder(@order.Orderid)">
+                                                    ✔ Xác nhận ĐÃ XONG
+                                                </button>
+                                            }
+                                            else if (isWaitingExport)
+                                            {
+                                                <span style="font-size: 11px; color: #0284C7; font-weight: 600;">
+                                                    Đã lập phiếu xuất (Kho đang soạn)...
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <a href="/Sales/CreateOrder?orderId=@order.Orderid" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 600;">
+                                                    Lập phiếu xuất kho
+                                                </a>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="order-card-body">
+                                    <div class="order-pharmacy">
+                                        <span class="pharmacy-code">Khách hàng / Nhà thuốc</span>
+                                        <h3>@order.Customername</h3>
+                                        <p>@order.Shippingaddress (SĐT: @order.Customerphone)</p>
+                                    </div>
+
+                                    <div class="order-card-meta">
+                                        <div>
+                                            <span class="meta-label">Ngày đặt</span>
+                                            <strong>@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
+                                        </div>
+                                        <div>
+                                            <span class="meta-label">Số mặt hàng</span>
+                                            <strong>@(order.SaleOrderDetails?.Count ?? 0) loại thuốc</strong>
+                                        </div>
+                                        <div class="order-total">
+                                            <span class="meta-label">Tổng tiền</span>
+                                            <strong>@((order.Totalamount ?? 0).ToString("N0")) đ</strong>
+                                        </div>
+                                    </div>
+
+                                    @if (order.SaleOrderDetails != null && order.SaleOrderDetails.Any())
+                                    {
+                                        <div class="order-items-detail">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <span class="meta-label">DANH MỤC THÀNH PHẨM ĐẶT MUA:</span>
+                                                <a href="/Sales/Order/Details/@order.Orderid" class="btn-view-detail">
+                                                    Chi tiết & Đối chiếu kho
+                                                </a>
+                                            </div>
+                                            <ul>
+                                                @foreach (var detail in order.SaleOrderDetails)
+                                                {
+                                                    var inStock = detail.Product?.Quantity ?? 0;
+                                                    var prodName = detail.Product?.Productname ?? $"Sản phẩm #{detail.Productid}";
+                                                    var prodUnit = detail.Product?.Unit ?? "Hộp";
+                                                    var uPrice = detail.Unitprice ?? 0;
+                                                    var itemTotal = uPrice * detail.Quantity;
+
+                                                    <li>
+                                                        <strong>@prodName</strong>: 
+                                                        @detail.Quantity @prodUnit × @uPrice.ToString("N0") đ 
+                                                        = @itemTotal.ToString("N0") đ
+                                                        <span class="stock-tag-ok" style="margin-left: 6px;">Kho: @inStock</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    }
+                </section>
+            }
+            else
+            {
+                <!-- DANH SÁCH NHÀ CUNG CẤP -->
+                <section class="order-filter-card">
+                    <div class="order-section-heading">
+                        <h2>Tìm kiếm Nhà cung cấp</h2>
+                        <p>Dữ liệu đối tác cung ứng nguyên dược liệu được nạp trực tiếp từ cơ sở dữ liệu Supabase.</p>
                     </div>
 
-                    <div class="order-filter-actions">
-                        <button type="submit" class="order-btn-primary">
-                            <span>⌕</span> Lọc dữ liệu
-                        </button>
-                        <a href="/Sales/Orders" class="order-btn-reset">Xóa lọc</a>
-                    </div>
-                </form>
-            </section>
+                    <form method="get" action="/Sales/Orders" class="order-filter-form">
+                        <input type="hidden" name="tab" value="supplier" />
 
-            <!-- ORDER LIST -->
-            <section class="order-list-section">
-                <div class="order-list-heading">
-                    <div>
-                        <h2>Đơn hàng gần đây</h2>
-                        <p>Danh sách đơn hàng đang được theo dõi.</p>
-                    </div>
-                    <span class="order-count">04 đơn hàng</span>
-                </div>
+                        <div class="order-filter-field" style="grid-column: span 2;">
+                            <label for="keyword">Tên nhà cung cấp / SĐT / Email / Địa chỉ</label>
+                            <input id="keyword" type="text" name="keyword" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập tên nhà cung cấp..." />
+                        </div>
 
-                <!-- ORDER 1 -->
-                <article class="order-card">
-                    <div class="order-card-top">
-                        <div class="order-id-group">
-                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
-                            <a href="#" class="order-id">408281026</a>
+                        <div class="order-filter-actions">
+                            <button type="submit" class="order-btn-primary">Tìm kiếm</button>
+                            <a href="/Sales/Orders?tab=supplier" class="order-btn-reset">Xóa lọc</a>
                         </div>
-                        <span class="order-status status-pending">
-                            <span class="status-dot"></span> Chờ chốt lô
-                        </span>
-                    </div>
-                    <div class="order-card-body">
-                        <div class="order-pharmacy">
-                            <div class="pharmacy-icon">✚</div>
-                            <div>
-                                <span class="pharmacy-code">NT 71-XTS</span>
-                                <h3>NT SO 71-XUÂN THỚI SƠN</h3>
-                                <p>3/138 Đường Tân Thới Nhì 9, Ấp 17, Xã Xuân Thới Sơn, HCM</p>
-                            </div>
-                        </div>
-                        <div class="order-card-meta">
-                            <div>
-                                <span class="meta-label">Ngày đặt hàng</span>
-                                <strong>28/10/2026</strong>
-                            </div>
-                            <div>
-                                <span class="meta-label">Đơn vị giao</span>
-                                <strong>WMINH3</strong>
-                            </div>
-                            <div class="order-total">
-                                <span class="meta-label">Tổng tiền</span>
-                                <strong>1.229.000 đ</strong>
-                            </div>
-                        </div>
-                    </div>
-                </article>
+                    </form>
+                </section>
 
-                <!-- ORDER 2 -->
-                <article class="order-card">
-                    <div class="order-card-top">
-                        <div class="order-id-group">
-                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
-                            <a href="#" class="order-id">407281026</a>
-                        </div>
-                        <span class="order-status status-pending">
-                            <span class="status-dot"></span> Chờ chốt lô
-                        </span>
+                <section class="order-list-section">
+                    <div class="order-list-heading">
+                        <h2>Danh sách đối tác Nhà cung cấp dược phẩm</h2>
+                        <span class="order-count">@suppliersList.Count() NCC</span>
                     </div>
-                    <div class="order-card-body">
-                        <div class="order-pharmacy">
-                            <div class="pharmacy-icon">✚</div>
-                            <div>
-                                <span class="pharmacy-code">D LANH-T NINH</span>
-                                <h3>QT DƯỢC LÀNH-TÂY NINH</h3>
-                                <p>Ấp Tân Qui Hạ, xã Hiệp Hoà, tỉnh Tây Ninh</p>
-                            </div>
-                        </div>
-                        <div class="order-card-meta">
-                            <div>
-                                <span class="meta-label">Ngày đặt hàng</span>
-                                <strong>28/10/2026</strong>
-                            </div>
-                            <div>
-                                <span class="meta-label">Đơn vị giao</span>
-                                <strong>WGHTK</strong>
-                            </div>
-                            <div class="order-total">
-                                <span class="meta-label">Tổng tiền</span>
-                                <strong>2.454.000 đ</strong>
-                            </div>
-                        </div>
-                    </div>
-                </article>
 
-                <!-- ORDER 3 -->
-                <article class="order-card">
-                    <div class="order-card-top">
-                        <div class="order-id-group">
-                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
-                            <a href="#" class="order-id">406281026</a>
+                    @if (!suppliersList.Any())
+                    {
+                        <div class="order-empty-box" style="padding: 30px; text-align: center; color: #64748B;">
+                            <h3>Không tìm thấy Nhà cung cấp nào</h3>
                         </div>
-                        <span class="order-status status-completed">
-                            <span class="status-dot"></span> Đã soạn xong
-                        </span>
-                    </div>
-                    <div class="order-card-body">
-                        <div class="order-pharmacy">
-                            <div class="pharmacy-icon">✚</div>
-                            <div>
-                                <span class="pharmacy-code">TH CHAU-B THANH</span>
-                                <h3>NT THI CHÂU-BÌNH THẠNH</h3>
-                                <p>685/45 Xô Viết Nghệ Tĩnh, Phường Bình Thạnh, HCM</p>
-                            </div>
-                        </div>
-                        <div class="order-card-meta">
-                            <div>
-                                <span class="meta-label">Ngày đặt hàng</span>
-                                <strong>28/10/2026</strong>
-                            </div>
-                            <div>
-                                <span class="meta-label">Đơn vị giao</span>
-                                <strong>WDOANH1</strong>
-                            </div>
-                            <div class="order-total">
-                                <span class="meta-label">Tổng tiền</span>
-                                <strong>1.915.500 đ</strong>
-                            </div>
-                        </div>
-                    </div>
-                </article>
+                    }
+                    else
+                    {
+                        @foreach (var supplier in suppliersList)
+                        {
+                            <article class="order-card">
+                                <div class="order-card-top">
+                                    <div class="order-id-group">
+                                        <span class="order-id-label">MÃ ĐỐI TÁC CUNG ỨNG</span>
+                                        <span class="order-id" style="cursor: default;">
+                                            NCC-@supplier.Supplierid.ToString("D4")
+                                        </span>
+                                    </div>
+                                    <div class="order-card-actions">
+                                        <span class="stock-tag-ok">Đối tác hoạt động</span>
+                                        <span class="order-status status-locked">Bên kho quản lý</span>
+                                    </div>
+                                </div>
 
-                <!-- ORDER 4 -->
-                <article class="order-card">
-                    <div class="order-card-top">
-                        <div class="order-id-group">
-                            <span class="order-id-label">MÃ ĐƠN HÀNG</span>
-                            <a href="#" class="order-id">405281026</a>
-                        </div>
-                        <span class="order-status status-pending">
-                            <span class="status-dot"></span> Chờ chốt lô
-                        </span>
-                    </div>
-                    <div class="order-card-body">
-                        <div class="order-pharmacy">
-                            <div class="pharmacy-icon">✚</div>
-                            <div>
-                                <span class="pharmacy-code">M KHANG-TH AN</span>
-                                <h3>HKDNT MINH KHANG-THỚI AN</h3>
-                                <p>326 Trần Thị Cờ, Khu Phố 20, Phường Thới An, TP.HCM</p>
-                            </div>
-                        </div>
-                        <div class="order-card-meta">
-                            <div>
-                                <span class="meta-label">Ngày đặt hàng</span>
-                                <strong>28/10/2026</strong>
-                            </div>
-                            <div>
-                                <span class="meta-label">Đơn vị giao</span>
-                                <strong>WLUAN</strong>
-                            </div>
-                            <div class="order-total">
-                                <span class="meta-label">Tổng tiền</span>
-                                <strong>4.035.900 đ</strong>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            </section>
+                                <div class="order-card-body">
+                                    <div class="order-pharmacy">
+                                        <span class="pharmacy-code">Công ty / Nhà máy sản xuất</span>
+                                        <h3>@supplier.Suppliername</h3>
+                                        <p>@(string.IsNullOrWhiteSpace(supplier.Address) ? "Chưa cập nhật địa chỉ trụ sở" : supplier.Address)</p>
+                                    </div>
+
+                                    <div class="order-card-meta">
+                                        <div>
+                                            <span class="meta-label">Điện thoại liên hệ</span>
+                                            <strong>@(string.IsNullOrWhiteSpace(supplier.Phone) ? "Chưa có" : supplier.Phone)</strong>
+                                        </div>
+                                        <div>
+                                            <span class="meta-label">Email làm việc</span>
+                                            <strong style="color: #0284C7;">@(string.IsNullOrWhiteSpace(supplier.Mail) ? "Chưa có" : supplier.Mail)</strong>
+                                        </div>
+                                        <div class="order-total">
+                                            <span class="meta-label">Trạng thái dữ liệu kho:</span>
+                                            <strong style="color: #176B50;">Đã xác thực danh mục NCC</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    }
+                </section>
+            }
 
             <footer class="order-page-footer">
                 <strong>PharmaMRP</strong>
-                <span>Hệ thống quản lý kho và bán hàng dược phẩm</span>
+                <span>Hệ thống quản lý kho thuốc và bán hàng</span>
             </footer>
         </main>
     </div>
 </div>
-```
+
+@section Scripts {
+    <script>
+        async function quickCompleteOrder(orderId) {
+            if (!confirm("Xác nhận cập nhật đơn hàng này thành ĐÃ XONG (Completed)?")) return;
+
+            try {
+                const res = await fetch('/Sales/Order/CompleteOrder?orderId=' + orderId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('✓ ' + data.message);
+                    window.location.reload();
+                } else {
+                    alert('✕ ' + data.message);
+                }
+            } catch (err) {
+                alert('✕ Lỗi: ' + err.message);
+            }
+        }
+    </script>
+}

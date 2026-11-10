@@ -1,189 +1,251 @@
-```cshtml
+@model IEnumerable<httt.Models.Product>
+
 @{
     ViewData["Title"] = "Tra cứu thuốc và tồn kho";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var productsList = Model?.ToList() ?? new List<httt.Models.Product>();
+    var totalProducts = productsList.Count;
+    var totalQuantity = productsList.Sum(p => p.Quantity ?? 0);
+    var lowStockProducts = productsList.Count(p => (p.Quantity ?? 0) <= 10 && (p.Quantity ?? 0) > 0);
+    var outOfStockProducts = productsList.Count(p => (p.Quantity ?? 0) == 0);
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/medicine-inventory.css" asp-append-version="true" />
 }
 
-<div class="inventory-page">
-    <aside class="inventory-sidebar">
-        <div class="inventory-brand">
-            <div class="inventory-logo">✚</div>
-            <div>
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
                 <h2>PharmaMRP</h2>
                 <span>HỆ THỐNG BÁN HÀNG</span>
             </div>
-        </div>
 
-        <p class="inventory-menu-title">MENU BÁN HÀNG</p>
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
 
-        <nav class="inventory-nav">
-            <a href="/Sales/Orders">
-                <span class="nav-icon">▤</span>
-                <span>Xem đơn hàng</span>
-            </a>
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item" href="/Sales/Orders">
+                    <span>Xem đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/ExportSlips">
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+                <a class="order-nav-item active" href="/Sales/MedicineInventory">
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/SalesAccount">
+                    <span>Tài khoản của tôi</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/RevenueReport">
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
 
-            <a href="/Sales/CreateOrder">
-                <span class="nav-icon">＋</span>
-                <span>Tạo đơn hàng thành phẩm</span>
-            </a>
-
-            <a href="/Sales/TransactionHistory">
-                <span class="nav-icon">◷</span>
-                <span>Lịch sử đơn hàng nhập xuất</span>
-            </a>
-
-            <a href="/Sales/ExportSlips">
-                <span class="nav-icon">⇧</span>
-                <span>Theo dõi phiếu xuất kho</span>
-            </a>
-
-            <a class="active" href="/Sales/MedicineInventory">
-                <span class="nav-icon">▦</span>
-                <span>Tra cứu thuốc và tồn kho</span>
-                <span class="nav-arrow">›</span>
-            </a>
-
-            <a href="/Sales/SalesAccount">
-                <span class="nav-icon">♟</span>
-                <span>Tài khoản của tôi</span>
-            </a>
-
-            <a href="/Sales/RevenueReport">
-                <span class="nav-icon">▥</span>
-                <span>Thống kê, báo cáo doanh thu</span>
-            </a>
-        </nav>
-
-        <div class="inventory-user">
-            <div class="user-avatar">NV</div>
-            <div>
-                <strong>Nhân viên bán hàng</strong>
-                <span>sales_user</span>
-            </div>
-        </div>
-    </aside>
-
-    <main class="inventory-main">
-        <header class="inventory-heading">
-            <div>
-                <div class="inventory-breadcrumb">
-                    <span>Trang chủ</span>
-                    <span>/</span>
-                    <span>Bán hàng</span>
-                    <span>/</span>
-                    <strong>Tra cứu thuốc và tồn kho</strong>
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
                 </div>
-
-                <h1>Tra cứu thuốc và tồn kho</h1>
-                <p>Tra cứu thông tin thuốc, giá bán và số lượng thuốc hiện có trong kho.</p>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
             </div>
 
-            <button type="button" class="inventory-heading-icon" title="Tra cứu thuốc">
-                ▦
-            </button>
-        </header>
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user • Pharma Store</span>
+                </div>
+            </div>
+        </aside>
 
-        <section class="inventory-statistics">
-            <div class="inventory-stat-card">
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="inventory-main">
+
+            <div class="inventory-heading">
                 <div>
-                    <span>Tổng số loại thuốc</span>
-                    <strong id="totalMedicines">0</strong>
-                    <small>Danh mục thuốc minh họa</small>
-                </div>
-                <div class="stat-icon green">▦</div>
-            </div>
-
-            <div class="inventory-stat-card">
-                <div>
-                    <span>Tổng số lượng tồn</span>
-                    <strong id="totalQuantity">0</strong>
-                    <small>Tổng số hộp thuốc trong kho</small>
-                </div>
-                <div class="stat-icon blue">▤</div>
-            </div>
-
-            <div class="inventory-stat-card">
-                <div>
-                    <span>Sắp hết hàng</span>
-                    <strong id="lowStockCount">0</strong>
-                    <small>Thuốc có tồn kho từ 10 hộp trở xuống</small>
-                </div>
-                <div class="stat-icon orange">◷</div>
-            </div>
-        </section>
-
-        <section class="inventory-panel">
-            <div class="inventory-panel-heading">
-                <h2>Tìm kiếm thuốc</h2>
-                <p>Nhập mã thuốc hoặc tên thuốc để tra cứu thông tin.</p>
-            </div>
-
-            <div class="inventory-filter">
-                <div class="filter-field search-field">
-                    <label for="medicineSearch">Mã thuốc / Tên thuốc</label>
-                    <input
-                        type="text"
-                        id="medicineSearch"
-                        placeholder="Nhập mã hoặc tên thuốc..." />
-                </div>
-
-                <div class="filter-field">
-                    <label for="stockFilter">Tình trạng tồn kho</label>
-                    <select id="stockFilter">
-                        <option value="">Tất cả tình trạng</option>
-                        <option value="available">Còn hàng</option>
-                        <option value="low">Sắp hết hàng</option>
-                        <option value="out">Hết hàng</option>
-                    </select>
-                </div>
-
-                <div class="filter-actions">
-                    <button type="button" id="searchButton" class="btn-search">
-                        ⌕ Tìm kiếm
-                    </button>
-                    <button type="button" id="resetButton" class="btn-reset">
-                        Xóa lọc
-                    </button>
+                    <div class="inventory-breadcrumb">
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>Tra cứu thuốc & tồn kho</strong>
+                    </div>
+                    <h1>Tra cứu danh mục thuốc và tồn kho</h1>
+                    <p>Theo dõi số lượng tồn thực tế, đơn giá vốn và trạng thái khả dụng của từng thành phẩm trong kho.</p>
                 </div>
             </div>
 
-            <div class="inventory-table-wrapper">
-                <table class="inventory-table">
-                    <thead>
-                        <tr>
-                            <th>Mã thuốc</th>
-                            <th>Tên thuốc</th>
-                            <th>Đơn vị</th>
-                            <th>Số lượng tồn</th>
-                            <th>Giá bán</th>
-                            <th>Thành tiền tồn kho</th>
-                            <th>Trạng thái</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="medicineTableBody">
-                    </tbody>
-                </table>
+            <!-- THẺ THỐNG KÊ (SUMMARY CARDS) -->
+            <div class="inventory-statistics">
+                <div class="inventory-stat-card">
+                    <div>
+                        <span>Tổng mặt hàng thuốc</span>
+                        <strong>@totalProducts.ToString("D2")</strong>
+                        <small>Loại thuốc có trong danh mục</small>
+                    </div>
+                </div>
+                <div class="inventory-stat-card">
+                    <div>
+                        <span>Tổng tồn thực tế</span>
+                        <strong style="color: var(--primary);">@totalQuantity.ToString("N0")</strong>
+                        <small>Tổng đơn vị thuốc trong kho</small>
+                    </div>
+                </div>
+                <div class="inventory-stat-card @(lowStockProducts > 0 || outOfStockProducts > 0 ? "stat-alert" : "")">
+                    <div>
+                        <span>Cảnh báo tồn kho</span>
+                        <strong>@lowStockProducts</strong>
+                        <small>Sắp hết (&le; 10) • Hết hàng: @outOfStockProducts</small>
+                    </div>
+                </div>
             </div>
 
-            <div class="inventory-table-footer">
-                <span id="resultCount">Đang hiển thị 0 loại thuốc</span>
-                <span>Đơn vị tiền: VNĐ</span>
-            </div>
-        </section>
+            <!-- BẢNG TRA CỨU & BỘ LỌC TÌM KIẾM -->
+            <section class="inventory-panel">
+                <div class="inventory-panel-heading">
+                    <h2>Danh sách thuốc thành phẩm</h2>
+                    <p>Tìm kiếm theo mã sản phẩm hoặc tên hoạt chất thuốc để tra cứu nhanh số lượng tồn.</p>
+                </div>
 
-        <div class="inventory-note">
-            <strong>Lưu ý:</strong> Dữ liệu hiện tại là dữ liệu minh họa để hoàn thiện giao diện.
-            Trang chưa kết nối với cơ sở dữ liệu thuốc và tồn kho của hệ thống.
-        </div>
-    </main>
+                <div class="inventory-filter">
+                    <div class="filter-field">
+                        <label for="searchInput">Tìm kiếm tên thuốc / mã SP</label>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Nhập tên thuốc hoặc mã SP..." onkeyup="filterInventoryTable()" />
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="stockFilter">Tình trạng tồn kho</label>
+                        <select id="stockFilter" class="form-select" onchange="filterInventoryTable()">
+                            <option value="">Tất cả tình trạng</option>
+                            <option value="available">Còn hàng (> 10)</option>
+                            <option value="low">Sắp hết hàng (&le; 10)</option>
+                            <option value="out">Hết hàng (= 0)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="button" class="btn-reset" onclick="resetInventoryFilter()">Đặt lại</button>
+                    </div>
+                </div>
+
+                <div class="inventory-table-wrapper">
+                    <table class="inventory-table" id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 45px; text-align: center;">STT</th>
+                                <th style="width: 120px;">Mã sản phẩm</th>
+                                <th>Tên thuốc thành phẩm</th>
+                                <th style="width: 80px; text-align: center;">ĐVT</th>
+                                <th style="width: 100px; text-align: center;">Tồn thực tế</th>
+                                <th style="width: 130px; text-align: right;">Đơn giá vốn</th>
+                                <th style="width: 120px; text-align: center;">Tình trạng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!productsList.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" class="empty-inventory-cell">
+                                        Hiện không có dữ liệu thuốc nào trong kho.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int idx = 1;
+                                @foreach (var prod in productsList)
+                                {
+                                    int stock = prod.Quantity ?? 0;
+                                    string stockStatusClass = stock > 10 ? "stock-available" : (stock > 0 ? "stock-low" : "stock-out");
+                                    string stockStatusText = stock > 10 ? "Đủ hàng" : (stock > 0 ? "Sắp hết" : "Hết hàng");
+                                    string stockType = stock > 10 ? "available" : (stock > 0 ? "low" : "out");
+
+                                    <tr data-name="@(prod.Productname?.ToLower() ?? "")" data-code="@($"sp-{prod.Productid:D4}")" data-stock-type="@stockType">
+                                        <td style="text-align: center; color: var(--text-muted);">@(idx++)</td>
+                                        <td>
+                                            <strong class="medicine-code">SP-@prod.Productid.ToString("D4")</strong>
+                                        </td>
+                                        <td>
+                                            <strong class="medicine-name">@prod.Productname</strong>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="medicine-unit">@(string.IsNullOrWhiteSpace(prod.Unit) ? "Hộp" : prod.Unit)</span>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="medicine-stock-val">@stock</span>
+                                        </td>
+                                        <td style="text-align: right;" class="medicine-price">
+                                            @((prod.Cost ?? 0).ToString("N0")) đ
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="stock-badge @stockStatusClass">@stockStatusText</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="inventory-table-footer">
+                    <span>Hiển thị: <strong id="visibleCount">@totalProducts</strong> / @totalProducts sản phẩm</span>
+                    <span>Dữ liệu đồng bộ trực tiếp từ Supabase</span>
+                </div>
+            </section>
+
+            <footer class="inventory-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho thuốc và bán hàng</span>
+            </footer>
+        </main>
+    </div>
 </div>
 
 @section Scripts {
-    <script src="~/js/medicine-inventory.js" asp-append-version="true"></script>
+    <script>
+        function filterInventoryTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('stockFilter').value;
+            const rows = document.querySelectorAll('#inventoryTable tbody tr[data-name]');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const code = row.getAttribute('data-code') || '';
+                const stockType = row.getAttribute('data-stock-type') || '';
+
+                const matchesQuery = !query || name.includes(query) || code.includes(query);
+                const matchesStatus = !statusFilter || stockType === statusFilter;
+
+                if (matchesQuery && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('visibleCount').innerText = visibleCount;
+        }
+
+        function resetInventoryFilter() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('stockFilter').value = '';
+            filterInventoryTable();
+        }
+    </script>
 }
-```

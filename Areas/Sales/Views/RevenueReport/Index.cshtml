@@ -1,0 +1,309 @@
+@using httt.Areas.Sales.Controllers
+@model IEnumerable<httt.Models.SaleOrder>
+@{
+    ViewData["Title"] = "Thống kê Doanh thu & Lợi nhuận";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var productReports = ViewBag.ProductReports as List<TopProductReportDto> ?? new List<TopProductReportDto>();
+
+    decimal realRevenue = ViewBag.RealRevenue != null ? (decimal)ViewBag.RealRevenue : 0m;
+    decimal realCost = ViewBag.RealCost != null ? (decimal)ViewBag.RealCost : 0m;
+    decimal realProfit = ViewBag.RealProfit != null ? (decimal)ViewBag.RealProfit : 0m;
+    decimal overallMargin = realRevenue > 0 ? Math.Round((realProfit / realRevenue) * 100, 1) : 0;
+    int completedOrders = ViewBag.CompletedOrders != null ? (int)ViewBag.CompletedOrders : 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/revenue-report.css" asp-append-version="true" />
+}
+
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
+            </div>
+
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item" href="/Sales/Orders">
+                    <span>Xem đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/ExportSlips">
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/SalesAccount">
+                    <span>Tài khoản của tôi</span>
+                </a>
+                <a class="order-nav-item active" href="/Sales/RevenueReport">
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
+                    <strong>Nhân viên bán hàng</strong>
+                    <span>sales_user • Pharma Store</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="order-main">
+            <div class="order-heading compact-heading">
+                <div>
+                    <div class="order-breadcrumb">
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>Báo cáo lợi nhuận</strong>
+                    </div>
+                    <h1>Báo cáo Doanh thu & Lợi nhuận Bán thuốc</h1>
+                    <p>Số liệu kinh doanh được tính toán từ Giá bán (cost) và Giá vốn NVL (materialcost) trong bảng Product.</p>
+                </div>
+            </div>
+
+            <!-- 3 THẺ CHỈ SỐ TÀI CHÍNH THỰC THU -->
+            <div class="profit-summary-grid">
+                <div class="profit-stat-card">
+                    <span class="stat-title">Doanh thu thực tế</span>
+                    <strong class="stat-number">@realRevenue.ToString("N0") đ</strong>
+                    <small>Từ @completedOrders đơn đã hoàn tất</small>
+                </div>
+
+                <div class="profit-stat-card">
+                    <span class="stat-title">Giá vốn NVL (materialcost)</span>
+                    <strong class="stat-number cost-number">@realCost.ToString("N0") đ</strong>
+                    <small>Chi phí nguyên vật liệu định mức</small>
+                </div>
+
+                <div class="profit-stat-card highlight-profit">
+                    <span class="stat-title">Lợi nhuận thực tế</span>
+                    <strong class="stat-number profit-number">+@realProfit.ToString("N0") đ</strong>
+                    <small>Tỷ suất sinh lời: <strong style="color: var(--theme-green-text);">@overallMargin%</strong></small>
+                </div>
+            </div>
+
+            <!-- BẢNG ĐỐI CHIẾU: GIÁ BÁN - GIÁ VỐN NVL (MATERIALCOST) - TIỀN LỜI -->
+            <section class="revenue-card-section">
+                <div class="section-title-wrap">
+                    <div>
+                        <h2>Bảng đối chiếu Giá Bán - Giá Vốn NVL (materialcost) - Tiền Lời Thành Phẩm</h2>
+                        <p>Dữ liệu tính trên các đơn hàng đã chuyển trạng thái ĐÃ XONG (Completed)</p>
+                    </div>
+                    <span class="badge-accent">@productReports.Count mặt hàng</span>
+                </div>
+
+                <div class="table-container">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th class="col-center" style="width: 40px;">STT</th>
+                                <th>Tên thuốc thành phẩm</th>
+                                <th class="col-center" style="width: 80px;">Đã xuất</th>
+                                <th class="col-right" style="width: 120px;">Đơn giá bán (cost)</th>
+                                <th class="col-right" style="width: 130px;">Giá vốn NVL (materialcost)</th>
+                                <th class="col-right" style="width: 110px;">Lời / 1 ĐV</th>
+                                <th class="col-right" style="width: 125px;">Tổng doanh thu</th>
+                                <th class="col-right" style="width: 125px;">Tổng tiền lời</th>
+                                <th class="col-center" style="width: 75px;">Tỷ suất</th>
+                                <th class="col-center" style="width: 75px;">BOM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!productReports.Any())
+                            {
+                                <tr>
+                                    <td colspan="10" class="col-center empty-notice">Chưa có dữ liệu thống kê sản phẩm nào.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int idx = 1;
+                                foreach (var p in productReports)
+                                {
+                                    <tr>
+                                        <td class="col-center text-muted">@(idx++)</td>
+                                        <td>
+                                            <strong class="prod-title">@p.ProductName</strong>
+                                            <span class="unit-text">(@p.Unit)</span>
+                                        </td>
+                                        <td class="col-center">
+                                            @if (p.TotalQuantity > 0)
+                                            {
+                                                <strong style="color: var(--text-title);">@p.TotalQuantity.ToString("N0")</strong>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0</span>
+                                            }
+                                        </td>
+                                        <td class="col-right font-medium">@p.UnitSellingPrice.ToString("N0") đ</td>
+                                        <td class="col-right" style="color: #64748B; font-weight: 600;">@p.UnitBomCost.ToString("N0") đ</td>
+                                        <td class="col-right font-bold profit-text">
+                                            @(p.ProfitPerUnit > 0 ? "+" + p.ProfitPerUnit.ToString("N0") + " đ" : (p.ProfitPerUnit < 0 ? p.ProfitPerUnit.ToString("N0") + " đ" : "0 đ"))
+                                        </td>
+                                        <td class="col-right">
+                                            @if (p.TotalSales > 0)
+                                            {
+                                                <strong>@p.TotalSales.ToString("N0") đ</strong>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 đ</span>
+                                            }
+                                        </td>
+                                        <td class="col-right font-bold profit-text">
+                                            @if (p.TotalProfit > 0)
+                                            {
+                                                <span>+@p.TotalProfit.ToString("N0") đ</span>
+                                            }
+                                            else if (p.TotalProfit < 0)
+                                            {
+                                                <span style="color: #DC2626;">@p.TotalProfit.ToString("N0") đ</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 đ</span>
+                                            }
+                                        </td>
+                                        <td class="col-center">
+                                            @if (p.TotalSales > 0)
+                                            {
+                                                <span class="margin-badge">@p.MarginPercent%</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td class="col-center">
+                                            @if (p.HasBom)
+                                            {
+                                                <button type="button" class="btn-bom-detail" onclick='viewBomDetail(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(p)))'>
+                                                    Xem NVL
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="font-size: 9.5px;">Chưa có</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="order-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho thuốc và tính toán tài chính dược phẩm</span>
+            </footer>
+        </main>
+    </div>
+</div>
+
+<!-- MODAL POPUP XEM CHI TIẾT NGUYÊN LIỆU BOM -->
+<div id="bomModal" class="modal-overlay" hidden>
+    <div class="bom-modal-box">
+        <div class="modal-header">
+            <div>
+                <h3 id="bomModalTitle">Chi tiết định mức nguyên vật liệu (BOM)</h3>
+                <p id="bomModalSubTitle" style="font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 0;"></p>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeBomModal()">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 10px 14px;">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th class="col-center" style="width: 35px;">STT</th>
+                        <th>Tên hoạt chất / Nguyên liệu</th>
+                        <th class="col-center" style="width: 70px;">ĐVT</th>
+                        <th class="col-right" style="width: 90px;">Định mức</th>
+                        <th class="col-right" style="width: 110px;">Đơn giá NVL</th>
+                        <th class="col-right" style="width: 120px;">Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody id="bomIngredientsBody"></tbody>
+                <tfoot>
+                    <tr style="background: #f8fafc; font-weight: 750;">
+                        <td colspan="5" class="col-right">Giá vốn NVL định mức (materialcost):</td>
+                        <td id="bomModalTotal" class="col-right profit-text" style="font-size: 12.5px;"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="modal-footer" style="padding: 8px 14px; text-align: right; border-top: 1px solid var(--border-soft);">
+            <button type="button" class="btn-action order-btn-reset" onclick="closeBomModal()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewBomDetail(product) {
+            document.getElementById('bomModalTitle').textContent = 'Công thức BOM: ' + product.ProductName;
+            document.getElementById('bomModalSubTitle').textContent = 'Đơn giá bán ra: ' + product.UnitSellingPrice.toLocaleString() + ' đ / ' + product.Unit;
+
+            let html = '';
+            if (product.Ingredients && product.Ingredients.length > 0) {
+                product.Ingredients.forEach((item, idx) => {
+                    html += `
+                        <tr>
+                            <td class="col-center text-muted">${idx + 1}</td>
+                            <td><strong>${item.IngrName}</strong> <small style="color:var(--text-muted);">(NVL-${item.IngrId})</small></td>
+                            <td class="col-center">${item.Unit}</td>
+                            <td class="col-right">${item.Quantity}</td>
+                            <td class="col-right">${item.UnitPrice.toLocaleString()} đ</td>
+                            <td class="col-right font-medium">${item.SubTotal.toLocaleString()} đ</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html = `<tr><td colspan="6" class="col-center empty-notice">Giá vốn định mức: ${product.UnitBomCost.toLocaleString()} đ (được nạp trực tiếp từ cột materialcost trong bảng Product).</td></tr>`;
+            }
+
+            document.getElementById('bomIngredientsBody').innerHTML = html;
+            document.getElementById('bomModalTotal').textContent = product.UnitBomCost.toLocaleString() + ' đ / ' + product.Unit;
+            document.getElementById('bomModal').hidden = false;
+        }
+
+        function closeBomModal() {
+            document.getElementById('bomModal').hidden = true;
+        }
+
+        document.getElementById('bomModal').addEventListener('click', function(e) {
+            if (e.target === this) closeBomModal();
+        });
+    </script>
+}

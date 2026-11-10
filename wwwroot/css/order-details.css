@@ -1,0 +1,431 @@
+/* ==========================================================================
+   PHARMAMRP - ORDER DETAILS STYLES (CLEAN & HARMONIOUS ERP THEME)
+   File: wwwroot/css/order-details.css
+   ========================================================================== */
+
+:root {
+    --primary: #158058;
+    --primary-hover: #0f6243;
+    --primary-light: #eef7f3;
+    --primary-border: #c8e6d9;
+
+    --text-title: #0f172a;
+    --text-body: #334155;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+
+    --border-soft: #e2e8f0;
+    --border-light: #f1f5f9;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+
+    /* Theme colors pastel dịu mắt */
+    --theme-green-text: #166534;
+    --theme-green-bg: #f0fdf4;
+    --theme-green-border: #bbf7d0;
+
+    --theme-amber-text: #92400e;
+    --theme-amber-bg: #fffbeb;
+    --theme-amber-border: #fde68a;
+
+    --theme-blue-text: #0369a1;
+    --theme-blue-bg: #f0f9ff;
+    --theme-blue-border: #bae6fd;
+
+    --theme-indigo-text: #3730a3;
+    --theme-indigo-bg: #e0e7ff;
+    --theme-indigo-border: #c7d2fe;
+
+    --theme-red-text: #991b1b;
+    --theme-red-bg: #fef2f2;
+    --theme-red-border: #fecaca;
+}
+
+/* 1. BREADCRUMB & HEADER */
+.order-page .order-breadcrumb {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.order-page .breadcrumb-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.order-page .breadcrumb-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.order-page .order-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.order-page .order-heading h1 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-title);
+    margin: 0 0 2px 0;
+    letter-spacing: -0.3px;
+}
+
+.order-page .order-heading p {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.order-page .order-heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* 2. BUTTONS & PILLS TRẠNG THÁI */
+.order-page .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+/* Nút Chốt giữ số lượng */
+.order-page .btn-lock {
+    background: #ffffff;
+    color: var(--primary);
+    border-color: var(--primary-border);
+}
+
+.order-page .btn-lock:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.order-page .btn-hold-active {
+    background: var(--theme-indigo-bg) !important;
+    color: var(--theme-indigo-text) !important;
+    border-color: var(--theme-indigo-border) !important;
+}
+
+.order-page .btn-close-detail {
+    background: #ffffff;
+    color: var(--text-secondary);
+    border-color: var(--border-soft);
+}
+
+.order-page .btn-close-detail:hover {
+    color: var(--text-title);
+    border-color: #cbd5e1;
+}
+
+/* 3. ALERT BOXES */
+.order-page .order-alert-box {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    box-sizing: border-box;
+}
+
+.order-page .alert-danger-custom {
+    color: var(--theme-red-text);
+    background-color: var(--theme-red-bg);
+    border: 1px solid var(--theme-red-border);
+}
+
+.order-page .alert-success-custom {
+    color: var(--theme-green-text);
+    background-color: var(--theme-green-bg);
+    border: 1px solid var(--theme-green-border);
+}
+
+/* 4. CARDS GRID THÔNG TIN KHÁCH HÀNG & ĐƠN HÀNG */
+.order-page .order-detail-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.order-page .detail-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.order-page .card-icon-title {
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.order-page .card-icon-title h3 {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 9.5px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.order-page .detail-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+}
+
+.order-page .detail-info-row span {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.order-page .detail-info-row strong {
+    color: var(--text-title);
+    font-weight: 700;
+    text-align: right;
+}
+
+.order-page .detail-info-row p {
+    margin: 0;
+    color: var(--text-body);
+    font-weight: 500;
+    text-align: right;
+    max-width: 65%;
+    line-height: 1.4;
+}
+
+.order-page .detail-info-row .code-text {
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 12px;
+}
+
+.order-page .detail-info-row.total-highlight {
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-soft);
+}
+
+.order-page .total-amount-text {
+    color: #0f172a;
+    font-size: 14.5px;
+    font-weight: 850;
+}
+
+/* Status pills */
+.order-page .status-pill {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+/* 5. TABLE SECTION */
+.order-page .order-detail-table-section {
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+    box-sizing: border-box;
+}
+
+.order-page .table-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.order-page .table-section-header h2 {
+    margin: 0;
+    color: var(--text-title);
+    font-size: 13px;
+    font-weight: 750;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.order-page .order-count {
+    display: inline-block;
+    padding: 2px 7px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid var(--border-soft);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 650;
+}
+
+.order-page .table-responsive-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+}
+
+.order-page .detail-stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    color: var(--text-body);
+}
+
+.order-page .detail-stock-table thead th {
+    padding: 7px 10px;
+    color: var(--text-secondary);
+    background-color: #f8fafc;
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid var(--border-soft);
+    white-space: nowrap;
+}
+
+.order-page .detail-stock-table tbody td {
+    padding: 7px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.order-page .detail-stock-table tbody tr:hover td {
+    background-color: #f8fafc;
+}
+
+.order-page .detail-stock-table tbody tr.row-shortage td {
+    background-color: #fffafa;
+}
+
+.order-page .product-name {
+    display: block;
+    font-weight: 700;
+    color: var(--text-title);
+    font-size: 11.5px;
+}
+
+.order-page .product-unit-text {
+    display: block;
+    margin-top: 1px;
+    color: var(--text-muted);
+    font-size: 10px;
+}
+
+.order-page .qty-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    padding: 1px 5px;
+    color: var(--text-title);
+    background: #f1f5f9;
+    border: 1px solid var(--border-soft);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.order-page .stock-val {
+    color: var(--primary);
+    font-weight: 750;
+}
+
+.order-page .stock-val-zero {
+    color: var(--theme-red-text);
+    font-weight: 750;
+}
+
+/* Tag trạng thái tồn kho */
+.order-page .tag-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.order-page .tag-danger {
+    background: var(--theme-red-bg);
+    color: var(--theme-red-text);
+    border: 1px solid var(--theme-red-border);
+}
+
+.order-page .tag-success {
+    background: var(--theme-green-bg);
+    color: var(--theme-green-text);
+    border: 1px solid var(--theme-green-border);
+}
+
+/* Footer bảng */
+.order-page .table-section-footer {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.order-page .order-btn-reset {
+    background: #ffffff;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-soft);
+    height: 30px;
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 650;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.order-page .order-btn-reset:hover {
+    color: var(--text-title);
+    border-color: #cbd5e1;
+}
+
+/* Utilities */
+.order-page .col-center { text-align: center; }
+.order-page .col-right { text-align: right; }
+.order-page .text-muted { color: var(--text-muted); }
+
+/* 6. RESPONSIVE */
+@media (max-width: 768px) {
+    .order-page .order-detail-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}

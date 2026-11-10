@@ -124,7 +124,7 @@
 
             <!-- User Dropdown -->
             <div class="dropdown">
-                <button class="adm-user-btn dropdown-toggle" type="button"
+                <button class="adm-user-btn" type="button"
                         data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu người dùng">
                     <span class="adm-user-avatar" aria-hidden="true">A</span>
                     <span class="adm-user-info d-none d-sm-flex">
@@ -219,12 +219,16 @@
         }
 
         document.querySelectorAll('form').forEach(function (form) {
-            if (form.dataset.adminSubmitBound === 'true') {
+            if (form.dataset.adminSubmitBound === 'true' || form.dataset.ajaxForm === 'true' || form.hasAttribute('novalidate')) {
                 return;
             }
 
             form.dataset.adminSubmitBound = 'true';
             form.addEventListener('submit', function (event) {
+                if (event.defaultPrevented || form.dataset.ajaxForm === 'true' || !form.checkValidity()) {
+                    return;
+                }
+
                 const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
                 if (!submitButton) {
                     return;

@@ -394,6 +394,10 @@ body.admin-layout {
     border-color: #e2e8f0;
 }
 
+.adm-user-btn.dropdown-toggle::after {
+    display: none !important;
+}
+
 .adm-user-avatar {
     width: 2rem;
     height: 2rem;
@@ -585,26 +589,26 @@ body.admin-layout {
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
-    opacity: 0.15;
-    transition: opacity var(--adm-transition);
+    opacity: 1;
+    transition: transform var(--adm-transition), box-shadow var(--adm-transition);
     pointer-events: none;
 }
 
 .adm-kpi-card:hover .adm-kpi-icon-wrap {
-    opacity: 0.25;
+    transform: scale(1.06);
 }
 
-/* Color variants */
-.adm-kpi-card--primary .adm-kpi-icon-wrap { background: var(--adm-primary); color: var(--adm-primary); }
+/* Color variants: nền pastel nhạt, icon màu đậm sắc nét */
+.adm-kpi-card--primary .adm-kpi-icon-wrap { background: rgba(99, 102, 241, 0.14); color: #4f46e5; }
 .adm-kpi-card--primary .adm-kpi-value { color: var(--adm-primary); }
 
-.adm-kpi-card--success .adm-kpi-icon-wrap { background: var(--adm-success); color: var(--adm-success); }
+.adm-kpi-card--success .adm-kpi-icon-wrap { background: rgba(16, 185, 129, 0.14); color: #059669; }
 .adm-kpi-card--success .adm-kpi-value { color: var(--adm-success); }
 
-.adm-kpi-card--warning .adm-kpi-icon-wrap { background: var(--adm-warning); color: var(--adm-warning); }
+.adm-kpi-card--warning .adm-kpi-icon-wrap { background: rgba(245, 158, 11, 0.14); color: #d97706; }
 .adm-kpi-card--warning .adm-kpi-value { color: var(--adm-warning); }
 
-.adm-kpi-card--info .adm-kpi-icon-wrap { background: var(--adm-info); color: var(--adm-info); }
+.adm-kpi-card--info .adm-kpi-icon-wrap { background: rgba(6, 182, 212, 0.14); color: #0891b2; }
 .adm-kpi-card--info .adm-kpi-value { color: var(--adm-info); }
 
 /* Accent top bar */
@@ -1564,3 +1568,117 @@ body.admin-layout {
     animation: admAlertIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
+
+
+/* ============================================================
+   Admin › Quản lý tài khoản (UserAccount/Index + _UserTable)
+   ============================================================ */
+
+/* Bảng cuộn dọc trong khung cố định + Sticky Header */
+.adm-table-wrapper {
+    position: relative;
+    max-height: calc(100vh - 330px);
+    min-height: 320px;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.adm-table-wrapper .adm-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: #f8fafc;
+    box-shadow: inset 0 -1px 0 #e2e8f0;
+}
+
+/* Trạng thái đang tải lại bảng (AJAX) */
+#userTableHost {
+    transition: opacity 0.15s ease;
+}
+
+#userTableHost.is-loading {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+/* Badge trạng thái chuẩn hóa: Active / Blocked / Disabled */
+.adm-badge--blocked {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.adm-badge--disabled {
+    background-color: rgba(148, 163, 184, 0.16);
+    color: #475569;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Thanh thao tác hàng loạt */
+.adm-bulk-bar {
+    display: none;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #f8fafc;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);
+    animation: admBulkIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.adm-bulk-bar.d-flex {
+    display: flex !important;
+}
+
+@keyframes admBulkIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.adm-bulk-badge {
+    background: rgba(99, 102, 241, 0.25);
+    color: #c7d2fe;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+/* Empty state */
+.adm-empty-graphic {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    font-size: 2.25rem;
+    color: var(--adm-primary, #6366f1);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(129, 140, 248, 0.05));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
+}
+
+/* Form trong modal: hiển thị lỗi inline ngay khi gõ */
+.adm-modal .form-control.is-invalid ~ .invalid-feedback,
+.adm-modal .form-select.is-invalid ~ .invalid-feedback,
+.adm-modal .input-group .is-invalid ~ .invalid-feedback {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.adm-action-group .adm-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .adm-bulk-bar,
+    #userTableHost {
+        animation: none;
+        transition: none;
+    }
+}

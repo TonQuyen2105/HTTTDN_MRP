@@ -69,8 +69,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.Events = new CookieAuthenticationEvents
         {
-            // Chỉ kiểm tra dữ liệu đã được lưu trong Cookie. Không query DB ở mỗi request
-            // để tránh tốn băng thông/Supabase round-trip cho mọi trang.
+            // Request AJAX (fetch) không được redirect sang trang login/AccessDenied (HTML 200 làm client
+            // parse JSON lỗi) mà phải nhận 401/403 để hiển thị "phiên đã hết hạn".
+            OnRedirectToLogin = context =>
+            {
+                if (context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                else
+                    context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = context =>
+            {
+                if (context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                else
+                    context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            },
+            // Kiểm tra claim trong cookie, sau đó đối chiếu DB (kết quả cache 30s)
+            // để tài khoản bị khóa/xóa/đổi vai trò bị thu hồi phiên gần như tức thì.
             OnValidatePrincipal = async context =>
             {
                 var principal = context.Principal;
@@ -84,12 +102,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 var idValue = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var roleValue = principal.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
-                if (!int.TryParse(idValue, out _) ||
-                    string.IsNullOrWhiteSpace(roleValue) ||
-                    !string.Equals(roleValue, "Admin", StringComparison.OrdinalIgnoreCase))
+                if (!int.TryParse(idValue, out var userId) || string.IsNullOrWhiteSpace(roleValue))
                 {
                     context.RejectPrincipal();
                     await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return;
+                }
+
+                try
+                {
+                    var accountService = context.HttpContext.RequestServices.GetRequiredService<UserAccountService>();
+                    // Kiểm tra tài khoản còn tồn tại, đang Active và vai trò DB còn khớp với claim
+                    if (!await accountService.IsActiveUserSessionAsync(userId, roleValue))
+                    {
+                        context.RejectPrincipal();
+                        await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // DB tạm thời không truy cập được: giữ phiên thay vì đăng xuất hàng loạt
+                    context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("UserSession")
+                        .LogWarning(ex, "Could not re-validate session for user {UserId}.", userId);
                 }
             }
         };

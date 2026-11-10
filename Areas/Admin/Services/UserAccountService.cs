@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Npgsql;
+using httt.Areas.Admin.ViewModels;
 using httt.Data;
 using httt.Models;
 
@@ -21,38 +23,64 @@ public class UserAccountCreateDto
 
 /// <summary>
 /// Service xử lý toàn bộ logic nghiệp vụ tài khoản trong Admin area.
-/// Tách biệt khỏi Controller để dễ unit-test và tối ưu hóa hiệu năng mạng với Supabase.
+/// Mọi thao tác có thể làm mất Admin Active cuối cùng đều chạy trong transaction
+/// được tuần tự hóa bằng PostgreSQL advisory lock (xem <see cref="RunGuardedAsync"/>).
 /// </summary>
 public class UserAccountService
 {
+    /// <summary>Khóa advisory toàn cục: chỉ 1 thao tác "đụng tới Admin" được chạy tại một thời điểm.</summary>
+    private const long AdminGuardLockKey = 704_270_001L;
+
+    private static readonly TimeSpan SessionCacheTtl = TimeSpan.FromSeconds(30);
+
+    private const string MsgLastAdmin =
+        "Không thể thực hiện vì hệ thống bắt buộc phải duy trì ít nhất 1 Quản trị viên (Admin) đang hoạt động.";
+
+    private const string MsgSelf =
+        "Bạn không thể khóa, xóa hoặc thay đổi vai trò của chính tài khoản đang đăng nhập.";
+
+    private const string MsgNotFound = "Không tìm thấy tài khoản.";
+
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<UserAccountService> _logger;
 
-    // Danh sách role hợp lệ của hệ thống
-    public static readonly string[] AllowedRoles =
-    [
-        "Admin", "Manager", "Employee", "Production", "Warehouse", "Sales", "Kho", "BanHang"
-    ];
+    // Hash giả dùng để cân bằng thời gian phản hồi khi username không tồn tại (chống dò tài khoản qua timing).
+    private static readonly Lazy<string> DummyHash =
+        new(() => BCrypt.Net.BCrypt.HashPassword("timing-equalizer-not-a-real-password", workFactor: 12));
 
-    public UserAccountService(ApplicationDbContext context)
+    /// <summary>Danh sách role hợp lệ của hệ thống (giữ lại để tương thích mã cũ).</summary>
+    public static IReadOnlyList<string> AllowedRoles => UserAccountRules.Roles;
+
+    public UserAccountService(
+        ApplicationDbContext context,
+        IMemoryCache cache,
+        ILogger<UserAccountService> logger)
     {
         _context = context;
+        _cache = cache;
+        _logger = logger;
     }
 
-    // ── Password Hashing ──────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    //  PASSWORD
+    // ══════════════════════════════════════════════════════════════════════
 
-    /// <summary>Hash mật khẩu dạng plain-text bằng BCrypt (work factor 12).</summary>
+    /// <summary>Hash mật khẩu dạng plain-text bằng BCrypt (work factor 12). KHÔNG trim mật khẩu.</summary>
     public static string HashPassword(string plainPassword)
         => BCrypt.Net.BCrypt.HashPassword(plainPassword, workFactor: 12);
 
-    private static bool IsValidPassword(string password) => !string.IsNullOrWhiteSpace(password) && password.Trim().Length >= 12;
-
     /// <summary>
-    /// Kiểm tra mật khẩu nhập vào khớp với hash trong DB.
-    /// Sử dụng BCrypt.Net.BCrypt.Verify, đồng thời hỗ trợ dữ liệu legacy nếu có.
+    /// Kiểm tra mật khẩu nhập vào khớp với hash trong DB (BCrypt).
+    /// Vẫn nhận diện dữ liệu legacy để <see cref="UpgradePasswordIfNeededAsync"/> băm lại sau khi đăng nhập.
     /// </summary>
     public static bool VerifyPassword(string plainPassword, string storedHash)
     {
-        if (string.IsNullOrWhiteSpace(plainPassword) || string.IsNullOrWhiteSpace(storedHash))
+        if (string.IsNullOrEmpty(plainPassword) || string.IsNullOrWhiteSpace(storedHash))
+            return false;
+
+        // Chặn input khổng lồ trước khi tốn CPU cho BCrypt.
+        if (plainPassword.Length > 256)
             return false;
 
         if (storedHash.StartsWith("$2", StringComparison.Ordinal))
@@ -61,34 +89,30 @@ public class UserAccountService
             catch { return false; }
         }
 
-        // Fallback kiểm tra an toàn cho mật khẩu cũ để hệ thống tự động băm lại khi login
-        if (plainPassword == storedHash)
-            return true;
-
+        // ── Legacy (sẽ được nâng cấp lên BCrypt ngay khi đăng nhập thành công) ──
         if (IsDpApiProtectedValue(storedHash))
         {
-            return TryDecryptDpApiPassword(storedHash, out var decrypted) &&
-                   string.Equals(plainPassword, decrypted, StringComparison.Ordinal);
+            return TryDecryptDpApiPassword(storedHash, out var decrypted) && ConstantTimeEquals(plainPassword, decrypted);
         }
 
-        return false;
+        return ConstantTimeEquals(plainPassword, storedHash);
     }
 
     /// <summary>
-    /// Kiểm tra xem tài khoản này có phải là Admin đang Active cuối cùng của hệ thống hay không.
-    /// Ngăn chặn việc vô hiệu hóa, giáng chức hoặc xóa Admin cuối cùng.
+    /// Tốn thời gian tương đương một lần verify thật. Gọi khi username không tồn tại
+    /// để kẻ tấn công không phân biệt được "sai username" với "sai mật khẩu" qua thời gian phản hồi.
     /// </summary>
-    public async Task<bool> IsLastActiveAdminAsync(int userId)
+    public static bool BurnPasswordCheck(string plainPassword)
     {
-        var targetUser = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
-        if (targetUser == null || targetUser.Role != "Admin" || !targetUser.IsActive)
-            return false;
+        VerifyPassword(plainPassword, DummyHash.Value);
+        return false;
+    }
 
-        var activeAdminCount = await _context.UserAccounts
-            .AsNoTracking()
-            .CountAsync(u => u.Role == "Admin" && (u.Status == "Active" || u.Status == "true" || u.Status == "1"));
-
-        return activeAdminCount <= 1;
+    private static bool ConstantTimeEquals(string a, string b)
+    {
+        var x = Encoding.UTF8.GetBytes(a);
+        var y = Encoding.UTF8.GetBytes(b);
+        return x.Length == y.Length && CryptographicOperations.FixedTimeEquals(x, y);
     }
 
     public static bool IsDpApiProtectedValue(string storedHash)
@@ -115,40 +139,561 @@ public class UserAccountService
         }
     }
 
-    // ── TIÊU CHÍ 1: READ-ONLY QUERIES VỚI .AsNoTracking() ─────────────────
-
-    /// <summary>Lấy thông tin tài khoản theo Id chỉ để đọc/xem.</summary>
-    public async Task<UserAccount?> GetByIdAsync(int userId)
+    public async Task UpgradePasswordIfNeededAsync(UserAccount user, string plainPassword)
     {
-        return await _context.UserAccounts
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.UserId == userId);
+        if (string.IsNullOrWhiteSpace(user.Password))
+            return;
+
+        if (user.Password.StartsWith("$2", StringComparison.Ordinal))
+            return;
+
+        var isLegacyPlainText = ConstantTimeEquals(plainPassword, user.Password);
+        var isLegacyDpApi = IsDpApiProtectedValue(user.Password);
+
+        if (!isLegacyPlainText && !isLegacyDpApi)
+            return;
+
+        var passwordToStore = plainPassword;
+        if (isLegacyDpApi)
+        {
+            if (!TryDecryptDpApiPassword(user.Password, out var decrypted)) return;
+            passwordToStore = decrypted;
+        }
+
+        try
+        {
+            var trackedUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == user.UserId);
+            if (trackedUser is null || trackedUser.Password != user.Password)
+                return;
+
+            trackedUser.Password = HashPassword(passwordToStore);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Không làm gián đoạn đăng nhập nếu việc nâng cấp hash gặp sự cố.
+            _logger.LogWarning(ex, "Could not upgrade legacy password hash for user {UserId}.", user.UserId);
+        }
     }
 
-    /// <summary>Lấy thông tin tài khoản theo Username chỉ để đọc/xem.</summary>
-    public async Task<UserAccount?> GetByUsernameAsync(string username)
-    {
-        var normalized = username.Trim();
-        return await _context.UserAccounts
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Username, normalized));
-    }
+    // ══════════════════════════════════════════════════════════════════════
+    //  SESSION VALIDATION (dùng bởi Cookie OnValidatePrincipal)
+    // ══════════════════════════════════════════════════════════════════════
 
-    /// <summary>Lấy danh sách toàn bộ tài khoản chỉ để đọc.</summary>
-    public async Task<List<UserAccount>> GetAllAsync()
-    {
-        return await _context.UserAccounts
-            .AsNoTracking()
-            .OrderBy(u => u.UserId)
-            .ToListAsync();
-    }
-
-    // ── TIÊU CHÍ 2: XỬ LÝ N+1 QUERY BẰNG .Include(x => x.UserAccount) ─────
+    private static string SessionKey(int userId) => $"admin:session:{userId}";
 
     /// <summary>
-    /// Lấy danh sách các yêu cầu sản xuất kèm thông tin người tạo (UserAccount) và sản phẩm (Product).
-    /// Triệt tiêu hoàn toàn lỗi N+1 Query qua kết nối mạng Supabase.
+    /// Phiên đăng nhập còn hợp lệ khi tài khoản VẪN tồn tại và Active trong DB.
+    /// Hỗ trợ cả Admin lẫn các Role khác (Sales, Warehouse, Production, Manager...) trong hệ thống.
     /// </summary>
+    public async Task<bool> IsActiveUserSessionAsync(int userId, string? requiredRole = null)
+    {
+        var result = await _cache.GetOrCreateAsync(SessionKey(userId), async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = SessionCacheTtl;
+            var user = await _context.UserAccounts.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => new { u.Role, u.Status })
+                .FirstOrDefaultAsync();
+
+            if (user is null) return (Exists: false, Role: string.Empty, IsActive: false);
+
+            var isActive = user.Status == "Active" 
+                        || user.Status == "true" 
+                        || user.Status == "1" 
+                        || EF.Functions.ILike(user.Status, "Active");
+
+            return (Exists: true, user.Role, IsActive: isActive);
+        });
+
+        if (!result.Exists || !result.IsActive)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(requiredRole))
+            return string.Equals(result.Role, requiredRole, StringComparison.OrdinalIgnoreCase);
+
+        return true;
+    }
+
+    /// <summary>Giữ tương thích ngược cho các nơi đang gọi IsActiveAdminSessionAsync.</summary>
+    public Task<bool> IsActiveAdminSessionAsync(int userId) => IsActiveUserSessionAsync(userId, UserAccountRules.AdminRole);
+
+    private void InvalidateSessions(IEnumerable<int> userIds)
+    {
+        foreach (var id in userIds) _cache.Remove(SessionKey(id));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  READ (luôn AsNoTracking + projection → hash không bao giờ được load lên)
+    // ══════════════════════════════════════════════════════════════════════
+
+    public async Task<UserListViewModel> GetPagedAsync(
+        UserListQuery query, int? currentUserId, CancellationToken ct = default)
+    {
+        var pageSize = Math.Clamp(query.PageSize, 5, 100);
+        var search = query.Search?.Trim();
+        if (search is { Length: > 100 }) search = search[..100];
+
+        var role = UserAccountRules.NormalizeRole(query.Role);
+        var status = UserAccountRules.NormalizeStatus(query.Status);
+
+        IQueryable<UserAccount> q = _context.UserAccounts.AsNoTracking();
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            // Escape % _ \ để ký tự người dùng nhập không bị hiểu là wildcard.
+            var pattern = $"%{UserAccountRules.EscapeLike(search)}%";
+            q = q.Where(u =>
+                EF.Functions.ILike(u.Username, pattern, "\\") ||
+                EF.Functions.ILike(u.FullName, pattern, "\\") ||
+                (u.Phone != null && EF.Functions.ILike(u.Phone, pattern, "\\")));
+        }
+
+        if (role is not null)
+            q = q.Where(u => u.Role == role);
+
+        q = status switch
+        {
+            UserAccountRules.StatusActive => q.Where(u => u.Status == UserAccountRules.StatusActive),
+            UserAccountRules.StatusBlocked => q.Where(u => u.Status == UserAccountRules.StatusBlocked),
+            // Disabled gồm cả giá trị legacy (Inactive, true, 1...) để khớp với StatusKey().
+            UserAccountRules.StatusDisabled => q.Where(u =>
+                u.Status != UserAccountRules.StatusActive && u.Status != UserAccountRules.StatusBlocked),
+            _ => q
+        };
+
+        var totalItems = await q.CountAsync(ct);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+        var page = Math.Clamp(query.Page, 1, totalPages);
+
+        var rows = await q
+            .OrderBy(u => u.UserId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new { u.UserId, u.Username, u.FullName, u.Phone, u.Role, u.Status })
+            .ToListAsync(ct);
+
+        var activeAdmins = await CountActiveAdminsAsync(ct);
+
+        var items = rows.Select(r =>
+        {
+            var key = UserAccountRules.StatusKey(r.Status);
+            var isActiveAdmin = r.Role == UserAccountRules.AdminRole && key == UserAccountRules.StatusActive;
+            return new UserListItem(
+                r.UserId, r.Username, r.FullName, r.Phone, r.Role, key,
+                IsSelf: currentUserId == r.UserId,
+                IsLastActiveAdmin: isActiveAdmin && activeAdmins <= 1);
+        }).ToList();
+
+        return new UserListViewModel
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages,
+            Search = search ?? string.Empty,
+            Role = role ?? string.Empty,
+            Status = status ?? string.Empty
+        };
+    }
+
+    private Task<int> CountActiveAdminsAsync(CancellationToken ct = default)
+        => _context.UserAccounts.AsNoTracking().CountAsync(u =>
+            u.Role == UserAccountRules.AdminRole && u.Status == UserAccountRules.StatusActive, ct);
+
+    /// <summary>
+    /// True nếu việc làm các tài khoản <paramref name="targetIds"/> mất tư cách "Admin Active"
+    /// sẽ khiến hệ thống không còn Admin Active nào. PHẢI gọi bên trong <see cref="RunGuardedAsync"/>.
+    /// </summary>
+    private async Task<bool> WouldRemoveLastActiveAdminAsync(int[] targetIds)
+    {
+        var hitsActiveAdmin = await _context.UserAccounts.AsNoTracking().AnyAsync(u =>
+            targetIds.Contains(u.UserId) &&
+            u.Role == UserAccountRules.AdminRole &&
+            u.Status == UserAccountRules.StatusActive);
+
+        if (!hitsActiveAdmin) return false;
+
+        var remaining = await _context.UserAccounts.AsNoTracking().CountAsync(u =>
+            !targetIds.Contains(u.UserId) &&
+            u.Role == UserAccountRules.AdminRole &&
+            u.Status == UserAccountRules.StatusActive);
+
+        return remaining < 1;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  TRANSACTION + ADVISORY LOCK
+    // ══════════════════════════════════════════════════════════════════════
+
+    private static string? GetSqlState(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+            if (e is PostgresException pg) return pg.SqlState;
+        return null;
+    }
+
+    /// <summary>
+    /// Chạy <paramref name="work"/> trong 1 transaction và giữ <c>pg_advisory_xact_lock</c> cho tới khi commit/rollback.
+    /// Nhờ vậy "đếm Admin Active còn lại → cập nhật" là nguyên tử: hai request song song không thể
+    /// cùng vượt qua kiểm tra rồi cùng vô hiệu hóa/xóa hai Admin cuối cùng.
+    /// Lock theo transaction nên an toàn với Supabase pooler (port 6543, transaction mode).
+    /// </summary>
+    private async Task<ServiceResult> RunGuardedAsync(Func<Task<ServiceResult>> work)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            // Nếu strategy retry, bỏ hết entity đang track từ lần chạy trước.
+            _context.ChangeTracker.Clear();
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock({0})", AdminGuardLockKey);
+
+                var result = await work();
+
+                if (result.Success) await tx.CommitAsync();
+                else await tx.RollbackAsync();
+
+                return result;
+            }
+            catch (Exception ex) when (GetSqlState(ex) == PostgresErrorCodes.ForeignKeyViolation)
+            {
+                await tx.RollbackAsync();
+                return ServiceResult.Fail(ServiceError.Conflict,
+                    "Tài khoản đã phát sinh dữ liệu nghiệp vụ (đơn hàng, yêu cầu sản xuất...) nên không thể xóa. " +
+                    "Hãy chuyển sang trạng thái Blocked hoặc Disabled.");
+            }
+            catch (Exception ex) when (GetSqlState(ex) == PostgresErrorCodes.UniqueViolation)
+            {
+                await tx.RollbackAsync();
+                return ServiceResult.Fail(ServiceError.Conflict, "Dữ liệu bị trùng lặp.");
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  CREATE
+    // ══════════════════════════════════════════════════════════════════════
+
+    public async Task<ServiceResult> CreateAsync(CreateUserRequest request)
+    {
+        var username = request.Username?.Trim() ?? string.Empty;
+        if (!UserAccountRules.IsValidUsername(username))
+            return ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgUsername, "username");
+
+        var passwordError = UserAccountRules.ValidatePassword(request.Password);
+        if (passwordError is not null)
+            return ServiceResult.Fail(ServiceError.Validation, passwordError, "password");
+
+        if (!TryNormalizeProfile(request.FullName, request.Phone, request.Role, request.Status ?? UserAccountRules.StatusActive,
+                out var profile, out var error))
+            return error!;
+
+        var lowered = username.ToLowerInvariant();
+        var exists = await _context.UserAccounts.AsNoTracking()
+            .AnyAsync(u => u.Username.ToLower() == lowered);
+
+        if (exists)
+            return ServiceResult.Fail(ServiceError.Conflict, "Tên đăng nhập đã tồn tại.", "username");
+
+        var user = new UserAccount
+        {
+            Username = username,
+            Password = HashPassword(request.Password!),
+            FullName = profile.FullName,
+            Phone = profile.Phone,
+            Role = profile.Role,
+            Status = profile.Status
+        };
+
+        try
+        {
+            _context.UserAccounts.Add(user);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Tạo tài khoản thành công.");
+        }
+        catch (DbUpdateException ex) when (GetSqlState(ex) == PostgresErrorCodes.UniqueViolation)
+        {
+            // Hai request tạo cùng username đồng thời: unique index ix_useraccount_username chặn request thứ hai.
+            _context.Entry(user).State = EntityState.Detached;
+            return ServiceResult.Fail(ServiceError.Conflict, "Tên đăng nhập đã tồn tại.", "username");
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  UPDATE / STATUS / DELETE / RESET PASSWORD (đều qua RunGuardedAsync)
+    // ══════════════════════════════════════════════════════════════════════
+
+    private sealed record Profile(string FullName, string? Phone, string Role, string Status);
+
+    private static bool TryNormalizeProfile(
+        string? fullName, string? phone, string? role, string? status,
+        out Profile profile, out ServiceResult? error)
+    {
+        profile = new Profile(string.Empty, null, string.Empty, string.Empty);
+
+        if (!UserAccountRules.IsValidFullName(fullName))
+        { error = ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgFullName, "fullName"); return false; }
+
+        if (!UserAccountRules.IsValidPhone(phone))
+        { error = ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgPhone, "phone"); return false; }
+
+        var normalizedRole = UserAccountRules.NormalizeRole(role);
+        if (normalizedRole is null)
+        { error = ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgRole, "role"); return false; }
+
+        var normalizedStatus = UserAccountRules.NormalizeStatus(status);
+        if (normalizedStatus is null)
+        { error = ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgStatus, "status"); return false; }
+
+        profile = new Profile(
+            fullName!.Trim(),
+            string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
+            normalizedRole,
+            normalizedStatus);
+        error = null;
+        return true;
+    }
+
+    public async Task<ServiceResult> UpdateAsync(UpdateUserRequest request, int? actorUserId)
+    {
+        if (!TryNormalizeProfile(request.FullName, request.Phone, request.Role, request.Status,
+                out var profile, out var error))
+            return error!;
+
+        var result = await RunGuardedAsync(async () =>
+        {
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == request.Id);
+            if (user is null) return ServiceResult.Fail(ServiceError.NotFound, MsgNotFound);
+
+            var wasActiveAdmin = user.Role == UserAccountRules.AdminRole
+                                 && UserAccountRules.StatusKey(user.Status) == UserAccountRules.StatusActive;
+            var willBeActiveAdmin = profile.Role == UserAccountRules.AdminRole
+                                    && profile.Status == UserAccountRules.StatusActive;
+
+            if (actorUserId == user.UserId && wasActiveAdmin && !willBeActiveAdmin)
+                return ServiceResult.Fail(ServiceError.Forbidden, MsgSelf);
+
+            if (wasActiveAdmin && !willBeActiveAdmin && await WouldRemoveLastActiveAdminAsync([user.UserId]))
+                return ServiceResult.Fail(ServiceError.Conflict, MsgLastAdmin);
+
+            user.FullName = profile.FullName;
+            user.Phone = profile.Phone;
+            user.Role = profile.Role;
+            user.Status = profile.Status;
+
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Cập nhật tài khoản thành công.");
+        });
+
+        if (result.Success) InvalidateSessions([request.Id]);
+        return result;
+    }
+
+    public async Task<ServiceResult> SetStatusAsync(int userId, string? status, int? actorUserId)
+    {
+        var target = UserAccountRules.NormalizeStatus(status);
+        if (target is null)
+            return ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgStatus, "status");
+
+        if (actorUserId == userId && target != UserAccountRules.StatusActive)
+            return ServiceResult.Fail(ServiceError.Forbidden, MsgSelf);
+
+        var result = await RunGuardedAsync(async () =>
+        {
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user is null) return ServiceResult.Fail(ServiceError.NotFound, MsgNotFound);
+
+            var wasActiveAdmin = user.Role == UserAccountRules.AdminRole
+                                 && UserAccountRules.StatusKey(user.Status) == UserAccountRules.StatusActive;
+
+            if (wasActiveAdmin && target != UserAccountRules.StatusActive
+                && await WouldRemoveLastActiveAdminAsync([userId]))
+                return ServiceResult.Fail(ServiceError.Conflict, MsgLastAdmin);
+
+            user.Status = target;
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Cập nhật trạng thái thành công.", value: target);
+        });
+
+        if (result.Success) InvalidateSessions([userId]);
+        return result;
+    }
+
+    public async Task<ServiceResult> DeleteAsync(int userId, int? actorUserId)
+    {
+        if (actorUserId == userId)
+            return ServiceResult.Fail(ServiceError.Forbidden, MsgSelf);
+
+        var result = await RunGuardedAsync(async () =>
+        {
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user is null) return ServiceResult.Fail(ServiceError.NotFound, MsgNotFound);
+
+            if (await WouldRemoveLastActiveAdminAsync([userId]))
+                return ServiceResult.Fail(ServiceError.Conflict, MsgLastAdmin);
+
+            _context.UserAccounts.Remove(user);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Đã xóa tài khoản.");
+        });
+
+        if (result.Success) InvalidateSessions([userId]);
+        return result;
+    }
+
+    public async Task<ServiceResult> ResetPasswordAsync(int userId, string? newPlainPassword)
+    {
+        var passwordError = UserAccountRules.ValidatePassword(newPlainPassword);
+        if (passwordError is not null)
+            return ServiceResult.Fail(ServiceError.Validation, passwordError, "newPassword");
+
+        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
+        if (user is null) return ServiceResult.Fail(ServiceError.NotFound, MsgNotFound);
+
+        user.Password = HashPassword(newPlainPassword!);
+        await _context.SaveChangesAsync();
+        return ServiceResult.Ok("Đặt lại mật khẩu thành công.");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  BULK (1 câu SQL duy nhất, nguyên tử, trong cùng transaction + lock)
+    // ══════════════════════════════════════════════════════════════════════
+
+    private static bool TryNormalizeIds(IEnumerable<int>? ids, out int[] result, out ServiceResult? error)
+    {
+        result = ids?.Where(id => id > 0).Distinct().ToArray() ?? [];
+        if (result.Length == 0)
+        { error = ServiceResult.Fail(ServiceError.Validation, "Không có tài khoản nào được chọn."); return false; }
+
+        if (result.Length > UserAccountRules.BulkMaxIds)
+        { error = ServiceResult.Fail(ServiceError.Validation, "Mỗi lần chỉ được thao tác tối đa 200 tài khoản."); return false; }
+
+        error = null;
+        return true;
+    }
+
+    public async Task<ServiceResult> BulkSetStatusAsync(IEnumerable<int>? userIds, string? status, int? actorUserId)
+    {
+        var target = UserAccountRules.NormalizeStatus(status);
+        if (target is null)
+            return ServiceResult.Fail(ServiceError.Validation, UserAccountRules.MsgStatus, "status");
+
+        if (!TryNormalizeIds(userIds, out var ids, out var error)) return error!;
+
+        if (target != UserAccountRules.StatusActive && actorUserId is int self && ids.Contains(self))
+            return ServiceResult.Fail(ServiceError.Forbidden, MsgSelf + " Hãy bỏ chọn tài khoản của bạn.");
+
+        var result = await RunGuardedAsync(async () =>
+        {
+            if (target != UserAccountRules.StatusActive && await WouldRemoveLastActiveAdminAsync(ids))
+                return ServiceResult.Fail(ServiceError.Conflict, MsgLastAdmin);
+
+            var affected = await _context.UserAccounts
+                .Where(u => ids.Contains(u.UserId))
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Status, target));
+
+            return ServiceResult.Ok($"Đã cập nhật {affected} tài khoản sang trạng thái {target}.", target, affected);
+        });
+
+        if (result.Success) InvalidateSessions(ids);
+        return result;
+    }
+
+    public async Task<ServiceResult> BulkDeleteAsync(IEnumerable<int>? userIds, int? actorUserId)
+    {
+        if (!TryNormalizeIds(userIds, out var ids, out var error)) return error!;
+
+        if (actorUserId is int self && ids.Contains(self))
+            return ServiceResult.Fail(ServiceError.Forbidden, MsgSelf + " Hãy bỏ chọn tài khoản của bạn.");
+
+        var result = await RunGuardedAsync(async () =>
+        {
+            if (await WouldRemoveLastActiveAdminAsync(ids))
+                return ServiceResult.Fail(ServiceError.Conflict, MsgLastAdmin);
+
+            var affected = await _context.UserAccounts
+                .Where(u => ids.Contains(u.UserId))
+                .ExecuteDeleteAsync();
+
+            return ServiceResult.Ok($"Đã xóa {affected} tài khoản.", affected: affected);
+        });
+
+        if (result.Success) InvalidateSessions(ids);
+        return result;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  CÁC HÀM KHÁC (giữ nguyên hành vi, không thuộc luồng quản lý tài khoản)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Thêm hàng loạt tài khoản: SaveChangesAsync đúng 1 lần ở ngoài vòng lặp.</summary>
+    public async Task<(bool Success, int InsertedCount, string Message)> BulkCreateAccountsAsync(
+        IEnumerable<UserAccountCreateDto> accountDtos)
+    {
+        var dtoList = accountDtos?.ToList();
+        if (dtoList == null || dtoList.Count == 0)
+            return (false, 0, "Danh sách tài khoản trống.");
+
+        var existingUsernames = (await _context.UserAccounts
+            .AsNoTracking()
+            .Select(u => u.Username)
+            .ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var entitiesToAdd = new List<UserAccount>();
+
+        foreach (var dto in dtoList)
+        {
+            var username = dto.Username?.Trim() ?? string.Empty;
+            if (!UserAccountRules.IsValidUsername(username) || !UserAccountRules.IsValidFullName(dto.FullName))
+                continue;
+
+            if (existingUsernames.Contains(username) || !UserAccountRules.IsValidPhone(dto.Phone))
+                continue;
+
+            // Không có mật khẩu mặc định: bắt buộc mật khẩu hợp lệ truyền vào.
+            if (UserAccountRules.ValidatePassword(dto.Password) is not null)
+                continue;
+
+            entitiesToAdd.Add(new UserAccount
+            {
+                Username = username,
+                Password = HashPassword(dto.Password),
+                FullName = dto.FullName.Trim(),
+                Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim(),
+                Role = UserAccountRules.NormalizeRole(dto.Role) ?? "Employee",
+                Status = UserAccountRules.StatusActive
+            });
+
+            existingUsernames.Add(username);
+        }
+
+        if (entitiesToAdd.Count == 0)
+            return (false, 0, "Không có tài khoản hợp lệ nào để thêm mới.");
+
+        try
+        {
+            await _context.UserAccounts.AddRangeAsync(entitiesToAdd);
+            await _context.SaveChangesAsync();
+            return (true, entitiesToAdd.Count, $"Đã thêm mới thành công {entitiesToAdd.Count} tài khoản.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Bulk create accounts failed.");
+            return (false, 0, "Lỗi khi thêm hàng loạt tài khoản.");
+        }
+    }
+
     public async Task<List<ProductionRequest>> GetProductionRequestsWithUserAsync(int take = 50)
     {
         return await _context.ProductionRequests
@@ -160,10 +705,6 @@ public class UserAccountService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Lấy danh sách đơn hàng kèm người duyệt (UserAccount).
-    /// Triệt tiêu hoàn toàn lỗi N+1 Query.
-    /// </summary>
     public async Task<List<SaleOrder>> GetSaleOrdersWithUserAsync(int take = 50)
     {
         return await _context.SaleOrders
@@ -174,341 +715,6 @@ public class UserAccountService
             .ToListAsync();
     }
 
-    // ── CRUD CƠ BẢN ──────────────────────────────────────────────────────
-
-    /// <summary>Tạo tài khoản mới, hash mật khẩu tự động.</summary>
-    public async Task<(bool Success, string Message)> CreateAsync(
-        string username, string plainPassword, string fullName, string? phone, string role)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-            return (false, "Tên đăng nhập không được để trống.");
-        if (string.IsNullOrWhiteSpace(fullName))
-            return (false, "Họ tên không được để trống.");
-        if (string.IsNullOrWhiteSpace(plainPassword))
-            return (false, "Mật khẩu không được để trống.");
-        if (!IsValidPassword(plainPassword.Trim()))
-            return (false, "Mật khẩu phải có ít nhất 12 ký tự.");
-        if (!AllowedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
-            return (false, "Vai trò không hợp lệ.");
-
-        // Read-only kiểm tra tồn tại với .AsNoTracking()
-        var exists = await _context.UserAccounts
-            .AsNoTracking()
-            .AnyAsync(u => EF.Functions.ILike(u.Username, username.Trim()));
-
-        if (exists)
-            return (false, "Tên đăng nhập đã tồn tại.");
-
-        var user = new UserAccount
-        {
-            Username  = username.Trim(),
-            Password  = HashPassword(plainPassword.Trim()),
-            FullName  = fullName.Trim(),
-            Phone     = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
-            Role      = role.Trim(),
-            Status    = "Active"
-        };
-
-        _context.UserAccounts.Add(user);
-        await _context.SaveChangesAsync();
-        return (true, "Tạo tài khoản thành công.");
-    }
-
-    /// <summary>Cập nhật thông tin + tuỳ chọn đặt lại mật khẩu cho một tài khoản.</summary>
-    public async Task<(bool Success, string Message)> EditAsync(
-        int userId, string fullName, string? phone, string role, string? newPlainPassword)
-    {
-        if (string.IsNullOrWhiteSpace(fullName)) return (false, "Họ tên không được để trống.");
-        if (!AllowedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
-            return (false, "Vai trò không hợp lệ.");
-
-        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-        if (user == null) return (false, "Không tìm thấy tài khoản.");
-
-        // Kiểm tra không được giáng chức Admin cuối cùng
-        if (user.Role == "Admin" && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            if (await IsLastActiveAdminAsync(userId))
-            {
-                return (false, "Không thể thay đổi vai trò của quản trị viên (Admin) duy nhất còn lại trong hệ thống.");
-            }
-        }
-
-        user.FullName = fullName.Trim();
-        user.Phone    = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
-        user.Role     = role.Trim();
-
-        if (!string.IsNullOrWhiteSpace(newPlainPassword))
-        {
-            if (!IsValidPassword(newPlainPassword.Trim()))
-                return (false, "Mật khẩu mới phải có ít nhất 12 ký tự.");
-            user.Password = HashPassword(newPlainPassword.Trim());
-        }
-
-        await _context.SaveChangesAsync();
-        return (true, "Cập nhật tài khoản thành công.");
-    }
-
-    /// <summary>Cập nhật tài khoản bằng username.</summary>
-    public async Task<(bool Success, string Message)> EditByUsernameAsync(
-        string username, string fullName, string? phone, string role, string? newPlainPassword)
-    {
-        if (string.IsNullOrWhiteSpace(fullName)) return (false, "Họ tên không được để trống.");
-        if (!AllowedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
-            return (false, "Vai trò không hợp lệ.");
-
-        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Username == username);
-        if (user == null) return (false, "Không tìm thấy tài khoản.");
-
-        // Kiểm tra không được giáng chức Admin cuối cùng
-        if (user.Role == "Admin" && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            if (await IsLastActiveAdminAsync(user.UserId))
-            {
-                return (false, "Không thể thay đổi vai trò của quản trị viên (Admin) duy nhất còn lại trong hệ thống.");
-            }
-        }
-
-        user.FullName = fullName.Trim();
-        user.Phone    = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
-        user.Role     = role.Trim();
-
-        if (!string.IsNullOrWhiteSpace(newPlainPassword))
-        {
-            if (!IsValidPassword(newPlainPassword.Trim()))
-                return (false, "Mật khẩu mới phải có ít nhất 12 ký tự.");
-            user.Password = HashPassword(newPlainPassword.Trim());
-        }
-
-        await _context.SaveChangesAsync();
-        return (true, "Cập nhật tài khoản thành công.");
-    }
-
-    // ── STATUS TOGGLE & ROLE UPDATE ──────────────────────────────────────
-
-    public async Task<(bool Success, string NewStatus, string Message)> ToggleStatusAsync(int userId)
-    {
-        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-        if (user == null) return (false, string.Empty, "Không tìm thấy tài khoản.");
-
-        // Nếu đang Active và là Admin, kiểm tra có phải Admin Active cuối cùng không
-        if (user.IsActive && user.Role == "Admin")
-        {
-            if (await IsLastActiveAdminAsync(userId))
-            {
-                return (false, string.Empty, "Không thể vô hiệu hóa quản trị viên (Admin) duy nhất còn lại trong hệ thống.");
-            }
-        }
-
-        var strategy = _context.Database.CreateExecutionStrategy();
-
-        return await strategy.ExecuteAsync(async () =>
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var trackedUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-                if (trackedUser == null) return (false, string.Empty, "Không tìm thấy tài khoản.");
-
-                trackedUser.Status = trackedUser.IsActive ? "Inactive" : "Active";
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return (true, trackedUser.Status, "Cập nhật trạng thái thành công.");
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                return (false, string.Empty, "Lỗi cơ sở dữ liệu khi cập nhật trạng thái.");
-            }
-        });
-    }
-
-    public async Task<(bool Success, string Message)> UpdateRoleAsync(int userId, string role)
-    {
-        if (!AllowedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
-            return (false, "Vai trò không hợp lệ.");
-
-        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-        if (user == null) return (false, "Không tìm thấy tài khoản.");
-
-        // Không được giáng chức Admin cuối cùng
-        if (user.Role == "Admin" && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            if (await IsLastActiveAdminAsync(userId))
-            {
-                return (false, "Không thể thay đổi vai trò của quản trị viên (Admin) duy nhất còn lại trong hệ thống.");
-            }
-        }
-
-        var strategy = _context.Database.CreateExecutionStrategy();
-
-        return await strategy.ExecuteAsync(async () =>
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var trackedUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-                if (trackedUser == null) return (false, "Không tìm thấy tài khoản.");
-
-                trackedUser.Role = role.Trim();
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return (true, "Cập nhật vai trò thành công.");
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                return (false, "Lỗi cơ sở dữ liệu khi cập nhật vai trò.");
-            }
-        });
-    }
-
-    public async Task<(bool Success, string Message)> DeleteAsync(int userId)
-    {
-        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-        if (user == null) return (false, "Không tìm thấy tài khoản.");
-
-        if (user.Role == "Admin" && await IsLastActiveAdminAsync(userId))
-        {
-            return (false, "Không thể xóa quản trị viên (Admin) duy nhất còn lại trong hệ thống.");
-        }
-
-        var strategy = _context.Database.CreateExecutionStrategy();
-
-        return await strategy.ExecuteAsync(async () =>
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var trackedUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-                if (trackedUser == null) return (false, "Không tìm thấy tài khoản.");
-
-                _context.UserAccounts.Remove(trackedUser);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return (true, "Đã xóa tài khoản.");
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                return (false, "Lỗi cơ sở dữ liệu khi xóa tài khoản.");
-            }
-        });
-    }
-
-    // ── TIÊU CHÍ 3: GỘP SAVECHANGES RA NGOÀI VÒNG LẶP (BATCHING) ─────────
-
-    /// <summary>
-    /// Thêm mới nhiều tài khoản/chi tiết hàng loạt.
-    /// TUYỆT ĐỐI KHÔNG gọi SaveChangesAsync trong vòng lặp.
-    /// Gom toàn bộ vào List và gọi AddRangeAsync + SaveChangesAsync đúng 1 LẦN DUY NHẤT ở ngoài cùng.
-    /// </summary>
-    public async Task<(bool Success, int InsertedCount, string Message)> BulkCreateAccountsAsync(
-        IEnumerable<UserAccountCreateDto> accountDtos)
-    {
-        var dtoList = accountDtos?.ToList();
-        if (dtoList == null || dtoList.Count == 0)
-            return (false, 0, "Danh sách tài khoản trống.");
-
-        // Lấy danh sách username hiện có (Read-only với .AsNoTracking) để kiểm tra trùng lặp
-        var existingUsernames = (await _context.UserAccounts
-            .AsNoTracking()
-            .Select(u => u.Username)
-            .ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var entitiesToAdd = new List<UserAccount>();
-
-        foreach (var dto in dtoList)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.FullName))
-                continue;
-
-            var normalizedUsername = dto.Username.Trim();
-            if (existingUsernames.Contains(normalizedUsername))
-                continue; // bỏ qua tài khoản đã tồn tại
-
-            var role = AllowedRoles.Contains(dto.Role, StringComparer.OrdinalIgnoreCase) ? dto.Role.Trim() : "Employee";
-            
-            // TUYỆT ĐỐI KHÔNG dùng fallback "Default@123". Bắt buộc mật khẩu hợp lệ tối thiểu 12 ký tự
-            if (string.IsNullOrWhiteSpace(dto.Password) || !IsValidPassword(dto.Password.Trim()))
-                continue;
-
-            entitiesToAdd.Add(new UserAccount
-            {
-                Username = normalizedUsername,
-                Password = HashPassword(dto.Password.Trim()),
-                FullName = dto.FullName.Trim(),
-                Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim(),
-                Role = role,
-                Status = "Active"
-            });
-
-            existingUsernames.Add(normalizedUsername);
-        }
-
-        if (entitiesToAdd.Count == 0)
-            return (false, 0, "Không có tài khoản hợp lệ nào để thêm mới.");
-
-        try
-        {
-            await _context.UserAccounts.AddRangeAsync(entitiesToAdd);
-
-            // GỌI ĐÚNG 1 LẦN DUY NHẤT Ở NGOÀI CÙNG SAU VÒNG LẶP
-            await _context.SaveChangesAsync();
-
-            return (true, entitiesToAdd.Count, $"Đã thêm mới thành công {entitiesToAdd.Count} tài khoản.");
-        }
-        catch (Exception ex)
-        {
-            return (false, 0, $"Lỗi khi thêm hàng loạt tài khoản: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Duyệt/Kích hoạt danh sách nhiều tài khoản.
-    /// Vòng lặp chỉ cập nhật trạng thái trong memory tracker.
-    /// GỌI SaveChangesAsync đúng 1 LẦN DUY NHẤT ở ngoài cùng sau khi vòng lặp kết thúc.
-    /// </summary>
-    public async Task<(bool Success, int ApprovedCount, string Message)> ApproveMultipleAccountsAsync(
-        IEnumerable<int> userIds)
-    {
-        var ids = userIds?.Where(id => id > 0).Distinct().ToList();
-        if (ids == null || ids.Count == 0)
-            return (false, 0, "Không có tài khoản nào được chọn.");
-
-        try
-        {
-            var accountsToApprove = await _context.UserAccounts
-                .Where(u => ids.Contains(u.UserId))
-                .ToListAsync();
-
-            if (accountsToApprove.Count == 0)
-                return (false, 0, "Không tìm thấy tài khoản cần duyệt.");
-
-            // Cập nhật trạng thái trong vòng lặp - TUYỆT ĐỐI KHÔNG gọi SaveChangesAsync ở đây
-            foreach (var account in accountsToApprove)
-            {
-                account.Status = "Active";
-            }
-
-            // GỌI ĐÚNG 1 LẦN DUY NHẤT Ở NGOÀI CÙNG
-            var affected = await _context.SaveChangesAsync();
-
-            return (true, accountsToApprove.Count, $"Đã duyệt thành công {accountsToApprove.Count} tài khoản.");
-        }
-        catch (Exception ex)
-        {
-            return (false, 0, $"Lỗi khi duyệt tài khoản: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Duyệt/Phê duyệt hàng loạt phiếu yêu cầu sản xuất.
-    /// Gom SaveChangesAsync đúng 1 LẦN DUY NHẤT ở ngoài cùng để chống nghẽn mạng Supabase.
-    /// </summary>
     public async Task<(bool Success, int ApprovedCount, string Message)> ApproveProductionRequestsAsync(
         IEnumerable<int> requestIds, int approvedByUserId)
     {
@@ -525,142 +731,19 @@ public class UserAccountService
             if (requests.Count == 0)
                 return (false, 0, "Không có phiếu chờ xử lý hợp lệ.");
 
-            // Lặp qua danh sách chỉ cập nhật trạng thái
             foreach (var req in requests)
             {
                 req.Status = "Processing";
             }
 
-            // GỌI ĐÚNG 1 LẦN DUY NHẤT Ở NGOÀI CÙNG
             await _context.SaveChangesAsync();
 
             return (true, requests.Count, $"Đã duyệt thành công {requests.Count} phiếu yêu cầu sản xuất.");
         }
         catch (Exception ex)
         {
-            return (false, 0, $"Lỗi khi duyệt phiếu yêu cầu sản xuất: {ex.Message}");
+            _logger.LogError(ex, "Approve production requests failed.");
+            return (false, 0, "Lỗi khi duyệt phiếu yêu cầu sản xuất.");
         }
-    }
-
-    // ── BULK OPERATIONS DÙNG DIRECT SQL (Tối ưu cao nhất khi có thể) ─────
-
-    public async Task<(bool Success, int AffectedRows, string Message)> BulkToggleStatusAsync(
-        IEnumerable<int> userIds, string targetStatus)
-    {
-        if (targetStatus != "Active" && targetStatus != "Inactive")
-            return (false, 0, "Trạng thái không hợp lệ.");
-
-        try
-        {
-            var ids = userIds.Where(id => id > 0).Distinct().Take(500).ToArray();
-            if (ids.Length == 0) return (false, 0, "Không có mã tài khoản hợp lệ.");
-
-            // Nếu đang vô hiệu hóa (Inactive), kiểm tra không được khóa hết toàn bộ Admin Active
-            if (targetStatus == "Inactive")
-            {
-                var totalActiveAdmins = await _context.UserAccounts
-                    .AsNoTracking()
-                    .CountAsync(u => u.Role == "Admin" && (u.Status == "Active" || u.Status == "true" || u.Status == "1"));
-
-                var targetedActiveAdmins = await _context.UserAccounts
-                    .AsNoTracking()
-                    .CountAsync(u => ids.Contains(u.UserId) && u.Role == "Admin" && (u.Status == "Active" || u.Status == "true" || u.Status == "1"));
-
-                if (totalActiveAdmins - targetedActiveAdmins < 1)
-                {
-                    return (false, 0, "Không thể vô hiệu hóa vì hệ thống bắt buộc phải duy trì ít nhất 1 Quản trị viên (Admin) hoạt động.");
-                }
-            }
-
-            var affected = await _context.UserAccounts.Where(u => ids.Contains(u.UserId))
-                .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.Status, targetStatus));
-            return (true, affected, $"Đã cập nhật {affected} tài khoản sang {targetStatus}.");
-        }
-        catch
-        {
-            return (false, 0, "Lỗi cơ sở dữ liệu khi cập nhật hàng loạt.");
-        }
-    }
-
-    public async Task<(bool Success, int AffectedRows, string Message)> BulkDeleteAsync(
-        IEnumerable<int> userIds)
-    {
-        try
-        {
-            var ids = userIds.Where(id => id > 0).Distinct().Take(500).ToArray();
-            if (ids.Length == 0) return (false, 0, "Không có mã tài khoản hợp lệ.");
-
-            // Kiểm tra không được xóa hết toàn bộ Admin Active
-            var totalActiveAdmins = await _context.UserAccounts
-                .AsNoTracking()
-                .CountAsync(u => u.Role == "Admin" && (u.Status == "Active" || u.Status == "true" || u.Status == "1"));
-
-            var targetedActiveAdmins = await _context.UserAccounts
-                .AsNoTracking()
-                .CountAsync(u => ids.Contains(u.UserId) && u.Role == "Admin" && (u.Status == "Active" || u.Status == "true" || u.Status == "1"));
-
-            if (totalActiveAdmins > 0 && totalActiveAdmins - targetedActiveAdmins < 1)
-            {
-                return (false, 0, "Không thể xóa vì hệ thống bắt buộc phải duy trì ít nhất 1 Quản trị viên (Admin) hoạt động.");
-            }
-
-            var affected = await _context.UserAccounts.Where(u => ids.Contains(u.UserId)).ExecuteDeleteAsync();
-            return (true, affected, $"Đã xóa {affected} tài khoản.");
-        }
-        catch
-        {
-            return (false, 0, "Lỗi cơ sở dữ liệu khi xóa hàng loạt.");
-        }
-    }
-
-    // ── PASSWORD UPGRADE ON LOGIN ─────────────────────────────────────────
-
-    public async Task UpgradePasswordIfNeededAsync(UserAccount user, string plainPassword)
-    {
-        if (string.IsNullOrWhiteSpace(user.Password))
-            return;
-
-        if (user.Password.StartsWith("$2", StringComparison.Ordinal))
-            return;
-
-        var isLegacyPlainText = plainPassword == user.Password;
-        var isLegacyDpApi = IsDpApiProtectedValue(user.Password);
-
-        if (!isLegacyPlainText && !isLegacyDpApi)
-            return;
-
-        string decryptedPlainText = string.Empty;
-        if (isLegacyDpApi && !TryDecryptDpApiPassword(user.Password, out decryptedPlainText))
-            return;
-
-        var passwordToStore = isLegacyDpApi ? decryptedPlainText : plainPassword;
-
-        try
-        {
-            var trackedUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == user.UserId);
-            if (trackedUser is null || trackedUser.Password != user.Password)
-                return;
-
-            trackedUser.Password = HashPassword(passwordToStore);
-            await _context.SaveChangesAsync();
-        }
-        catch
-        {
-            // Không làm gián đoạn quá trình đăng nhập nếu việc nâng cấp hash gặp sự cố
-        }
-    }
-
-    public async Task<(bool Success, string Message)> ResetPasswordAsync(int userId, string newPlainPassword)
-    {
-        if (string.IsNullOrWhiteSpace(newPlainPassword) || !IsValidPassword(newPlainPassword.Trim()))
-            return (false, "Mật khẩu mới không được để trống.");
-
-        var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.UserId == userId);
-        if (user == null)
-            return (false, "Không tìm thấy tài khoản.");
-
-        user.Password = HashPassword(newPlainPassword.Trim());
-        await _context.SaveChangesAsync();
-        return (true, "Đặt lại mật khẩu thành công.");
     }
 }

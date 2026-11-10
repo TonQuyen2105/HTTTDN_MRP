@@ -1,448 +1,214 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using httt.Areas.Admin.Services;
-using httt.Data;
-using httt.Models;
+using httt.Areas.Admin.ViewModels;
 
 namespace httt.Areas.Admin.Controllers;
 
+/// <summary>
+/// Quản lý tài khoản (Admin). Controller chỉ làm 3 việc: kiểm tra ModelState, gọi Service, định dạng phản hồi.
+/// Toàn bộ nghiệp vụ (Admin cuối cùng, hash mật khẩu, transaction) nằm ở <see cref="UserAccountService"/>.
+///
+/// Hợp đồng JSON cho mọi endpoint ghi:
+///   thành công: 200 { success: true,  message, value?, affected }
+///   thất bại  : 4xx { success: false, message, errors?: { fieldCamelCase: "thông báo" } }
+/// </summary>
 [Area("Admin")]
 [Authorize(Roles = "Admin")]
 public class UserAccountController : Controller
 {
-    private readonly ApplicationDbContext _context;
     private readonly UserAccountService _accountService;
     private readonly ILogger<UserAccountController> _logger;
-    private readonly IMemoryCache _cache;
 
-    public UserAccountController(
-        ApplicationDbContext context,
-        UserAccountService accountService,
-        ILogger<UserAccountController> logger,
-        IMemoryCache cache)
+    public UserAccountController(UserAccountService accountService, ILogger<UserAccountController> logger)
     {
-        _context        = context;
         _accountService = accountService;
-        _logger         = logger;
-        _cache          = cache;
+        _logger = logger;
     }
 
-    // ── GET: /Admin/UserAccount/Index ─────────────────────────────────────
-    // Tiêu chí 1: Truy vấn Read-only dùng .AsNoTracking()
-    [HttpGet]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Index(
-        int page = 1,
-        string search = "",
-        string role = "",
-        string status = "")
-    {
-        const int pageSize = 10;
-        page = Math.Max(1, page);
+    private int? CurrentUserId =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
-        var normalizedSearch = search.Trim();
-        var normalizedRole = role.Trim();
-        var normalizedStatus = status.Trim();
-        IQueryable<UserAccount> query = _context.UserAccounts.AsNoTracking();
+    private bool IsAjax => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  GET: Index  (trang đầy đủ, hoặc partial bảng khi gọi bằng AJAX)
+    // ══════════════════════════════════════════════════════════════════════
+    [HttpGet]
+    public async Task<IActionResult> Index(string? search, string? role, string? status, int page = 1)
+    {
+        // Cùng một URL trả về 2 dạng (đầy đủ/partial) → bắt buộc Vary + no-store để nút Back
+        // của trình duyệt không bao giờ hiển thị nhầm mảnh HTML partial.
+        Response.Headers.Vary = "X-Requested-With";
+        Response.Headers.CacheControl = "no-store";
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(normalizedSearch))
-            {
-                var kw = normalizedSearch.Trim();
-                query = query.Where(u => EF.Functions.ILike(u.Username, $"%{kw}%") || EF.Functions.ILike(u.FullName, $"%{kw}%"));
-            }
+            var model = await _accountService.GetPagedAsync(
+                new UserListQuery(search, role, status, page), CurrentUserId, HttpContext.RequestAborted);
 
-            if (!string.IsNullOrWhiteSpace(normalizedRole) && !normalizedRole.Equals("all", StringComparison.OrdinalIgnoreCase))
-            {
-                query = query.Where(u => u.Role == normalizedRole);
-            }
-
-            if (!string.IsNullOrWhiteSpace(normalizedStatus) && !normalizedStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
-            {
-                bool isActive = normalizedStatus.Equals("Active", StringComparison.OrdinalIgnoreCase);
-                query = query.Where(u =>
-                    (isActive  && (u.Status == "Active" || u.Status == "true" || u.Status == "1")) ||
-                    (!isActive && (u.Status == "Inactive" || u.Status == "Disabled" || u.Status == "Blocked" || u.Status == "false" || u.Status == "0")));
-            }
-
-            var totalItems = await query.CountAsync();
-            var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
-            page = Math.Min(page, totalPages);
-
-            var users = await query
-                .OrderBy(u => u.UserId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            ViewBag.Search = normalizedSearch;
-            ViewBag.Role = normalizedRole;
-            ViewBag.Status = normalizedStatus;
-            ViewBag.CurrentPage = page;
-            ViewBag.TotalPages = totalPages;
-            ViewBag.TotalItems = totalItems;
-            return View(users);
+            return IsAjax ? PartialView("_UserTable", model) : View(model);
+        }
+        catch (OperationCanceledException)
+        {
+            return new EmptyResult();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error querying UserAccounts in Admin area.");
+
+            if (IsAjax)
+                return StatusCode(500, new { success = false, message = "Không thể tải danh sách tài khoản." });
+
             TempData["ErrorMessage"] = "Không thể tải danh sách tài khoản từ cơ sở dữ liệu.";
-            return View(new List<UserAccount>());
+            return View(new UserListViewModel());
         }
     }
 
-    // ── GET: /Admin/UserAccount/GetById/{id} ───────────────────────────────
-    // Tiêu chí 1: Xem chi tiết read-only dùng .AsNoTracking()
-    [HttpGet]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        if (id <= 0) return BadRequest(new { success = false, message = "ID tài khoản không hợp lệ." });
+    // ══════════════════════════════════════════════════════════════════════
+    //  POST: các thao tác ghi (AJAX/JSON)
+    // ══════════════════════════════════════════════════════════════════════
 
-        var user = await _accountService.GetByIdAsync(id);
-        if (user == null) return NotFound(new { success = false, message = "Không tìm thấy tài khoản." });
-
-        return Json(new
+    [HttpPost]
+    public Task<IActionResult> Create([FromBody] CreateUserRequest? request) =>
+        ExecuteAsync(request, "create user", async r =>
         {
-            success = true,
-            data = new
-            {
-                user.UserId,
-                user.Username,
-                user.FullName,
-                user.Phone,
-                user.Role,
-                user.Status,
-                user.IsActive
-            }
+            var result = await _accountService.CreateAsync(r);
+            if (result.Success) _logger.LogInformation("Admin {Actor} created account {Username}.", CurrentUserId, r.Username);
+            return result;
         });
-    }
 
-    // ── POST: Create ──────────────────────────────────────────────────────
     [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        string username, string password, string fullname, string? phone, string role)
-    {
-        var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
-
-        if (string.IsNullOrWhiteSpace(fullname))
+    public Task<IActionResult> Update([FromBody] UpdateUserRequest? request) =>
+        ExecuteAsync(request, "update user", async r =>
         {
-            if (isAjax) return BadRequest(new { success = false, message = "Họ tên không được để trống." });
-            TempData["ErrorMessage"] = "Họ tên không được để trống.";
-            return RedirectToAction(nameof(Index));
-        }
+            var result = await _accountService.UpdateAsync(r, CurrentUserId);
+            if (result.Success) _logger.LogInformation("Admin {Actor} updated account {UserId} (role={Role}, status={Status}).", CurrentUserId, r.Id, r.Role, r.Status);
+            return result;
+        });
 
-        try
-        {
-            var (success, message) = await _accountService.CreateAsync(
-                username, password, fullname, phone, role);
-
-            if (!success)
-            {
-                if (isAjax) return BadRequest(new { success = false, message });
-                TempData["ErrorMessage"] = message;
-                return RedirectToAction(nameof(Index));
-            }
-
-            _cache.Remove("admin:user-list:");
-            if (isAjax) return Json(new { success = true, message });
-            TempData["SuccessMessage"] = message;
-            return RedirectToAction(nameof(Index));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating user: {Username}", username);
-            var errMsg = "Lỗi hệ thống khi tạo tài khoản. Vui lòng thử lại.";
-            if (isAjax) return StatusCode(500, new { success = false, message = errMsg });
-            TempData["ErrorMessage"] = errMsg;
-            return RedirectToAction(nameof(Index));
-        }
-    }
-
-    // ── POST: Edit (by UserId) ────────────────────────────────────────────
     [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, string fullname, string? phone, string? role, string? password, string? newpassword)
-    {
-        var effectivePassword = !string.IsNullOrWhiteSpace(password) ? password : newpassword;
-        var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
-
-        if (string.IsNullOrWhiteSpace(fullname))
+    public Task<IActionResult> SetStatus([FromBody] SetStatusRequest? request) =>
+        ExecuteAsync(request, "set status", async r =>
         {
-            if (isAjax) return BadRequest(new { success = false, message = "Họ tên không được để trống." });
-            TempData["ErrorMessage"] = "Họ tên không được để trống.";
-            return RedirectToAction(nameof(Index));
-        }
+            var result = await _accountService.SetStatusAsync(r.Id, r.Status, CurrentUserId);
+            if (result.Success) _logger.LogInformation("Admin {Actor} set account {UserId} status to {Status}.", CurrentUserId, r.Id, result.Value);
+            return result;
+        });
 
-        if (string.IsNullOrWhiteSpace(role))
-        {
-            if (isAjax) return BadRequest(new { success = false, message = "Vai trò không được để trống." });
-            TempData["ErrorMessage"] = "Vai trò không được để trống.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        // Ngăn chặn Admin đang login tự thay đổi vai trò của chính mình
-        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (currentUserId == id.ToString() && !string.Equals(role.Trim(), "Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            const string msg = "Bạn không thể tự thay đổi vai trò của chính mình.";
-            if (isAjax) return BadRequest(new { success = false, message = msg });
-            TempData["ErrorMessage"] = msg;
-            return RedirectToAction(nameof(Index));
-        }
-
-        try
-        {
-            var (success, message) = await _accountService.EditAsync(id, fullname, phone, role.Trim(), effectivePassword);
-            if (!success)
-            {
-                if (isAjax) return BadRequest(new { success = false, message });
-                TempData["ErrorMessage"] = message;
-                return RedirectToAction(nameof(Index));
-            }
-
-            _cache.Remove("admin:user-list:");
-            if (isAjax) return Json(new { success = true, message });
-            TempData["SuccessMessage"] = message;
-            return RedirectToAction(nameof(Index));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error editing user ID: {UserId}", id);
-            var errMsg = "Lỗi hệ thống khi cập nhật tài khoản.";
-            if (isAjax) return StatusCode(500, new { success = false, message = errMsg });
-            TempData["ErrorMessage"] = errMsg;
-            return RedirectToAction(nameof(Index));
-        }
-    }
-
-    // ── POST: EditAccount (by Username — dùng từ modal AJAX) ─────────────
     [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditAccount(
-        string? username, string? fullname, string? phone, string? role, string? newpassword)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-            return BadRequest(new { success = false, message = "Username là bắt buộc." });
-        if (string.IsNullOrWhiteSpace(fullname))
-            return BadRequest(new { success = false, message = "Họ tên là bắt buộc." });
-        if (string.IsNullOrWhiteSpace(role))
-            return BadRequest(new { success = false, message = "Vai trò là bắt buộc." });
-
-        // Ngăn chặn Admin đang login tự thay đổi vai trò của chính mình
-        var currentUsername = User.Identity?.Name;
-        if (string.Equals(currentUsername, username.Trim(), StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(role.Trim(), "Admin", StringComparison.OrdinalIgnoreCase))
+    public Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest? request) =>
+        ExecuteAsync(request, "reset password", async r =>
         {
-            return BadRequest(new { success = false, message = "Bạn không thể tự thay đổi vai trò của chính mình." });
-        }
+            var result = await _accountService.ResetPasswordAsync(r.Id, r.NewPassword);
+            if (result.Success) _logger.LogInformation("Admin {Actor} reset password of account {UserId}.", CurrentUserId, r.Id);
+            return result;
+        });
 
-        try
-        {
-            var (success, message) = await _accountService.EditByUsernameAsync(
-                username, fullname!, phone, role!, newpassword);
-
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-
-            return Json(new { success, message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating user via EditAccount: {Username}", username);
-            return Json(new { success = false, message = "Lỗi hệ thống khi cập nhật tài khoản." });
-        }
-    }
-
-    // ── POST: ToggleStatus ────────────────────────────────────────────────
     [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleStatus(int id)
-    {
-        if (id <= 0)
-            return BadRequest(new { success = false, message = "Mã tài khoản không hợp lệ." });
-
-        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (currentUserId == id.ToString())
-            return BadRequest(new { success = false, message = "Bạn không thể tự khóa tài khoản Admin đang đăng nhập." });
-
-        try
-        {
-            var (success, newStatus, message) = await _accountService.ToggleStatusAsync(id);
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-            return Json(new { success, status = newStatus, message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error toggling status for user ID: {UserId}", id);
-            return Json(new { success = false, message = "Lỗi hệ thống khi cập nhật trạng thái." });
-        }
-    }
-
-    // ── POST: UpdateRole ──────────────────────────────────────────────────
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateRole(int id, string role)
-    {
-        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (currentUserId == id.ToString())
-        {
-            return BadRequest(new { success = false, message = "Bạn không thể tự thay đổi vai trò của chính mình." });
-        }
-
-        try
-        {
-            var (success, message) = await _accountService.UpdateRoleAsync(id, role);
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-            return Json(new { success, role, message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating role for user ID: {UserId}", id);
-            return Json(new { success = false, message = "Lỗi hệ thống khi cập nhật vai trò." });
-        }
-    }
-
-    // ── POST: Delete ──────────────────────────────────────────────────────
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         if (id <= 0)
             return BadRequest(new { success = false, message = "Mã tài khoản không hợp lệ." });
 
-        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (currentUserId == id.ToString())
-            return BadRequest(new { success = false, message = "Bạn không thể tự xóa tài khoản Admin đang đăng nhập." });
-
         try
         {
-            var (success, message) = await _accountService.DeleteAsync(id);
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-            return Json(new { success, message });
+            var result = await _accountService.DeleteAsync(id, CurrentUserId);
+            if (result.Success) _logger.LogInformation("Admin {Actor} deleted account {UserId}.", CurrentUserId, id);
+            return ToJson(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting user ID: {UserId}", id);
-            return Json(new { success = false, message = "Lỗi hệ thống khi xóa tài khoản." });
+            return ServerError(ex, "delete user", id);
         }
     }
 
-    // ── POST: ApproveAccounts (Tiêu chí 3: Gộp SaveChanges khi duyệt nhiều)
     [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApproveAccounts([FromBody] BulkActionRequest request)
-    {
-        if (request?.Ids == null || !request.Ids.Any())
-            return BadRequest(new { success = false, message = "Không có tài khoản nào được chọn." });
-
-        try
+    public Task<IActionResult> BulkSetStatus([FromBody] BulkActionRequest? request) =>
+        ExecuteAsync(request, "bulk set status", async r =>
         {
-            var (success, affected, message) = await _accountService.ApproveMultipleAccountsAsync(request.Ids);
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-            return Json(new { success, affected, message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error approving accounts.");
-            return Json(new { success = false, message = "Lỗi hệ thống khi duyệt tài khoản." });
-        }
-    }
+            var result = await _accountService.BulkSetStatusAsync(r.Ids, r.Status, CurrentUserId);
+            if (result.Success) _logger.LogInformation("Admin {Actor} bulk set status {Status} on {Count} accounts.", CurrentUserId, r.Status, result.Affected);
+            return result;
+        });
 
-    // ── POST: BulkToggleStatus ────────────────────────────────────────────
     [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> BulkToggleStatus([FromBody] BulkActionRequest request)
+    public Task<IActionResult> BulkDelete([FromBody] BulkActionRequest? request) =>
+        ExecuteAsync(request, "bulk delete", async r =>
+        {
+            var result = await _accountService.BulkDeleteAsync(r.Ids, CurrentUserId);
+            if (result.Success) _logger.LogInformation("Admin {Actor} bulk deleted {Count} accounts.", CurrentUserId, result.Affected);
+            return result;
+        });
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  Helpers
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Kiểm tra ModelState → chạy handler → map kết quả/ngoại lệ về JSON chuẩn.</summary>
+    private async Task<IActionResult> ExecuteAsync<T>(T? request, string operation, Func<T, Task<ServiceResult>> handler)
+        where T : class
     {
-        if (request?.Ids == null || !request.Ids.Any())
-            return BadRequest(new { success = false, message = "Không có tài khoản nào được chọn." });
+        if (request is null)
+            return BadRequest(new { success = false, message = "Dữ liệu gửi lên không hợp lệ." });
 
-        if (int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId))
-            request.Ids.RemoveAll(id => id == currentUserId);
-
-        if (!request.Ids.Any())
-            return BadRequest(new { success = false, message = "Không thể tự khóa tài khoản Admin đang đăng nhập." });
-
-        var targetStatus = request.Action?.Equals("activate", StringComparison.OrdinalIgnoreCase) == true
-            ? "Active" : "Inactive";
+        if (!ModelState.IsValid)
+            return ValidationFailed();
 
         try
         {
-            var (success, affected, message) = await _accountService.BulkToggleStatusAsync(request.Ids, targetStatus);
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-            return Json(new { success, affected, message });
+            return ToJson(await handler(request));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error bulk toggling status.");
-            return Json(new { success = false, message = "Lỗi hệ thống khi cập nhật hàng loạt." });
+            return ServerError(ex, operation);
         }
     }
 
-    // ── POST: BulkDelete ──────────────────────────────────────────────────
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request)
+    /// <summary>Trả lỗi ModelState theo từng field (khóa camelCase) để client gắn lại đúng ô nhập.</summary>
+    private IActionResult ValidationFailed()
     {
-        if (request?.Ids == null || !request.Ids.Any())
-            return BadRequest(new { success = false, message = "Không có tài khoản nào được chọn." });
+        var errors = ModelState
+            .Where(kv => kv.Value is { Errors.Count: > 0 })
+            .ToDictionary(
+                kv => ToCamelCase(kv.Key),
+                kv => string.IsNullOrWhiteSpace(kv.Value!.Errors[0].ErrorMessage)
+                    ? "Giá trị không hợp lệ."
+                    : kv.Value.Errors[0].ErrorMessage);
 
-        if (int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId))
-            request.Ids.RemoveAll(id => id == currentUserId);
-
-        if (!request.Ids.Any())
-            return BadRequest(new { success = false, message = "Không thể tự xóa tài khoản Admin đang đăng nhập." });
-
-        try
-        {
-            var (success, affected, message) = await _accountService.BulkDeleteAsync(request.Ids);
-            if (success)
-            {
-                _cache.Remove("admin:user-list:");
-            }
-            return Json(new { success, affected, message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error bulk deleting users.");
-            return Json(new { success = false, message = "Lỗi hệ thống khi xóa hàng loạt." });
-        }
+        var message = errors.Count > 0 ? errors.Values.First() : "Dữ liệu gửi lên không hợp lệ.";
+        return BadRequest(new { success = false, message, errors });
     }
-}
 
-/// <summary>DTO cho Bulk Actions từ AJAX.</summary>
-public class BulkActionRequest
-{
-    public List<int>? Ids { get; set; }
-    public string? Action { get; set; } // "activate" | "deactivate"
+    private IActionResult ToJson(ServiceResult result)
+    {
+        if (result.Success)
+            return Json(new { success = true, message = result.Message, value = result.Value, affected = result.Affected });
+
+        var status = result.Error switch
+        {
+            ServiceError.Validation => StatusCodes.Status400BadRequest,
+            ServiceError.NotFound => StatusCodes.Status404NotFound,
+            ServiceError.Forbidden => StatusCodes.Status403Forbidden,
+            ServiceError.Conflict => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status500InternalServerError
+        };
+
+        object? errors = result.Field is null
+            ? null
+            : new Dictionary<string, string> { [result.Field] = result.Message };
+
+        return StatusCode(status, new { success = false, message = result.Message, errors });
+    }
+
+    // Không bao giờ trả ex.Message ra client (có thể lộ cấu trúc DB / chuỗi kết nối).
+    private IActionResult ServerError(Exception ex, string operation, object? target = null)
+    {
+        _logger.LogError(ex, "Unhandled error during '{Operation}' (target: {Target}).", operation, target);
+        return StatusCode(500, new { success = false, message = "Lỗi hệ thống. Vui lòng thử lại sau." });
+    }
+
+    private static string ToCamelCase(string key) =>
+        string.IsNullOrEmpty(key) ? key : char.ToLowerInvariant(key[0]) + key[1..];
 }

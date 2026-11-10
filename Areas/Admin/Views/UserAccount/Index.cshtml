@@ -1,561 +1,207 @@
-@model IEnumerable<httt.Models.UserAccount>
+@using httt.Areas.Admin.Services
+@model httt.Areas.Admin.ViewModels.UserListViewModel
 
 @{
     ViewData["Title"] = "Quản lý Tài khoản & Phân quyền";
-    var roleFilter   = (string?)ViewBag.Role ?? Context.Request.Query["role"].ToString() ?? string.Empty;
-    var statusFilter = (string?)ViewBag.Status ?? Context.Request.Query["status"].ToString() ?? string.Empty;
-    var searchString = (string?)ViewBag.Search ?? Context.Request.Query["search"].ToString() ?? string.Empty;
-    var currentPage  = (int?)ViewBag.CurrentPage ?? 1;
-    var totalPages   = (int?)ViewBag.TotalPages ?? 1;
-    var totalItems   = (int?)ViewBag.TotalItems ?? (Model?.Count() ?? 0);
-    var firstPage    = Math.Max(1, currentPage - 2);
-    var lastPage     = Math.Min(totalPages, firstPage + 4);
-    var hasFilter    = !string.IsNullOrWhiteSpace(searchString) || 
-                       (!string.IsNullOrWhiteSpace(roleFilter) && !roleFilter.Equals("all", StringComparison.OrdinalIgnoreCase)) || 
-                       (!string.IsNullOrWhiteSpace(statusFilter) && !statusFilter.Equals("all", StringComparison.OrdinalIgnoreCase));
 }
 
-<style>
-    /* ── Sticky Table & Responsive Container ─────────────────────── */
-    .adm-table-wrapper {
-        position: relative;
-        max-height: calc(100vh - 290px);
-        min-height: 380px;
-        overflow-y: auto;
-        overflow-x: auto;
-        border-radius: var(--adm-card-radius, 0.875rem);
-    }
-
-    .adm-table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background-color: #f8fafc;
-        box-shadow: inset 0 -1px 0 #e2e8f0;
-    }
-
-    /* ── Badges Chuẩn Hóa ────────────────────────────────────────── */
-    .adm-badge--blocked {
-        background-color: rgba(245, 158, 11, 0.12);
-        color: #d97706;
-        border: 1px solid rgba(245, 158, 11, 0.25);
-    }
-
-    .adm-badge--disabled {
-        background-color: rgba(148, 163, 184, 0.15);
-        color: #64748b;
-        border: 1px solid rgba(148, 163, 184, 0.25);
-    }
-
-    /* ── Bulk Actions Floating / Slide Bar ────────────────────────── */
-    .adm-bulk-bar {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        color: #f8fafc;
-        border-radius: 0.75rem;
-        padding: 0.75rem 1.25rem;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35), 0 8px 10px -6px rgba(15, 23, 42, 0.25);
-        animation: bulkSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    @@keyframes bulkSlideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-8px) scale(0.98);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    .adm-bulk-badge {
-        background: rgba(99, 102, 241, 0.25);
-        color: #a5b4fc;
-        font-weight: 700;
-        padding: 0.25rem 0.6rem;
-        border-radius: 9999px;
-        font-size: 0.8125rem;
-        border: 1px solid rgba(99, 102, 241, 0.4);
-    }
-
-    /* ── Empty State Graphics ────────────────────────────────────── */
-    .adm-empty-graphic {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(129, 140, 248, 0.05));
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #6366f1;
-        font-size: 2.25rem;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
-    }
-
-    /* ── Realtime Validation Feedback ────────────────────────────── */
-    .form-control.is-invalid ~ .invalid-feedback {
-        display: block;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        margin-top: 0.375rem;
-    }
-</style>
-
-<div class="container-fluid px-0">
+<div id="userPage"
+     data-url-index="@Url.Action("Index", "UserAccount", new { area = "Admin" })"
+     data-url-create="@Url.Action("Create", "UserAccount", new { area = "Admin" })"
+     data-url-update="@Url.Action("Update", "UserAccount", new { area = "Admin" })"
+     data-url-set-status="@Url.Action("SetStatus", "UserAccount", new { area = "Admin" })"
+     data-url-reset-password="@Url.Action("ResetPassword", "UserAccount", new { area = "Admin" })"
+     data-url-delete="@Url.Action("Delete", "UserAccount", new { area = "Admin" })"
+     data-url-bulk-status="@Url.Action("BulkSetStatus", "UserAccount", new { area = "Admin" })"
+     data-url-bulk-delete="@Url.Action("BulkDelete", "UserAccount", new { area = "Admin" })"
+     data-url-login="@Url.Action("Login", "Account", new { area = "Admin" })"
+     data-msg-password="@UserAccountRules.MsgPassword"
+     data-flash-error="@(TempData["ErrorMessage"] as string)"
+     data-flash-success="@(TempData["SuccessMessage"] as string)">
 
     <!-- ── Page Header ── -->
     <div class="adm-page-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
             <h1 class="adm-page-title d-flex align-items-center gap-2 mb-1">
                 <i class="fa-solid fa-users-gear text-primary" style="font-size: 1.25rem;" aria-hidden="true"></i>
-                Quản lý Tài khoản & Phân quyền
+                Quản lý Tài khoản &amp; Phân quyền
             </h1>
-            <p class="adm-page-subtitle mb-0">Tạo mới, phân quyền truy cập và kiểm soát trạng thái nhân sự trong toàn hệ thống</p>
+            <p class="adm-page-subtitle mb-0">Tạo mới, phân quyền và kiểm soát trạng thái tài khoản nhân sự trong toàn hệ thống</p>
         </div>
-        <button type="button" class="adm-btn adm-btn--primary shadow-sm"
-                data-bs-toggle="modal" data-bs-target="#accountModal" data-account-mode="create">
+        <button type="button" class="adm-btn adm-btn--primary shadow-sm" data-action="create">
             <i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i>
             Tạo tài khoản mới
         </button>
     </div>
 
-    <!-- ── Filter + Search Toolbar ── -->
-    <form method="get" asp-area="Admin" asp-controller="UserAccount" asp-action="Index">
+    <!-- ── Bộ lọc + tìm kiếm thời gian thực (vẫn hoạt động như form GET nếu tắt JavaScript) ── -->
+    <form id="userFilterForm" data-ajax-form="true" method="get" action="@Url.Action("Index", "UserAccount", new { area = "Admin" })" role="search">
         <div class="adm-card mb-3">
             <div class="adm-card-body py-3">
-                <div class="adm-toolbar flex-wrap align-items-center justify-content-between gap-3">
+                <div class="adm-toolbar flex-wrap align-items-center gap-2">
+                    <div class="adm-search-box flex-grow-1" style="min-width: 220px; max-width: 380px;">
+                        <i class="fa-solid fa-magnifying-glass adm-search-icon" aria-hidden="true"></i>
+                        <input type="search" class="adm-search-input" id="filterSearch" name="search"
+                               value="@Model.Search" maxlength="100" autocomplete="off"
+                               placeholder="Tìm username, họ tên, số điện thoại..."
+                               aria-label="Tìm tài khoản theo tên đăng nhập, họ tên hoặc số điện thoại" />
+                    </div>
 
-                    <!-- Search & Filters -->
-                    <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
-                        <!-- Search Box -->
-                        <div class="adm-search-box flex-grow-1" style="min-width: 220px; max-width: 360px;">
-                            <i class="fa-solid fa-magnifying-glass adm-search-icon" aria-hidden="true"></i>
-                            <input type="search" class="adm-search-input" name="search"
-                                   value="@searchString"
-                                   placeholder="Tìm username, họ tên..."
-                                   aria-label="Tìm tài khoản theo tên đăng nhập hoặc họ tên" />
-                        </div>
-
-                        <!-- Role Filter -->
-                        <div class="d-flex align-items-center gap-2">
-                            <label for="filterRole" class="text-nowrap fw-semibold text-secondary" style="font-size: 0.8125rem;">
-                                <i class="fa-solid fa-user-tag me-1 text-primary" aria-hidden="true"></i>Vai trò
-                            </label>
-                            <select id="filterRole" name="role" class="adm-filter-select" aria-label="Lọc theo vai trò">
-                                <option value="all" selected="@(string.IsNullOrWhiteSpace(roleFilter) || roleFilter.Equals("all", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Tất cả vai trò</option>
-                                <option value="Admin" selected="@(roleFilter.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Admin</option>
-                                <option value="Manager" selected="@(roleFilter.Equals("Manager", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Manager</option>
-                                <option value="Employee" selected="@(roleFilter.Equals("Employee", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Employee</option>
-                                <option value="Production" selected="@(roleFilter.Equals("Production", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Production</option>
-                                <option value="Warehouse" selected="@(roleFilter.Equals("Warehouse", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Warehouse</option>
-                                <option value="Sales" selected="@(roleFilter.Equals("Sales", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Sales</option>
-                                <option value="Kho" selected="@(roleFilter.Equals("Kho", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Kho</option>
-                                <option value="BanHang" selected="@(roleFilter.Equals("BanHang", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">BanHang</option>
-                            </select>
-                        </div>
-
-                        <!-- Status Filter -->
-                        <div class="d-flex align-items-center gap-2">
-                            <label for="filterStatus" class="text-nowrap fw-semibold text-secondary" style="font-size: 0.8125rem;">
-                                <i class="fa-solid fa-circle-half-stroke me-1 text-primary" aria-hidden="true"></i>Trạng thái
-                            </label>
-                            <select id="filterStatus" name="status" class="adm-filter-select" aria-label="Lọc theo trạng thái">
-                                <option value="all" selected="@(string.IsNullOrWhiteSpace(statusFilter) || statusFilter.Equals("all", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Tất cả</option>
-                                <option value="Active" selected="@(statusFilter.Equals("Active", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Active</option>
-                                <option value="Inactive" selected="@(statusFilter.Equals("Inactive", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Inactive</option>
-                                <option value="Blocked" selected="@(statusFilter.Equals("Blocked", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Blocked</option>
-                                <option value="Disabled" selected="@(statusFilter.Equals("Disabled", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Disabled</option>
-                            </select>
-                        </div>
-
-                        <!-- Action Submit -->
-                        <div class="d-flex align-items-center gap-2">
-                            <button type="submit" class="adm-btn adm-btn--outline" title="Thực hiện lọc dữ liệu">
-                                <i class="fa-solid fa-filter me-1" aria-hidden="true"></i>
-                                Lọc
-                            </button>
-
-                            @if (hasFilter)
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="filterRole" class="text-nowrap fw-semibold text-secondary" style="font-size: 0.8125rem;">
+                            <i class="fa-solid fa-user-tag me-1 text-primary" aria-hidden="true"></i>Vai trò
+                        </label>
+                        <select id="filterRole" name="role" class="adm-filter-select">
+                            <option value="" selected="@(Model.Role.Length == 0)">Tất cả</option>
+                            @foreach (var r in UserAccountRules.Roles)
                             {
-                                <a asp-area="Admin" asp-controller="UserAccount" asp-action="Index" class="adm-btn adm-btn--ghost text-danger" title="Xóa toàn bộ bộ lọc và từ khóa">
-                                    <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>
-                                    Xóa lọc
-                                </a>
+                                <option value="@r" selected="@(Model.Role == r)">@r</option>
                             }
-                        </div>
+                        </select>
                     </div>
 
-                    <!-- Counter Info -->
-                    <div class="text-muted d-none d-lg-block" style="font-size: 0.8125rem;">
-                        Tổng số: <strong class="text-dark">@totalItems</strong> tài khoản
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="filterStatus" class="text-nowrap fw-semibold text-secondary" style="font-size: 0.8125rem;">
+                            <i class="fa-solid fa-circle-half-stroke me-1 text-primary" aria-hidden="true"></i>Trạng thái
+                        </label>
+                        <select id="filterStatus" name="status" class="adm-filter-select">
+                            <option value="" selected="@(Model.Status.Length == 0)">Tất cả</option>
+                            @foreach (var s in UserAccountRules.Statuses)
+                            {
+                                <option value="@s" selected="@(Model.Status == s)">@s</option>
+                            }
+                        </select>
                     </div>
+
+                    <button type="button" class="adm-btn adm-btn--ghost text-danger" id="clearFiltersBtn"
+                            data-action="clear-filters" title="Xóa toàn bộ bộ lọc" hidden="@(!Model.HasFilter)">
+                        <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>Xóa lọc
+                    </button>
+
+                    <noscript><button type="submit" class="adm-btn adm-btn--outline">Lọc</button></noscript>
                 </div>
             </div>
         </div>
     </form>
 
-    <!-- ── Bulk Actions Floating Toolbar (Tự động hiển thị khi có tick chọn) ── -->
-    <div id="bulkActionsToolbar" class="adm-bulk-bar mb-3 d-none align-items-center justify-content-between flex-wrap gap-3">
+    <!-- ── Thanh thao tác hàng loạt (chỉ hiện khi có dòng được chọn) ── -->
+    <div id="bulkBar" class="adm-bulk-bar mb-3 align-items-center justify-content-between flex-wrap gap-3" hidden>
         <div class="d-flex align-items-center gap-2">
-            <span class="adm-bulk-badge">
-                <i class="fa-solid fa-check-double me-1" aria-hidden="true"></i>
-                <span id="bulkSelectedCount">0</span>
-            </span>
-            <span class="fw-semibold text-white" id="bulkSelectedLabel">Đã chọn 0 tài khoản</span>
+            <span class="adm-bulk-badge"><i class="fa-solid fa-check-double me-1" aria-hidden="true"></i><span id="bulkCount">0</span></span>
+            <span class="fw-semibold text-white" id="bulkLabel" aria-live="polite">Đã chọn 0 tài khoản</span>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <button type="button" id="bulkLockBtn" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1 shadow-sm" disabled>
-                <i class="fa-solid fa-lock text-warning" aria-hidden="true"></i>
-                <span>Khóa đã chọn</span>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" id="bulkUnlockBtn" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1" disabled>
+                <i class="fa-solid fa-unlock text-success" aria-hidden="true"></i><span>Mở khóa đã chọn</span>
             </button>
-            <button type="button" id="bulkDeleteBtn" class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1 shadow-sm" disabled>
-                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                <span>Xóa đã chọn</span>
+            <button type="button" id="bulkLockBtn" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1" disabled>
+                <i class="fa-solid fa-lock text-warning" aria-hidden="true"></i><span>Khóa đã chọn</span>
             </button>
-            <button type="button" id="clearSelectionBtn" class="btn btn-sm btn-link text-white-50 text-decoration-none ms-1">
+            <button type="button" id="bulkDeleteBtn" class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1" disabled>
+                <i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Xóa đã chọn</span>
+            </button>
+            <button type="button" id="bulkClearBtn" class="btn btn-sm btn-link text-white-50 text-decoration-none">
                 <i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Bỏ chọn
             </button>
         </div>
     </div>
 
-    <!-- ── Data Table Card ── -->
+    <!-- ── Bảng (được thay thế bằng AJAX; không reload trang) ── -->
     <div class="adm-card shadow-sm">
-        <div class="adm-card-body--flush">
-            <div class="table-responsive adm-table-wrapper" role="region" aria-label="Danh sách tài khoản" tabindex="0">
-                <table class="adm-table mb-0" id="accountsTable">
-                    <caption class="visually-hidden">Danh sách tài khoản, vai trò, trạng thái và thao tác quản trị</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 3.25rem; padding-left: 1.25rem;">
-                                <input class="form-check-input" type="checkbox" id="selectAllRows" title="Chọn tất cả tài khoản" aria-label="Chọn tất cả tài khoản trên trang này" />
-                            </th>
-                            <th scope="col" style="width: 4rem;">ID</th>
-                            <th scope="col">Tên đăng nhập</th>
-                            <th scope="col">Họ và tên</th>
-                            <th scope="col">Số điện thoại</th>
-                            <th scope="col">Vai trò</th>
-                            <th scope="col">Trạng thái</th>
-                            <th scope="col" class="text-end" style="padding-right: 1.25rem;">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            @foreach (var item in Model)
-                            {
-                                var rawStatus = item.Status?.Trim() ?? string.Empty;
-                                bool isActive = string.Equals(rawStatus, "Active", StringComparison.OrdinalIgnoreCase) || rawStatus == "true" || rawStatus == "1";
-                                bool isBlocked = string.Equals(rawStatus, "Blocked", StringComparison.OrdinalIgnoreCase);
-                                bool isDisabled = string.Equals(rawStatus, "Disabled", StringComparison.OrdinalIgnoreCase);
-
-                                <tr>
-                                    <td style="padding-left: 1.25rem;">
-                                        <input class="form-check-input row-checkbox" type="checkbox"
-                                               value="@item.UserId"
-                                               data-user-id="@item.UserId"
-                                               aria-label="Chọn tài khoản @item.Username" />
-                                    </td>
-                                    <td style="color: #94a3b8; font-size: 0.75rem; font-weight: 700;">#@item.UserId</td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold text-white flex-shrink-0"
-                                                  style="width: 1.85rem; height: 1.85rem; font-size: 0.75rem;
-                                                         background: @(item.Role == "Admin" ? "linear-gradient(135deg,#6366f1,#818cf8)" : item.Role == "Manager" ? "linear-gradient(135deg,#06b6d4,#67e8f9)" : "linear-gradient(135deg,#94a3b8,#cbd5e1)");"
-                                                  aria-hidden="true">
-                                                @(item.Username?.Length > 0 ? item.Username[0].ToString().ToUpper() : "?")
-                                            </span>
-                                            <span class="fw-semibold" style="color: #0f172a; font-size: 0.875rem;">@item.Username</span>
-                                        </div>
-                                    </td>
-                                    <td style="color: #475569; font-weight: 500;">@item.FullName</td>
-                                    <td class="text-nowrap" style="color: #64748b; font-size: 0.8125rem;">
-                                        @(string.IsNullOrWhiteSpace(item.Phone) ? "—" : item.Phone)
-                                    </td>
-                                    <td>
-                                        @{
-                                            var roleClass = item.Role switch
-                                            {
-                                                "Admin" => "adm-badge--admin",
-                                                "Manager" => "adm-badge--manager",
-                                                "Production" => "adm-badge--production",
-                                                "Warehouse" => "adm-badge--warehouse",
-                                                "Sales" => "adm-badge--sales",
-                                                "Kho" => "adm-badge--warehouse",
-                                                "BanHang" => "adm-badge--sales",
-                                                _ => "adm-badge--employee"
-                                            };
-                                        }
-                                        <span class="adm-badge @roleClass">
-                                            @item.Role
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @if (isActive)
-                                        {
-                                            <span class="adm-badge adm-badge--active">
-                                                <i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>
-                                                Active
-                                            </span>
-                                        }
-                                        else if (isBlocked)
-                                        {
-                                            <span class="adm-badge adm-badge--blocked">
-                                                <i class="fa-solid fa-ban fa-xs me-1" aria-hidden="true"></i>
-                                                Blocked
-                                            </span>
-                                        }
-                                        else if (isDisabled)
-                                        {
-                                            <span class="adm-badge adm-badge--disabled">
-                                                <i class="fa-solid fa-circle-minus fa-xs me-1" aria-hidden="true"></i>
-                                                Disabled
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="adm-badge adm-badge--inactive">
-                                                <i class="fa-solid fa-circle-xmark fa-xs me-1" aria-hidden="true"></i>
-                                                Inactive
-                                            </span>
-                                        }
-                                    </td>
-                                    <td style="padding-right: 1.25rem;">
-                                        <div class="adm-action-group justify-content-end">
-                                            <!-- Chi tiết & Quyền -->
-                                            <button type="button"
-                                                    class="adm-btn adm-btn--outline adm-btn--sm btn-detail-role"
-                                                    title="Chi tiết & Phân quyền"
-                                                    aria-label="Xem chi tiết và phân quyền tài khoản @item.Username"
-                                                    data-bs-toggle="modal" data-bs-target="#detailRoleModal"
-                                                    data-user-id="@item.UserId"
-                                                    data-user-name="@item.Username"
-                                                    data-user-fullname="@item.FullName"
-                                                    data-user-phone="@item.Phone"
-                                                    data-user-role="@item.Role"
-                                                    data-user-status="@(isActive ? "Active" : isBlocked ? "Blocked" : isDisabled ? "Disabled" : "Inactive")">
-                                                <i class="fa-solid fa-user-shield me-1" aria-hidden="true"></i>
-                                                <span class="d-none d-lg-inline">Chi tiết & Quyền</span>
-                                            </button>
-
-                                            <!-- Toggle Khóa / Mở khóa -->
-                                            <button type="button"
-                                                    class="adm-btn @(isActive ? "adm-btn--outline" : "adm-btn--ghost") adm-btn--sm btn-toggle-status"
-                                                    title="@(isActive ? "Khóa tài khoản" : "Mở khóa tài khoản")"
-                                                    aria-label="@(isActive ? "Khóa" : "Mở khóa") tài khoản @item.Username"
-                                                    data-user-id="@item.UserId">
-                                                <i class="fa-solid @(isActive ? "fa-lock text-warning" : "fa-unlock text-success")" aria-hidden="true"></i>
-                                            </button>
-
-                                            <!-- Xóa tài khoản -->
-                                            <button type="button"
-                                                    class="adm-btn adm-btn--danger-soft adm-btn--sm btn-delete-account"
-                                                    title="Xóa tài khoản"
-                                                    aria-label="Xóa tài khoản @item.Username"
-                                                    data-user-id="@item.UserId">
-                                                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <!-- ── Empty State Đồ Họa Cao Cấp ── -->
-                            <tr>
-                                <td colspan="8" class="p-0 border-0">
-                                    <div class="adm-empty-state py-5 px-3">
-                                        <div class="adm-empty-graphic">
-                                            <i class="fa-solid fa-user-slash" aria-hidden="true"></i>
-                                        </div>
-                                        <h3 class="adm-empty-state-text mb-2 text-dark" style="font-size: 1.125rem;">
-                                            Không tìm thấy tài khoản nào
-                                        </h3>
-                                        <p class="text-secondary mx-auto mb-4" style="max-width: 440px; font-size: 0.875rem;">
-                                            @if (hasFilter)
-                                            {
-                                                <span>Không có kết quả nào phù hợp với bộ lọc hoặc từ khóa tìm kiếm của bạn. Hãy thử làm mới bộ lọc để hiển thị đầy đủ.</span>
-                                            }
-                                            else
-                                            {
-                                                <span>Hiện tại hệ thống chưa có tài khoản nào được tạo. Bạn có thể bắt đầu tạo tài khoản nhân sự mới ngay bây giờ.</span>
-                                            }
-                                        </p>
-                                        <div class="d-flex justify-content-center align-items-center gap-2">
-                                            @if (hasFilter)
-                                            {
-                                                <a asp-area="Admin" asp-controller="UserAccount" asp-action="Index" class="adm-btn adm-btn--outline">
-                                                    <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>
-                                                    Xóa bộ lọc
-                                                </a>
-                                            }
-                                            <button type="button" class="adm-btn adm-btn--primary"
-                                                    data-bs-toggle="modal" data-bs-target="#accountModal" data-account-mode="create">
-                                                <i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i>
-                                                Tạo tài khoản mới
-                                            </button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+        <div class="adm-card-body--flush" id="userTableHost" aria-live="polite">
+            @await Html.PartialAsync("_UserTable", Model)
         </div>
-
-        <!-- Pagination -->
-        @if (totalPages > 1)
-        {
-            <nav class="adm-pagination border-top px-4 py-3" aria-label="Phân trang danh sách tài khoản">
-                @if (currentPage > 1)
-                {
-                    <a class="adm-page-btn" aria-label="Trang trước"
-                       href="@Url.Action("Index", new { page = currentPage - 1, search = searchString, role = roleFilter, status = statusFilter })">
-                        <i class="fa-solid fa-chevron-left fa-xs" aria-hidden="true"></i>
-                    </a>
-                }
-                else
-                {
-                    <span class="adm-page-btn disabled" aria-disabled="true"><i class="fa-solid fa-chevron-left fa-xs" aria-hidden="true"></i></span>
-                }
-
-                @for (var i = firstPage; i <= lastPage; i++)
-                {
-                    <a class="adm-page-btn @(i == currentPage ? "active" : string.Empty)"
-                       aria-label="Trang @i" aria-current="@(i == currentPage ? "page" : null)"
-                       href="@Url.Action("Index", new { page = i, search = searchString, role = roleFilter, status = statusFilter })">@i</a>
-                }
-
-                @if (currentPage < totalPages)
-                {
-                    <a class="adm-page-btn" aria-label="Trang tiếp theo"
-                       href="@Url.Action("Index", new { page = currentPage + 1, search = searchString, role = roleFilter, status = statusFilter })">
-                        <i class="fa-solid fa-chevron-right fa-xs" aria-hidden="true"></i>
-                    </a>
-                }
-                else
-                {
-                    <span class="adm-page-btn disabled" aria-disabled="true"><i class="fa-solid fa-chevron-right fa-xs" aria-hidden="true"></i></span>
-                }
-            </nav>
-        }
     </div>
-
 </div>
 
-<!-- ════ MODAL 1: Cập nhật & Phân quyền tài khoản ════ -->
-<div class="modal fade adm-modal" id="detailRoleModal" tabindex="-1" aria-labelledby="detailRoleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<!-- ════ MODAL: Tạo / Sửa tài khoản ════ -->
+<div class="modal fade adm-modal" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0">
-            <form id="detailRoleForm" method="post"
-                  asp-area="Admin" asp-controller="UserAccount" asp-action="EditAccount"
-                  class="needs-validation" novalidate>
-                @Html.AntiForgeryToken()
-                <input type="hidden" id="detailUserId" name="id" />
-                <input type="hidden" id="detailUsernameValue" name="username" />
+            <form id="userForm" data-ajax-form="true" novalidate autocomplete="off">
+                <input type="hidden" name="id" value="0" />
 
                 <div class="modal-header">
-                    <h2 class="modal-title fs-5" id="detailRoleModalLabel">
-                        <i class="fa-solid fa-user-shield text-primary me-2" aria-hidden="true"></i>Cập nhật thông tin & Phân quyền
-                    </h2>
+                    <h2 class="modal-title fs-5" id="userModalLabel">Tạo tài khoản mới</h2>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
 
                 <div class="modal-body p-4">
-                    <div class="row g-4 align-items-stretch">
-                        <!-- Profile Column -->
-                        <div class="col-md-5">
-                            <div class="adm-profile-panel h-100 p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                                <div class="text-center mb-4 pt-2">
-                                    <div class="adm-profile-avatar d-inline-flex align-items-center justify-content-center rounded-circle text-white fw-bold shadow-sm"
-                                         style="width: 4rem; height: 4rem; font-size: 1.5rem; background: linear-gradient(135deg, #6366f1, #4f46e5);">
-                                        <span id="detailAvatar">A</span>
-                                    </div>
-                                    <div class="mt-2 text-muted small">Tài khoản nhân sự</div>
-                                </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="fUsername">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fUsername" name="username" required
+                               minlength="@UserAccountRules.UsernameMin"
+                               pattern="@UserAccountRules.UsernamePattern" maxlength="@UserAccountRules.UsernameMax"
+                               autocomplete="off" spellcheck="false"
+                               data-msg="@UserAccountRules.MsgUsername" />
+                        <div class="invalid-feedback"></div>
+                    </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-secondary">Tên đăng nhập</label>
-                                    <input type="text" class="form-control form-control-sm bg-white" id="detailUsername" readonly />
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-secondary" for="detailFullnameInput">Họ và tên <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control adm-profile-input" id="detailFullnameInput" name="fullname" required minlength="3" />
-                                    <div class="invalid-feedback">Họ và tên phải có ít nhất 3 ký tự.</div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-secondary" for="detailPhoneInput">Số điện thoại</label>
-                                    <input type="tel" class="form-control adm-profile-input" id="detailPhoneInput" name="phone" pattern="(84|0[35789])[0-9]{8}" placeholder="0912345678" />
-                                    <div class="invalid-feedback">Số điện thoại không đúng định dạng.</div>
-                                </div>
-
-                                <div class="mb-0">
-                                    <label class="form-label small fw-semibold text-secondary" for="detailNewPassword">
-                                        Mật khẩu mới <small class="text-muted fw-normal">(để trống nếu không đổi)</small>
-                                    </label>
-                                    <input type="password" class="form-control adm-profile-input" id="detailNewPassword" name="newpassword" autocomplete="new-password" placeholder="Nhập tối thiểu 12 ký tự" />
-                                    <div class="invalid-feedback" id="detailNewPasswordFeedback">Mật khẩu mới phải có tối thiểu 12 ký tự.</div>
-                                </div>
-                            </div>
+                    <div class="mb-3" id="passwordGroup">
+                        <label class="form-label fw-semibold" for="fPassword">Mật khẩu <span class="text-danger">*</span></label>
+                        <div class="input-group has-validation">
+                            <input type="password" class="form-control" id="fPassword" name="password" required
+                                   minlength="@UserAccountRules.MinPasswordLength"
+                                   pattern="@UserAccountRules.PasswordPattern" maxlength="@UserAccountRules.PasswordMaxBytes"
+                                   autocomplete="new-password"
+                                   data-msg="@UserAccountRules.MsgPassword" />
+                            <button type="button" class="btn btn-outline-secondary" data-toggle-password tabindex="-1"
+                                    aria-label="Hiện/ẩn mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                            <div class="invalid-feedback"></div>
                         </div>
+                        <div class="form-text">Tối thiểu 8 ký tự.</div>
+                    </div>
 
-                        <!-- Roles & Status Column -->
-                        <div class="col-md-7">
-                            <div class="adm-profile-panel adm-profile-panel--secondary h-100 p-3 rounded-3" style="background: #ffffff; border: 1px solid #e2e8f0;">
-                                <div class="adm-profile-section-header fw-bold text-dark pb-2 mb-3 border-bottom d-flex align-items-center">
-                                    <i class="fa-solid fa-shield-halved text-primary me-2" aria-hidden="true"></i>
-                                    Quyền hạn & Truy cập
-                                </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="fFullName">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fFullName" name="fullName" required
+                               minlength="@UserAccountRules.FullNameMin" maxlength="@UserAccountRules.FullNameMax"
+                               autocomplete="off" data-msg="@UserAccountRules.MsgFullName" />
+                        <div class="invalid-feedback"></div>
+                    </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-secondary">Vai trò hiện tại</label>
-                                    <div class="p-2 rounded bg-light border">
-                                        <span id="detailCurrentRole" class="adm-badge adm-badge--employee">Employee</span>
-                                    </div>
-                                </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="fPhone">Số điện thoại</label>
+                        <input type="tel" class="form-control" id="fPhone" name="phone"
+                               pattern="@UserAccountRules.PhonePattern" maxlength="15" placeholder="0912345678"
+                               autocomplete="off" data-msg="@UserAccountRules.MsgPhone" />
+                        <div class="invalid-feedback"></div>
+                    </div>
 
-                                <div class="mb-3">
-                                    <label for="detailRole" class="form-label small fw-semibold text-secondary">Chọn vai trò mới <span class="text-danger">*</span></label>
-                                    <select class="form-select adm-role-select" id="detailRole" name="role" required>
-                                        <option value="Admin">Admin (Toàn quyền quản trị)</option>
-                                        <option value="Manager">Manager (Quản lý phân hệ)</option>
-                                        <option value="Employee">Employee (Nhân viên chung)</option>
-                                        <option value="Production">Production (Sản xuất)</option>
-                                        <option value="Warehouse">Warehouse (Kho vận)</option>
-                                        <option value="Sales">Sales (Kinh doanh & Bán hàng)</option>
-                                        <option value="Kho">Kho</option>
-                                        <option value="BanHang">BanHang</option>
-                                    </select>
-                                    <div class="invalid-feedback">Vui lòng chọn vai trò.</div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-secondary">Trạng thái tài khoản</label>
-                                    <div class="p-2 rounded bg-light border">
-                                        <span id="detailStatus" class="adm-badge adm-badge--active">Active</span>
-                                    </div>
-                                </div>
-
-                                <div class="alert alert-info py-2 px-3 small mb-0 border-0" style="background: rgba(99, 102, 241, 0.08); color: #4338ca;">
-                                    <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>
-                                    Thay đổi vai trò sẽ cập nhật quyền truy cập vào các phân hệ tương ứng ngay trong phiên làm việc tiếp theo.
-                                </div>
-                            </div>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" for="fRole">Vai trò <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fRole" name="role" required data-msg="@UserAccountRules.MsgRole">
+                                <option value="">-- Chọn vai trò --</option>
+                                @foreach (var r in UserAccountRules.Roles)
+                                {
+                                    <option value="@r">@r</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback"></div>
                         </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" for="fStatus">Trạng thái <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fStatus" name="status" required data-msg="@UserAccountRules.MsgStatus">
+                                @foreach (var s in UserAccountRules.Statuses)
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning small mt-3 mb-0 d-none" id="protectedNotice" role="note">
+                        <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>
+                        <span></span>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light px-4 py-3">
                     <button type="button" class="adm-btn adm-btn--outline" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="adm-btn adm-btn--primary" id="detailRoleSubmit">
-                        <i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>
-                        Cập nhật tài khoản
+                    <button type="submit" class="adm-btn adm-btn--primary" id="userFormSubmit">
+                        <i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Lưu tài khoản
                     </button>
                 </div>
             </form>
@@ -563,118 +209,50 @@
     </div>
 </div>
 
-<!-- ════ MODAL 2: Tạo / Sửa / Xem tài khoản ════ -->
-<div class="modal fade adm-modal" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+<!-- ════ MODAL: Đặt lại mật khẩu ════ -->
+<div class="modal fade adm-modal" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0">
-            <form id="accountForm" method="post"
-                  asp-area="Admin" asp-controller="UserAccount" asp-action="Create"
-                  class="needs-validation" novalidate>
-                @Html.AntiForgeryToken()
+            <form id="resetForm" data-ajax-form="true" novalidate autocomplete="off">
+                <input type="hidden" name="id" value="0" />
 
                 <div class="modal-header">
-                    <h2 class="modal-title fs-5" id="accountModalLabel">
-                        <i class="fa-solid fa-user-plus text-primary me-2" aria-hidden="true"></i>Tạo tài khoản mới
+                    <h2 class="modal-title fs-5" id="resetModalLabel">
+                        <i class="fa-solid fa-key text-primary me-2" aria-hidden="true"></i>Đặt lại mật khẩu
                     </h2>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
 
                 <div class="modal-body p-4">
-                    <!-- Username -->
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="accountUsername" name="Username"
-                               placeholder="username" autocomplete="username"
-                               pattern="^\S+$" aria-describedby="accountUsernameFeedback" required />
-                        <label for="accountUsername">
-                            <i class="fa-regular fa-user me-1 text-secondary" aria-hidden="true"></i>Tên đăng nhập <span class="text-danger">*</span>
-                        </label>
-                        <div class="invalid-feedback" id="accountUsernameFeedback">
-                            Username không được để trống và không chứa khoảng trắng.
+                    <p class="text-secondary mb-3">Đặt mật khẩu mới cho tài khoản <strong id="resetUsername" class="text-dark"></strong>.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="rPassword">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <div class="input-group has-validation">
+                            <input type="password" class="form-control" id="rPassword" name="newPassword" required
+                                   minlength="@UserAccountRules.MinPasswordLength"
+                                   pattern="@UserAccountRules.PasswordPattern" maxlength="@UserAccountRules.PasswordMaxBytes"
+                                   autocomplete="new-password" data-msg="@UserAccountRules.MsgPassword" />
+                            <button type="button" class="btn btn-outline-secondary" data-toggle-password tabindex="-1"
+                                    aria-label="Hiện/ẩn mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                            <div class="invalid-feedback"></div>
                         </div>
+                        <div class="form-text">Tối thiểu 8 ký tự.</div>
                     </div>
 
-                    <!-- Password with Real-time Validation -->
-                    <div class="form-floating mb-3" id="accountPasswordWrapper">
-                        <input type="password" class="form-control" id="accountPassword" name="password"
-                               placeholder="Mật khẩu" autocomplete="new-password"
-                               minlength="12" required aria-describedby="accountPasswordFeedback" />
-                        <label for="accountPassword">
-                            <i class="fa-solid fa-lock me-1 text-secondary" aria-hidden="true"></i>Mật khẩu (tối thiểu 12 ký tự) <span class="text-danger">*</span>
-                        </label>
-                        <div class="invalid-feedback" id="accountPasswordFeedback">
-                            Mật khẩu bắt buộc và phải có ít nhất 12 ký tự.
-                        </div>
-                        <div class="form-text small text-muted" id="accountPasswordHint">
-                            <i class="fa-solid fa-shield-halved me-1"></i>Độ bảo mật: Tối thiểu 12 ký tự gồm chữ và số.
-                        </div>
-                    </div>
-
-                    <!-- Full name -->
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="accountFullname" name="FullName"
-                               placeholder="Họ và tên" autocomplete="name"
-                               minlength="3" aria-describedby="accountFullnameFeedback" required />
-                        <label for="accountFullname">
-                            <i class="fa-regular fa-id-card me-1 text-secondary" aria-hidden="true"></i>Họ và tên <span class="text-danger">*</span>
-                        </label>
-                        <div class="invalid-feedback" id="accountFullnameFeedback">
-                            Họ và tên bắt buộc và phải có ít nhất 3 ký tự.
-                        </div>
-                    </div>
-
-                    <!-- Phone -->
-                    <div class="form-floating mb-3">
-                        <input type="tel" class="form-control" id="accountPhone" name="Phone"
-                               placeholder="Số điện thoại" autocomplete="tel"
-                               pattern="(84|0[35789])[0-9]{8}" aria-describedby="accountPhoneFeedback" />
-                        <label for="accountPhone">
-                            <i class="fa-regular fa-phone me-1 text-secondary" aria-hidden="true"></i>Số điện thoại
-                        </label>
-                        <div class="invalid-feedback" id="accountPhoneFeedback">
-                            Nhập số điện thoại Việt Nam hợp lệ (VD: 0912345678).
-                        </div>
-                    </div>
-
-                    <!-- Role -->
-                    <div class="form-floating mb-3">
-                        <select class="form-select" id="accountRole" name="Role"
-                                aria-describedby="accountRoleFeedback" required>
-                            <option value="" selected disabled>-- Chọn vai trò --</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Employee">Employee</option>
-                            <option value="Production">Production</option>
-                            <option value="Warehouse">Warehouse</option>
-                            <option value="Sales">Sales</option>
-                            <option value="Kho">Kho</option>
-                            <option value="BanHang">BanHang</option>
-                        </select>
-                        <label for="accountRole">
-                            <i class="fa-solid fa-shield-halved me-1 text-secondary" aria-hidden="true"></i>Vai trò / Quyền <span class="text-danger">*</span>
-                        </label>
-                        <div class="invalid-feedback" id="accountRoleFeedback">Vui lòng chọn vai trò.</div>
-                    </div>
-
-                    <!-- Status -->
-                    <div class="form-floating">
-                        <select class="form-select" id="accountStatus" name="Status"
-                                aria-describedby="accountStatusFeedback" required>
-                            <option value="" disabled>-- Chọn trạng thái --</option>
-                            <option value="true" selected>Active (Hoạt động)</option>
-                            <option value="false">Inactive (Ngừng kích hoạt)</option>
-                        </select>
-                        <label for="accountStatus">
-                            <i class="fa-solid fa-toggle-on me-1 text-secondary" aria-hidden="true"></i>Trạng thái ban đầu <span class="text-danger">*</span>
-                        </label>
-                        <div class="invalid-feedback" id="accountStatusFeedback">Vui lòng chọn trạng thái.</div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold" for="rConfirm">Nhập lại mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="rConfirm" name="confirm" required
+                               maxlength="@UserAccountRules.PasswordMaxBytes" autocomplete="new-password"
+                               data-msg="Vui lòng nhập lại mật khẩu mới." />
+                        <div class="invalid-feedback"></div>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light px-4 py-3">
                     <button type="button" class="adm-btn adm-btn--outline" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="adm-btn adm-btn--primary" id="accountFormSubmit">
-                        <i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>
-                        Lưu tài khoản
+                    <button type="submit" class="adm-btn adm-btn--primary" id="resetFormSubmit">
+                        <i class="fa-solid fa-key me-1" aria-hidden="true"></i>Đặt lại mật khẩu
                     </button>
                 </div>
             </form>
@@ -683,615 +261,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        (() => {
-            const modalElement = document.getElementById("accountModal");
-            const accountForm = document.getElementById("accountForm");
-            const detailRoleModalEl = document.getElementById("detailRoleModal");
-            const detailRoleForm = document.getElementById("detailRoleForm");
-            const detailRoleModal = detailRoleModalEl ? bootstrap.Modal.getOrCreateInstance(detailRoleModalEl) : null;
-            const accountModal = modalElement ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
-
-            function escapeHtml(str) {
-                if (!str) return '';
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-            }
-
-            // Toast nhỏ gọn ở góc phải (SweetAlert2 Toast)
-            function admToast(icon, title) {
-                Swal.fire({
-                    icon,
-                    title,
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    customClass: { popup: 'adm-swal-toast' },
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer);
-                        toast.addEventListener('mouseleave', Swal.resumeTimer);
-                    }
-                });
-            }
-
-            // Chống Double-Click & Loading State với spinner
-            function setButtonLoading(btn, loading, loadingText = 'Đang lưu...') {
-                if (!btn) return;
-                if (loading) {
-                    btn._restoreHTML = btn.innerHTML;
-                    btn.disabled = true;
-                    btn.classList.add('adm-btn--loading');
-                    btn.innerHTML = `<i class="fa fa-spinner fa-spin me-2" aria-hidden="true"></i>${loadingText}`;
-                } else {
-                    btn.disabled = false;
-                    btn.classList.remove('adm-btn--loading');
-                    btn.innerHTML = btn._restoreHTML || btn.innerHTML;
-                }
-            }
-
-            function admFetch(url, opts, btn, successMsg, errorMsg) {
-                setButtonLoading(btn, true, 'Đang xử lý...');
-                return fetch(url, opts)
-                    .then(async (response) => {
-                        if (!response.ok) {
-                            let msg = errorMsg;
-                            try {
-                                const text = await response.text();
-                                if (text) msg = text;
-                            } catch {}
-                            throw new Error(msg);
-                        }
-                        return response.json();
-                    })
-                    .then((data) => {
-                        if (!data.success) throw new Error(data.message || errorMsg);
-                        return data;
-                    })
-                    .catch((err) => {
-                        admToast('error', err.message || errorMsg);
-                        return null;
-                    })
-                    .finally(() => setButtonLoading(btn, false));
-            }
-
-            function getRoleBadgeClass(role) {
-                if (role === 'Admin') return 'adm-badge--admin';
-                if (role === 'Manager') return 'adm-badge--manager';
-                if (role === 'Production') return 'adm-badge--production';
-                if (role === 'Warehouse' || role === 'Kho') return 'adm-badge--warehouse';
-                if (role === 'Sales' || role === 'BanHang') return 'adm-badge--sales';
-                return 'adm-badge--employee';
-            }
-
-            function getStatusBadgeClass(status) {
-                if (status === 'Active' || status === 'true' || status === '1') return 'adm-badge--active';
-                if (status === 'Blocked') return 'adm-badge--blocked';
-                if (status === 'Disabled') return 'adm-badge--disabled';
-                return 'adm-badge--inactive';
-            }
-
-            function resetValidation() {
-                if (accountForm) {
-                    accountForm.classList.remove('was-validated');
-                    accountForm.querySelectorAll('.is-invalid, .is-valid').forEach(el => el.classList.remove('is-invalid', 'is-valid'));
-                }
-                if (detailRoleForm) {
-                    detailRoleForm.classList.remove('was-validated');
-                    detailRoleForm.querySelectorAll('.is-invalid, .is-valid').forEach(el => el.classList.remove('is-invalid', 'is-valid'));
-                }
-            }
-
-            function resetAccountForm() {
-                if (!accountForm) return;
-                accountForm.reset();
-                accountForm.setAttribute('action', '@Url.Action("Create", "UserAccount", new { Area = "Admin" })');
-                const pwdInput = document.getElementById('accountPassword');
-                const pwdFeedback = document.getElementById('accountPasswordFeedback');
-                if (pwdInput) {
-                    pwdInput.value = '';
-                    pwdInput.required = true;
-                    pwdInput.classList.remove('is-invalid', 'is-valid');
-                }
-                if (pwdFeedback) {
-                    pwdFeedback.textContent = 'Mật khẩu bắt buộc và phải có ít nhất 12 ký tự.';
-                }
-                const pwdWrapper = document.getElementById('accountPasswordWrapper');
-                if (pwdWrapper) pwdWrapper.style.display = '';
-                resetValidation();
-                const modalTitle = document.getElementById('accountModalLabel');
-                if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-user-plus text-primary me-2" aria-hidden="true"></i>Tạo tài khoản mới';
-                const submitBtn = document.getElementById('accountFormSubmit');
-                if (submitBtn) {
-                    submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Lưu tài khoản';
-                    submitBtn.style.display = '';
-                    submitBtn.disabled = false;
-                }
-                ['accountUsername', 'accountFullname', 'accountPhone', 'accountRole', 'accountStatus'].forEach((id) => {
-                    const el = document.getElementById(id);
-                    if (el) el.disabled = false;
-                });
-            }
-
-            function populateAccountForm(trigger) {
-                if (!accountForm || !trigger) return;
-                const userId = trigger.dataset.userId;
-                accountForm.setAttribute('action', '@Url.Action("Edit", "UserAccount", new { Area = "Admin" })/' + userId);
-                accountForm.elements.Username.value = trigger.dataset.userName || '';
-                accountForm.elements.FullName.value = trigger.dataset.userFullname || '';
-                accountForm.elements.Phone.value = trigger.dataset.userPhone || '';
-                accountForm.elements.Role.value = trigger.dataset.userRole || '';
-                accountForm.elements.Status.value = trigger.dataset.userStatus === 'Active' ? 'true' : 'false';
-                const pwdInput = document.getElementById('accountPassword');
-                if (pwdInput) {
-                    pwdInput.value = '';
-                    pwdInput.required = false;
-                    pwdInput.classList.remove('is-invalid', 'is-valid');
-                }
-            }
-
-            function handleModalShow(event) {
-                resetAccountForm();
-                const trigger = event.relatedTarget;
-                const accountMode = trigger?.dataset.accountMode;
-
-                if (accountMode === 'view') {
-                    const modalTitle = document.getElementById('accountModalLabel');
-                    if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-id-card text-primary me-2" aria-hidden="true"></i>Chi tiết tài khoản';
-                    populateAccountForm(trigger);
-                    ['accountUsername', 'accountFullname', 'accountPhone', 'accountRole', 'accountStatus'].forEach((id) => {
-                        const el = document.getElementById(id);
-                        if (el) el.disabled = true;
-                    });
-                    const submitBtn = document.getElementById('accountFormSubmit');
-                    if (submitBtn) submitBtn.style.display = 'none';
-                    return;
-                }
-
-                if (accountMode === 'edit') {
-                    const modalTitle = document.getElementById('accountModalLabel');
-                    if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square text-primary me-2" aria-hidden="true"></i>Cập nhật tài khoản';
-                    const submitBtn = document.getElementById('accountFormSubmit');
-                    if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Cập nhật tài khoản';
-                    populateAccountForm(trigger);
-                    const usernameInput = document.getElementById('accountUsername');
-                    if (usernameInput) usernameInput.disabled = true;
-                }
-            }
-
-            // UX: Autofocus vào ô nhập liệu đầu tiên khi mở Modal
-            function setupModalAutofocus() {
-                if (modalElement) {
-                    modalElement.addEventListener('shown.bs.modal', (e) => {
-                        const trigger = e.relatedTarget;
-                        const accountMode = trigger?.dataset.accountMode;
-                        if (accountMode === 'edit') {
-                            const nameInput = document.getElementById('accountFullname');
-                            if (nameInput) nameInput.focus();
-                        } else if (accountMode !== 'view') {
-                            const userInput = document.getElementById('accountUsername');
-                            if (userInput && !userInput.disabled) userInput.focus();
-                        }
-                    });
-                }
-
-                if (detailRoleModalEl) {
-                    detailRoleModalEl.addEventListener('shown.bs.modal', () => {
-                        const fullnameInput = document.getElementById('detailFullnameInput');
-                        if (fullnameInput) fullnameInput.focus();
-                    });
-                }
-            }
-
-            // UX: Real-time Validation cho Mật khẩu (< 12 ký tự)
-            function setupRealtimePasswordValidation() {
-                const pwdInput = document.getElementById('accountPassword');
-                const pwdFeedback = document.getElementById('accountPasswordFeedback');
-
-                if (pwdInput && pwdFeedback) {
-                    pwdInput.addEventListener('input', () => {
-                        const val = pwdInput.value;
-                        const isRequired = pwdInput.required;
-
-                        if (!isRequired && val.length === 0) {
-                            pwdInput.classList.remove('is-invalid', 'is-valid');
-                            return;
-                        }
-
-                        if (val.length < 12) {
-                            pwdInput.classList.add('is-invalid');
-                            pwdInput.classList.remove('is-valid');
-                            pwdFeedback.textContent = `Mật khẩu phải có ít nhất 12 ký tự (hiện có ${val.length}/12 ký tự).`;
-                        } else {
-                            pwdInput.classList.remove('is-invalid');
-                            pwdInput.classList.add('is-valid');
-                            pwdFeedback.textContent = '';
-                        }
-                    });
-                }
-
-                // Modal Cập nhật (detailNewPassword)
-                const newPwdInput = document.getElementById('detailNewPassword');
-                const newPwdFeedback = document.getElementById('detailNewPasswordFeedback');
-                if (newPwdInput && newPwdFeedback) {
-                    newPwdInput.addEventListener('input', () => {
-                        const val = newPwdInput.value;
-                        if (val.length === 0) {
-                            newPwdInput.classList.remove('is-invalid', 'is-valid');
-                            return;
-                        }
-                        if (val.length < 12) {
-                            newPwdInput.classList.add('is-invalid');
-                            newPwdInput.classList.remove('is-valid');
-                            newPwdFeedback.textContent = `Mật khẩu mới phải có tối thiểu 12 ký tự (hiện có ${val.length}/12 ký tự).`;
-                        } else {
-                            newPwdInput.classList.remove('is-invalid');
-                            newPwdInput.classList.add('is-valid');
-                            newPwdFeedback.textContent = '';
-                        }
-                    });
-                }
-            }
-
-            // Chống Double-Click khi Submit Account Form
-            function handleAccountSubmit(event) {
-                event.preventDefault();
-
-                const pwdInput = document.getElementById('accountPassword');
-                if (pwdInput && (pwdInput.required || pwdInput.value.length > 0)) {
-                    if (pwdInput.value.length < 12) {
-                        pwdInput.classList.add('is-invalid');
-                        const pwdFeedback = document.getElementById('accountPasswordFeedback');
-                        if (pwdFeedback) pwdFeedback.textContent = `Mật khẩu phải có ít nhất 12 ký tự (hiện có ${pwdInput.value.length}/12 ký tự).`;
-                        event.stopPropagation();
-                        return;
-                    }
-                }
-
-                if (!accountForm.checkValidity()) {
-                    event.stopPropagation();
-                    accountForm.classList.add('was-validated');
-                    return;
-                }
-
-                const btn = document.getElementById('accountFormSubmit');
-                setButtonLoading(btn, true, 'Đang lưu...');
-                accountForm.submit();
-            }
-
-            function fillDetailRoleModal(trigger) {
-                const role = trigger.dataset.userRole || 'Employee';
-                const status = trigger.dataset.userStatus || 'Active';
-                const detailStatusEl = document.getElementById('detailStatus');
-
-                document.getElementById('detailUserId').value = trigger.dataset.userId || '';
-                document.getElementById('detailUsernameValue').value = trigger.dataset.userName || '';
-                document.getElementById('detailUsername').value = trigger.dataset.userName || '-';
-                document.getElementById('detailFullnameInput').value = trigger.dataset.userFullname || '';
-                document.getElementById('detailPhoneInput').value = trigger.dataset.userPhone || '';
-                document.getElementById('detailNewPassword').value = '';
-                document.getElementById('detailAvatar').textContent = trigger.dataset.userName ? trigger.dataset.userName.charAt(0).toUpperCase() : 'A';
-                document.getElementById('detailRole').value = role;
-                document.getElementById('detailCurrentRole').className = `adm-badge ${getRoleBadgeClass(role)}`;
-                document.getElementById('detailCurrentRole').textContent = role;
-
-                detailStatusEl.className = `adm-badge ${getStatusBadgeClass(status)}`;
-                let statusIcon = 'fa-circle-check';
-                if (status === 'Blocked') statusIcon = 'fa-ban';
-                else if (status === 'Disabled') statusIcon = 'fa-circle-minus';
-                else if (status === 'Inactive') statusIcon = 'fa-circle-xmark';
-
-                detailStatusEl.innerHTML = `<i class="fa-solid ${statusIcon} fa-xs me-1" aria-hidden="true"></i>${status}`;
-                resetValidation();
-            }
-
-            function handleDetailRoleSubmit(event) {
-                event.preventDefault();
-                const form = event.currentTarget;
-
-                const newPwdInput = document.getElementById('detailNewPassword');
-                if (newPwdInput && newPwdInput.value.length > 0 && newPwdInput.value.length < 12) {
-                    newPwdInput.classList.add('is-invalid');
-                    event.stopPropagation();
-                    return;
-                }
-
-                if (!form.checkValidity()) {
-                    event.stopPropagation();
-                    form.classList.add('was-validated');
-                    return;
-                }
-
-                const btn = document.getElementById('detailRoleSubmit');
-                const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-                const body = new URLSearchParams({
-                    id: document.getElementById('detailUserId').value,
-                    username: document.getElementById('detailUsernameValue').value,
-                    fullname: document.getElementById('detailFullnameInput').value.trim(),
-                    phone: document.getElementById('detailPhoneInput').value.trim(),
-                    role: document.getElementById('detailRole').value,
-                    newpassword: document.getElementById('detailNewPassword').value
-                }).toString();
-
-                admFetch('/Admin/UserAccount/EditAccount', {
-                    method: 'POST',
-                    headers: {
-                        'RequestVerificationToken': token,
-                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-                    },
-                    body
-                }, btn, 'Cập nhật tài khoản thành công!', 'Không thể cập nhật tài khoản.').then((data) => {
-                    if (data) {
-                        if (detailRoleModal) detailRoleModal.hide();
-                        admToast('success', 'Cập nhật tài khoản thành công!');
-                        setTimeout(() => window.location.reload(), 900);
-                    }
-                });
-            }
-
-            function confirmStatusToggle(button) {
-                const userId = button.dataset.userId;
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Xác nhận đổi trạng thái',
-                    text: 'Bạn có chắc chắn muốn thay đổi trạng thái hoạt động của tài khoản này?',
-                    showCancelButton: true,
-                    confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy bỏ',
-                    confirmButtonColor: '#6366f1',
-                    cancelButtonColor: '#94a3b8'
-                }).then((result) => {
-                    if (!result.isConfirmed) return;
-                    admFetch(`/Admin/UserAccount/ToggleStatus/${userId}`, {
-                        method: 'POST',
-                        headers: { 'RequestVerificationToken': token }
-                    }, button, 'Cập nhật trạng thái thành công!', 'Không thể cập nhật trạng thái.').then((data) => {
-                        if (data) {
-                            admToast('success', 'Đã thay đổi trạng thái tài khoản.');
-                            setTimeout(() => window.location.reload(), 800);
-                        }
-                    });
-                });
-            }
-
-            function confirmAccountDelete(button) {
-                const userId = button.dataset.userId;
-                const usernameCell = button.closest('tr')?.querySelector('td:nth-child(3) .fw-semibold');
-                const rawUsername = usernameCell?.textContent?.trim() || `#${userId}`;
-                const safeUsername = escapeHtml(rawUsername);
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Xác nhận xóa tài khoản',
-                    html: `Bạn có chắc muốn xóa tài khoản <strong>${safeUsername}</strong>?<br><small class="text-danger">Dữ liệu tài khoản này sẽ bị xóa vĩnh viễn và không thể hoàn tác.</small>`,
-                    showCancelButton: true,
-                    confirmButtonText: 'Xác nhận xóa',
-                    cancelButtonText: 'Hủy',
-                    confirmButtonColor: '#ef4444',
-                    cancelButtonColor: '#94a3b8'
-                }).then((result) => {
-                    if (!result.isConfirmed) return;
-                    admFetch(`/Admin/UserAccount/Delete/${userId}`, {
-                        method: 'POST',
-                        headers: { 'RequestVerificationToken': token }
-                    }, button, 'Đã xóa tài khoản thành công.', 'Không thể xóa tài khoản.').then((data) => {
-                        if (data) {
-                            admToast('success', `Đã xóa tài khoản ${safeUsername}.`);
-                            button.closest('tr')?.classList.add('opacity-0');
-                            setTimeout(() => window.location.reload(), 800);
-                        }
-                    });
-                });
-            }
-
-            // UX: Thanh công cụ & Hành động hàng loạt (Bulk Actions)
-            function updateBulkActionUI() {
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                const allBoxes = document.querySelectorAll('.row-checkbox');
-                const selectAll = document.getElementById('selectAllRows');
-                const bulkToolbar = document.getElementById('bulkActionsToolbar');
-                const bulkSelectedCount = document.getElementById('bulkSelectedCount');
-                const bulkSelectedLabel = document.getElementById('bulkSelectedLabel');
-                const bulkLockBtn = document.getElementById('bulkLockBtn');
-                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-
-                const count = checkedBoxes.length;
-
-                if (selectAll && allBoxes.length > 0) {
-                    selectAll.checked = (count === allBoxes.length);
-                    selectAll.indeterminate = (count > 0 && count < allBoxes.length);
-                }
-
-                if (count > 0) {
-                    if (bulkToolbar) {
-                        bulkToolbar.classList.remove('d-none');
-                        bulkToolbar.classList.add('d-flex');
-                    }
-                    if (bulkSelectedCount) bulkSelectedCount.textContent = count;
-                    if (bulkSelectedLabel) bulkSelectedLabel.textContent = `Đã chọn ${count} tài khoản`;
-                    if (bulkLockBtn) bulkLockBtn.disabled = false;
-                    if (bulkDeleteBtn) bulkDeleteBtn.disabled = false;
-                } else {
-                    if (bulkToolbar) {
-                        bulkToolbar.classList.remove('d-flex');
-                        bulkToolbar.classList.add('d-none');
-                    }
-                    if (bulkSelectedCount) bulkSelectedCount.textContent = '0';
-                    if (bulkSelectedLabel) bulkSelectedLabel.textContent = 'Đã chọn 0 tài khoản';
-                    if (bulkLockBtn) bulkLockBtn.disabled = true;
-                    if (bulkDeleteBtn) bulkDeleteBtn.disabled = true;
-                }
-            }
-
-            function clearSelection() {
-                const selectAll = document.getElementById('selectAllRows');
-                if (selectAll) {
-                    selectAll.checked = false;
-                    selectAll.indeterminate = false;
-                }
-                document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
-                updateBulkActionUI();
-            }
-
-            function handleBulkDelete() {
-                const selected = document.querySelectorAll('.row-checkbox:checked');
-                if (selected.length === 0) return;
-
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-                const ids = Array.from(selected)
-                    .map(cb => parseInt(cb.value || cb.dataset.userId, 10))
-                    .filter(id => !isNaN(id));
-
-                const count = ids.length;
-                if (count === 0) return;
-
-                const usernames = Array.from(selected).map(cb => {
-                    const row = cb.closest('tr');
-                    return row?.querySelector('td:nth-child(3) .fw-semibold')?.textContent?.trim() || `#${cb.value}`;
-                });
-
-                const previewList = usernames.slice(0, 5).map(u => `<li><strong>${escapeHtml(u)}</strong></li>`).join('')
-                    + (usernames.length > 5 ? `<li>... và thêm ${usernames.length - 5} tài khoản khác</li>` : '');
-
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Xác nhận xóa hàng loạt',
-                    html: `Bạn có chắc muốn xóa vĩnh viễn <strong>${count}</strong> tài khoản đã chọn?<ul class="text-start mt-2 mb-2 ps-4" style="max-height: 140px; overflow-y: auto;">${previewList}</ul><small class="text-danger">Cảnh báo: Hành động này không thể hoàn tác!</small>`,
-                    showCancelButton: true,
-                    confirmButtonText: 'Xóa các mục đã chọn',
-                    cancelButtonText: 'Hủy',
-                    confirmButtonColor: '#ef4444',
-                    cancelButtonColor: '#94a3b8'
-                }).then((result) => {
-                    if (!result.isConfirmed) return;
-                    const bulkBtn = document.getElementById('bulkDeleteBtn');
-                    admFetch('/Admin/UserAccount/BulkDelete', {
-                        method: 'POST',
-                        headers: {
-                            'RequestVerificationToken': token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ ids })
-                    }, bulkBtn, 'Đã xóa hàng loạt tài khoản thành công.', 'Không thể xóa các tài khoản đã chọn.').then((data) => {
-                        if (data && data.success) {
-                            admToast('success', data.message || `Đã xóa thành công ${count} tài khoản.`);
-                            setTimeout(() => window.location.reload(), 900);
-                        }
-                    });
-                });
-            }
-
-            function handleBulkLock() {
-                const selected = document.querySelectorAll('.row-checkbox:checked');
-                if (selected.length === 0) return;
-
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-                const ids = Array.from(selected)
-                    .map(cb => parseInt(cb.value || cb.dataset.userId, 10))
-                    .filter(id => !isNaN(id));
-
-                const count = ids.length;
-                if (count === 0) return;
-
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Xác nhận khóa hàng loạt',
-                    text: `Bạn có chắc chắn muốn khóa quyền truy cập của ${count} tài khoản đã chọn?`,
-                    showCancelButton: true,
-                    confirmButtonText: 'Khóa tài khoản',
-                    cancelButtonText: 'Hủy',
-                    confirmButtonColor: '#f59e0b',
-                    cancelButtonColor: '#94a3b8'
-                }).then((result) => {
-                    if (!result.isConfirmed) return;
-                    const bulkBtn = document.getElementById('bulkLockBtn');
-                    admFetch('/Admin/UserAccount/BulkToggleStatus', {
-                        method: 'POST',
-                        headers: {
-                            'RequestVerificationToken': token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ ids, action: 'deactivate' })
-                    }, bulkBtn, 'Đã khóa hàng loạt tài khoản thành công.', 'Không thể khóa các tài khoản đã chọn.').then((data) => {
-                        if (data && data.success) {
-                            admToast('success', data.message || `Đã khóa thành công ${count} tài khoản.`);
-                            setTimeout(() => window.location.reload(), 900);
-                        }
-                    });
-                });
-            }
-
-            function initializeAccountPage() {
-                if (!modalElement || !accountForm || !detailRoleModalEl || !detailRoleForm) return;
-
-                setupModalAutofocus();
-                setupRealtimePasswordValidation();
-
-                modalElement.addEventListener('show.bs.modal', handleModalShow);
-                modalElement.addEventListener('hidden.bs.modal', resetAccountForm);
-                accountForm.addEventListener('submit', handleAccountSubmit);
-
-                detailRoleModalEl.addEventListener('show.bs.modal', (event) => {
-                    if (event.relatedTarget) fillDetailRoleModal(event.relatedTarget);
-                });
-                detailRoleForm.addEventListener('submit', handleDetailRoleSubmit);
-
-                // Checkbox Row & Select All
-                const selectAll = document.getElementById('selectAllRows');
-                const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-
-                if (selectAll) {
-                    selectAll.addEventListener('change', () => {
-                        rowCheckboxes.forEach((cb) => { cb.checked = selectAll.checked; });
-                        updateBulkActionUI();
-                    });
-                }
-
-                rowCheckboxes.forEach((cb) => {
-                    cb.addEventListener('change', () => {
-                        updateBulkActionUI();
-                    });
-                });
-
-                const clearSelectionBtn = document.getElementById('clearSelectionBtn');
-                if (clearSelectionBtn) {
-                    clearSelectionBtn.addEventListener('click', clearSelection);
-                }
-
-                // Row action buttons
-                document.querySelectorAll('.btn-detail-role').forEach((btn) => btn.addEventListener('click', () => fillDetailRoleModal(btn)));
-                document.querySelectorAll('.btn-toggle-status').forEach((btn) => btn.addEventListener('click', () => confirmStatusToggle(btn)));
-                document.querySelectorAll('.btn-delete-account').forEach((btn) => btn.addEventListener('click', () => confirmAccountDelete(btn)));
-
-                // Bulk action buttons
-                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-                if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', handleBulkDelete);
-
-                const bulkLockBtn = document.getElementById('bulkLockBtn');
-                if (bulkLockBtn) bulkLockBtn.addEventListener('click', handleBulkLock);
-
-                // Initial bulk state
-                updateBulkActionUI();
-            }
-
-            initializeAccountPage();
-
-            // Hiển thị thông báo Toast nếu có TempData từ Controller
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <text>admToast('success', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"]!.ToString())));</text>
-            }
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <text>admToast('error', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ErrorMessage"]!.ToString())));</text>
-            }
-        })();
-    </script>
+    <script src="~/js/admin-users.js" asp-append-version="true"></script>
 }

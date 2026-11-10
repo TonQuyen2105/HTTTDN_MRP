@@ -1,0 +1,214 @@
+@using httt.Areas.Admin.Services
+@model httt.Areas.Admin.ViewModels.UserListViewModel
+@*
+    Partial bảng tài khoản. Được render:
+      • lần đầu bởi Index.cshtml,
+      • và trả về trực tiếp (AJAX) mỗi khi lọc / tìm kiếm / phân trang / sau khi thêm-sửa-xóa,
+        để không phải reload toàn trang. Model không chứa mật khẩu/hash.
+*@
+@{
+    string Href(int p) => Url.Action("Index", "UserAccount", new
+    {
+        area = "Admin",
+        page = p > 1 ? p : (int?)null,
+        search = Model.Search.Length > 0 ? Model.Search : null,
+        role = Model.Role.Length > 0 ? Model.Role : null,
+        status = Model.Status.Length > 0 ? Model.Status : null
+    })!;
+
+    var firstPage = Math.Max(1, Math.Min(Model.Page - 2, Model.TotalPages - 4));
+    var lastPage = Math.Min(Model.TotalPages, firstPage + 4);
+}
+
+<div id="userTableRoot" data-page="@Model.Page" data-total="@Model.TotalItems" data-total-pages="@Model.TotalPages">
+    <div class="table-responsive adm-table-wrapper" role="region" aria-label="Danh sách tài khoản" tabindex="0">
+        <table class="adm-table mb-0" id="accountsTable">
+            <caption class="visually-hidden">Danh sách tài khoản, vai trò, trạng thái và thao tác quản trị</caption>
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 3.25rem; padding-left: 1.25rem;">
+                        <input class="form-check-input" type="checkbox" id="selectAllRows"
+                               title="Chọn tất cả tài khoản trên trang này"
+                               aria-label="Chọn tất cả tài khoản trên trang này" />
+                    </th>
+                    <th scope="col" style="width: 4rem;">ID</th>
+                    <th scope="col">Tên đăng nhập</th>
+                    <th scope="col">Họ và tên</th>
+                    <th scope="col">Số điện thoại</th>
+                    <th scope="col">Vai trò</th>
+                    <th scope="col">Trạng thái</th>
+                    <th scope="col" class="text-end" style="padding-right: 1.25rem;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count > 0)
+                {
+                    foreach (var u in Model.Items)
+                    {
+                        var roleClass = u.Role switch
+                        {
+                            "Admin" => "adm-badge--admin",
+                            "Manager" => "adm-badge--manager",
+                            "Production" => "adm-badge--production",
+                            "Warehouse" or "Kho" => "adm-badge--warehouse",
+                            "Sales" or "BanHang" => "adm-badge--sales",
+                            _ => "adm-badge--employee"
+                        };
+                        var isActive = u.Status == UserAccountRules.StatusActive;
+                        var protectedReason = u.IsSelf
+                            ? "Không thể thao tác lên chính tài khoản đang đăng nhập"
+                            : u.IsLastActiveAdmin ? "Đây là Admin đang hoạt động duy nhất của hệ thống" : null;
+                        var avatarBg = u.Role == "Admin" ? "linear-gradient(135deg,#6366f1,#818cf8)"
+                            : u.Role == "Manager" ? "linear-gradient(135deg,#06b6d4,#67e8f9)"
+                            : "linear-gradient(135deg,#94a3b8,#cbd5e1)";
+
+                        <tr data-id="@u.UserId"
+                            data-username="@u.Username"
+                            data-fullname="@u.FullName"
+                            data-phone="@u.Phone"
+                            data-role="@u.Role"
+                            data-status="@u.Status"
+                            data-self="@(u.IsSelf ? "true" : "false")"
+                            data-last-admin="@(u.IsLastActiveAdmin ? "true" : "false")">
+                            <td style="padding-left: 1.25rem;">
+                                <input class="form-check-input row-checkbox" type="checkbox"
+                                       value="@u.UserId"
+                                       disabled="@u.IsProtected"
+                                       title="@protectedReason"
+                                       aria-label="Chọn tài khoản @u.Username" />
+                            </td>
+                            <td style="color: #94a3b8; font-size: 0.75rem; font-weight: 700;">#@u.UserId</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold text-white flex-shrink-0"
+                                          style="width: 1.85rem; height: 1.85rem; font-size: 0.75rem; background: @avatarBg;"
+                                          aria-hidden="true">@(u.Username.Length > 0 ? u.Username[0].ToString().ToUpperInvariant() : "?")</span>
+                                    <span class="fw-semibold" style="color: #0f172a; font-size: 0.875rem;">@u.Username</span>
+                                    @if (u.IsSelf)
+                                    {
+                                        <span class="badge text-bg-light border" style="font-size: 0.65rem;">Bạn</span>
+                                    }
+                                </div>
+                            </td>
+                            <td style="color: #475569; font-weight: 500;">@u.FullName</td>
+                            <td class="text-nowrap" style="color: #64748b; font-size: 0.8125rem;">@(string.IsNullOrWhiteSpace(u.Phone) ? "—" : u.Phone)</td>
+                            <td><span class="adm-badge @roleClass">@u.Role</span></td>
+                            <td>
+                                @if (isActive)
+                                {
+                                    <span class="adm-badge adm-badge--active"><i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>Active</span>
+                                }
+                                else if (u.Status == UserAccountRules.StatusBlocked)
+                                {
+                                    <span class="adm-badge adm-badge--blocked"><i class="fa-solid fa-ban fa-xs me-1" aria-hidden="true"></i>Blocked</span>
+                                }
+                                else
+                                {
+                                    <span class="adm-badge adm-badge--disabled"><i class="fa-solid fa-circle-minus fa-xs me-1" aria-hidden="true"></i>Disabled</span>
+                                }
+                            </td>
+                            <td style="padding-right: 1.25rem;">
+                                <div class="adm-action-group justify-content-end">
+                                    <button type="button" class="adm-btn adm-btn--outline adm-btn--sm" data-action="edit"
+                                            title="Sửa thông tin &amp; vai trò" aria-label="Sửa tài khoản @u.Username">
+                                        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="adm-btn adm-btn--outline adm-btn--sm" data-action="reset"
+                                            title="Đặt lại mật khẩu" aria-label="Đặt lại mật khẩu của @u.Username">
+                                        <i class="fa-solid fa-key" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="adm-btn adm-btn--outline adm-btn--sm" data-action="status"
+                                            disabled="@(u.IsProtected && isActive)"
+                                            title="@(u.IsProtected && isActive ? protectedReason : isActive ? "Khóa tài khoản" : "Mở khóa tài khoản")"
+                                            aria-label="@(isActive ? "Khóa" : "Mở khóa") tài khoản @u.Username">
+                                        <i class="fa-solid @(isActive ? "fa-lock text-warning" : "fa-unlock text-success")" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="adm-btn adm-btn--danger-soft adm-btn--sm" data-action="delete"
+                                            disabled="@u.IsProtected"
+                                            title="@(u.IsProtected ? protectedReason : "Xóa tài khoản")"
+                                            aria-label="Xóa tài khoản @u.Username">
+                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="p-0 border-0">
+                            <div class="adm-empty-state py-5 px-3">
+                                <div class="adm-empty-graphic"><i class="fa-solid fa-user-slash" aria-hidden="true"></i></div>
+                                <h3 class="adm-empty-state-text mb-2 text-dark" style="font-size: 1.125rem;">Không tìm thấy tài khoản nào</h3>
+                                <p class="text-secondary mx-auto mb-4" style="max-width: 440px; font-size: 0.875rem;">
+                                    @(Model.HasFilter
+                                        ? "Không có kết quả phù hợp với bộ lọc hoặc từ khóa của bạn. Hãy thử thay đổi hoặc xóa bộ lọc."
+                                        : "Hệ thống chưa có tài khoản nào. Hãy tạo tài khoản đầu tiên.")
+                                </p>
+                                <div class="d-flex justify-content-center align-items-center gap-2">
+                                    @if (Model.HasFilter)
+                                    {
+                                        <button type="button" class="adm-btn adm-btn--outline" data-action="clear-filters">
+                                            <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>Xóa bộ lọc
+                                        </button>
+                                    }
+                                    <button type="button" class="adm-btn adm-btn--primary" data-action="create">
+                                        <i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i>Tạo tài khoản mới
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top px-4 py-3">
+        <div class="text-muted" style="font-size: 0.8125rem;" aria-live="polite">
+            @if (Model.TotalItems > 0)
+            {
+                <span>Hiển thị <strong class="text-dark">@Model.FirstItemIndex–@Model.LastItemIndex</strong> / <strong class="text-dark">@Model.TotalItems</strong> tài khoản</span>
+            }
+            else
+            {
+                <span>Không có tài khoản nào</span>
+            }
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="adm-pagination m-0 p-0" aria-label="Phân trang danh sách tài khoản">
+                @if (Model.Page > 1)
+                {
+                    <a class="adm-page-btn" aria-label="Trang trước" href="@Href(Model.Page - 1)" data-page="@(Model.Page - 1)">
+                        <i class="fa-solid fa-chevron-left fa-xs" aria-hidden="true"></i>
+                    </a>
+                }
+                else
+                {
+                    <span class="adm-page-btn disabled" aria-disabled="true"><i class="fa-solid fa-chevron-left fa-xs" aria-hidden="true"></i></span>
+                }
+
+                @for (var i = firstPage; i <= lastPage; i++)
+                {
+                    <a class="adm-page-btn @(i == Model.Page ? "active" : string.Empty)"
+                       aria-label="Trang @i" aria-current="@(i == Model.Page ? "page" : null)"
+                       href="@Href(i)" data-page="@i">@i</a>
+                }
+
+                @if (Model.Page < Model.TotalPages)
+                {
+                    <a class="adm-page-btn" aria-label="Trang tiếp theo" href="@Href(Model.Page + 1)" data-page="@(Model.Page + 1)">
+                        <i class="fa-solid fa-chevron-right fa-xs" aria-hidden="true"></i>
+                    </a>
+                }
+                else
+                {
+                    <span class="adm-page-btn disabled" aria-disabled="true"><i class="fa-solid fa-chevron-right fa-xs" aria-hidden="true"></i></span>
+                }
+            </nav>
+        }
+    </div>
+</div>

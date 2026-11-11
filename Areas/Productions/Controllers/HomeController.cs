@@ -103,7 +103,7 @@ namespace httt.Areas.Productions.Controllers
                 var requisitions = await _context.MaterialReceipts
                     .AsNoTracking()
                     // Only show receipts linked to an existing production request.
-                    // Requests without a custom code still display as YCSX-{RequestId}.
+                    // Display the request code stored by Warehouse.
                     .Where(m => m.RequestId.HasValue && m.RequestId > 0 && m.ProductionRequest != null)
                     .Include(m => m.Requester)
                     .Include(m => m.Approver)
@@ -280,7 +280,7 @@ namespace httt.Areas.Productions.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    var orderCode = receipt.ProductionRequest?.RequestCode ?? $"LSX-{receipt.RequestId}";
+                    var orderCode = receipt.ProductionRequest?.ProductionDisplayCode ?? "Chưa có mã";
                     return Ok(new
                     {
                         success = true,
@@ -381,7 +381,7 @@ namespace httt.Areas.Productions.Controllers
                     return BadRequest(new { success = false, message = "Phiếu yêu cầu chưa liên kết với Lệnh sản xuất hợp lệ." });
 
                 int reqId = receipt.RequestId.Value;
-                var orderCode = receipt.ProductionRequest?.RequestCode ?? $"LSX-{reqId}";
+                var orderCode = receipt.ProductionRequest?.ProductionDisplayCode ?? "Chưa có mã";
 
                 await using var transaction = await _context.Database.BeginTransactionAsync();
                 try
@@ -506,7 +506,7 @@ namespace httt.Areas.Productions.Controllers
                     return NotFound(new { message = "Không tìm thấy yêu cầu sản xuất trong hệ thống." });
 
                 string? orderCode = (req.Status == "Approved" || req.Status == "In Production")
-                    ? (!string.IsNullOrWhiteSpace(req.RequestCode) ? req.RequestCode : $"LSX-{req.RequestId}")
+                    ? (req.ProductionDisplayCode)
                     : null;
 
                 var boms = await _context.Boms
@@ -535,7 +535,7 @@ namespace httt.Areas.Productions.Controllers
                 return Json(new
                 {
                     requestId = req.RequestId,
-                    requestCode = !string.IsNullOrWhiteSpace(req.RequestCode) ? req.RequestCode : $"YCSX-{req.RequestId}",
+                    requestCode = req.ProductionDisplayCode,
                     productId = req.ProductId,
                     productName = req.Product?.ProductName ?? "",
                     quantityRequired = req.QuantityRequired,
@@ -677,7 +677,9 @@ namespace httt.Areas.Productions.Controllers
 
         private async Task<List<ProductionStatisticsViewModel>> LoadProductionStatisticsAsync(int? requestId = null)
         {
-            var query = _context.ProductionRequests.AsNoTracking().Include(r => r.Product).Include(r => r.Manager).AsQueryable();
+            var query = _context.ProductionRequests.AsNoTracking()
+                .Where(r => r.Status == "Approved" || r.Status == "In Production" || r.Status == "Completed")
+                .Include(r => r.Product).Include(r => r.Manager).AsQueryable();
             if (requestId.HasValue) query = query.Where(r => r.RequestId == requestId.Value);
             var requests = await query.OrderByDescending(r => r.RequestId).ToListAsync();
             var ids = requests.Select(r => r.RequestId).ToList();
@@ -947,8 +949,8 @@ namespace httt.Areas.Productions.Controllers
                     })
                     .ToListAsync();
 
-                var reqDisplayCode = !string.IsNullOrWhiteSpace(order.RequestCode) ? order.RequestCode : $"YCSX-{order.RequestId}";
-                var lsxDisplayCode = !string.IsNullOrWhiteSpace(order.RequestCode) ? order.RequestCode : $"LSX-{order.RequestId}";
+                var reqDisplayCode = order.ProductionDisplayCode;
+                var lsxDisplayCode = order.ProductionDisplayCode;
 
                 return Json(new
                 {
@@ -1078,7 +1080,7 @@ namespace httt.Areas.Productions.Controllers
                 {
                     success = true,
                     requestId = order.RequestId,
-                    orderCode = order.DisplayCode,
+                    orderCode = order.ProductionDisplayCode,
                     productId = order.ProductId,
                     productName = order.Product?.ProductName ?? "Sản phẩm thuốc",
                     productUnit = order.Product?.Unit ?? "Hộp",
@@ -1386,7 +1388,7 @@ namespace httt.Areas.Productions.Controllers
                             Status = newStatus,
                             Note = !string.IsNullOrWhiteSpace(req.Note)
                                 ? req.Note
-                                : $"Ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"} cho {order.DisplayCode}",
+                                : $"Ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"} cho {order.ProductionDisplayCode}",
                             CreatedDate = DateTime.UtcNow
                         };
 
@@ -1418,7 +1420,7 @@ namespace httt.Areas.Productions.Controllers
                                 Status = newStatus,
                                 Note = !string.IsNullOrWhiteSpace(req.Note)
                                     ? req.Note
-                                    : $"Ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"} cho {order.DisplayCode}",
+                                    : $"Ghi nhận sản xuất {batchQty:N0} {product.Unit ?? "Hộp"} cho {order.ProductionDisplayCode}",
                                 CreatedDate = DateTime.UtcNow
                             });
                         }
@@ -1448,7 +1450,7 @@ namespace httt.Areas.Productions.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    string successMessage = $"Đã ghi nhận sản xuất thành công {batchQty:N0} {product.Unit ?? "Hộp"} cho đơn {order.DisplayCode}! Đã trừ NVL tiêu hao trong kho sản xuất và đưa {batchQty:N0} {product.Unit ?? "Hộp"} vào kho sản xuất chờ ngày bàn giao. (Tổng tiến độ: {newTotalProduced:N0}/{order.QuantityRequired:N0} {product.Unit ?? "Hộp"})";
+                    string successMessage = $"Đã ghi nhận sản xuất thành công {batchQty:N0} {product.Unit ?? "Hộp"} cho đơn {order.ProductionDisplayCode}! Đã trừ NVL tiêu hao trong kho sản xuất và đưa {batchQty:N0} {product.Unit ?? "Hộp"} vào kho sản xuất chờ ngày bàn giao. (Tổng tiến độ: {newTotalProduced:N0}/{order.QuantityRequired:N0} {product.Unit ?? "Hộp"})";
 
                     return Ok(new
                     {
@@ -1522,15 +1524,42 @@ namespace httt.Areas.Productions.Controllers
                     CreatedDate = DateTime.UtcNow
                 };
 
-                _context.ProductionRequests.Add(newOrder);
-                await _context.SaveChangesAsync();
+                var strategy = _context.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
+                {
+                    if (newOrder.RequestId > 0)
+                    {
+                        // Recover a successful commit whose acknowledgement was lost.
+                        var committed = await _context.ProductionRequests.AsNoTracking()
+                            .AnyAsync(r => r.RequestId == newOrder.RequestId && r.RequestCode == newOrder.RequestCode
+                                && r.RequestCode != null);
+                        if (committed) return;
+                        _context.Entry(newOrder).State = EntityState.Detached;
+                        newOrder.RequestId = 0;
+                        newOrder.RequestCode = null;
+                    }
+
+                    await using var transaction = await _context.Database.BeginTransactionAsync();
+                    _context.ProductionRequests.Add(newOrder);
+                    await _context.SaveChangesAsync();
+
+                    var baseCode = $"LSX-{newOrder.RequestId}";
+                    var code = baseCode;
+                    var suffix = 1;
+                    while (await _context.ProductionRequests.AsNoTracking()
+                        .AnyAsync(r => r.RequestId != newOrder.RequestId && r.RequestCode == code))
+                        code = $"{baseCode}-{suffix++}";
+                    newOrder.RequestCode = code;
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                });
 
                 return Ok(new
                 {
                     success = true,
-                    message = $"Đã tiếp nhận thành công đơn đặt hàng #{newOrder.RequestId} từ phiếu sản xuất kho!",
+                    message = $"Đã tạo phiếu yêu cầu sản xuất {newOrder.RequestCode} thành công! Phiếu đang chờ tiếp nhận.",
                     orderId = newOrder.RequestId,
-                    orderCode = newOrder.DisplayCode
+                    orderCode = newOrder.ProductionDisplayCode
                 });
             }
             catch (Exception ex)
@@ -1557,8 +1586,8 @@ namespace httt.Areas.Productions.Controllers
                     .Select(p => new
                     {
                         requestId = p.RequestId,
-                        requestCode = !string.IsNullOrWhiteSpace(p.RequestCode) ? p.RequestCode : $"YCSX-{p.RequestId}",
-                        orderCode = !string.IsNullOrWhiteSpace(p.RequestCode) ? p.RequestCode : $"LSX-{p.RequestId}",
+                        requestCode = p.ProductionDisplayCode,
+                        orderCode = p.ProductionDisplayCode,
                         productId = p.ProductId,
                         productName = p.Product != null ? p.Product.ProductName : "Sản phẩm thuốc dược dụng",
                         productUnit = p.Product != null ? p.Product.Unit : "Hộp",
@@ -1623,7 +1652,7 @@ namespace httt.Areas.Productions.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = $"Đã tiếp nhận thành công phiếu {order.DisplayCode} từ kho thành phẩm vào quy trình sản xuất!",
+                    message = $"Đã tiếp nhận thành công phiếu {order.ProductionDisplayCode} từ kho thành phẩm vào quy trình sản xuất!",
                     requestId = order.RequestId,
                     newStatus = "In Production",
                     assignedTo = currentUser.UserID

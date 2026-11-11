@@ -219,7 +219,6 @@
                   <th>Sản phẩm sản xuất</th>
                   <th>Bộ phận yêu cầu</th>
                   <th>Người yêu cầu</th>
-                  <th>Ngày cần</th>
                   <th class="text-center">Trạng thái</th>
                   <th class="text-center" style="width: 80px;">Thao tác</th>
                 </tr>
@@ -232,9 +231,7 @@
                     {
                         var firstDetail = item.Details.FirstOrDefault();
                         var prodName = item.ProductionRequest?.Product?.ProductName ?? firstDetail?.Note ?? "Xuất hoạt chất & tá dược";
-                        var reqCode = !string.IsNullOrWhiteSpace(item.ProductionRequest?.RequestCode)
-                            ? item.ProductionRequest.RequestCode
-                            : (item.RequestId.HasValue ? $"YCSX-{item.RequestId}" : (!string.IsNullOrWhiteSpace(item.ProductionOrderCode) ? item.ProductionOrderCode : "—"));
+                        var reqCode = item.ProductionRequest?.ProductionDisplayCode ?? "Chưa có mã";
                         var receiptLabel = item.DisplayCode;
                         var isDone = item.Status == "Completed" || item.Status == "Approved" || item.Status == "Được cấp";
                         <tr data-mr-list-row data-status="@(isDone ? "Approved" : "Pending")">
@@ -254,7 +251,6 @@
                           <td>@prodName</td>
                           <td>Phân xưởng Bào chế GMP</td>
                           <td>@(item.Requester?.FullName ?? "—")</td>
-                          <td>@(item.RequiredDate?.ToString("dd/MM/yyyy") ?? "—")</td>
                           <td class="text-center">
                             @if (isDone)
                             {
@@ -282,7 +278,7 @@
                 else
                 {
                     <tr>
-                      <td colspan="10" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
+                      <td colspan="9" style="text-align: center; color: #64748b; font-style: italic; padding: 32px;">
                         Chưa có phiếu xuất kho hoạt chất nào trong hệ thống
                       </td>
                     </tr>

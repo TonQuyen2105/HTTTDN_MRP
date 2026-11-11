@@ -40,9 +40,10 @@ public class ProductionHandoverService
 
         try
         {
-            // 1. Tải toàn bộ đơn sản xuất (loại trừ đã hủy nếu có)
+            // 1. Chỉ hiển thị yêu cầu đã tiếp nhận sản xuất hoặc đã hoàn thành.
             var requests = await _context.ProductionRequests
                 .AsNoTracking()
+                .Where(r => r.Status == "Approved" || r.Status == "In Production" || r.Status == "Completed")
                 .Include(r => r.Product)
                 .Include(r => r.Manager)
                 .OrderByDescending(r => r.RequestId)
@@ -160,7 +161,7 @@ public class ProductionHandoverService
                 pendingItems.Add(new PendingHandoverItemDto
                 {
                     RequestId = req.RequestId,
-                    RequestCode = req.DisplayCode,
+                    RequestCode = req.ProductionDisplayCode,
                     ProductId = prodId,
                     ProductName = prodName,
                     Unit = unit,
@@ -187,7 +188,10 @@ public class ProductionHandoverService
 
             // --- TAB 2: XÂY DỰNG DANH SÁCH PHIẾU BÀN GIAO ---
             var slipDtos = new List<HandoverSlipItemDto>();
-            foreach (var s in handoverSlips)
+            // Both tabs use the same accepted production requests.
+            var acceptedRequestIds = requests.Select(r => r.RequestId).ToHashSet();
+            foreach (var s in handoverSlips.Where(s =>
+                s.RequestId.HasValue && acceptedRequestIds.Contains(s.RequestId.Value) && s.ProductionRequest != null))
             {
                 var detail = s.Details.FirstOrDefault();
                 var prod = detail?.Product;
@@ -212,7 +216,7 @@ public class ProductionHandoverService
                     ReceiptCode = s.DisplayCode,
                     CreatedDate = s.CreatedDate,
                     RequestId = s.RequestId,
-                    RequestCode = s.ProductionRequest?.DisplayCode ?? (s.RequestId.HasValue ? $"YCSX-{s.RequestId}" : "—"),
+                    RequestCode = s.ProductionRequest?.ProductionDisplayCode ?? "Chưa có mã",
                     ProductId = detail?.ProductId ?? 0,
                     ProductName = prod?.ProductName ?? "Sản phẩm thuốc",
                     Unit = prod?.Unit ?? "Hộp",

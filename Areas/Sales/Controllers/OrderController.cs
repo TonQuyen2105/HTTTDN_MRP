@@ -77,7 +77,7 @@ namespace httt.Areas.Sales.Controllers
                 }
                 ViewBag.ReceiptStatusDict = receiptStatusDict;
 
-                // 2. Nạp tất cả đơn hàng để tính tồn khả dụng và tự động đồng bộ trạng thái
+                // 2. Nạp tất cả đơn hàng để tính tồn khả dụng
                 var allOrders = await _context.SaleOrders
                     .Include(o => o.SaleOrderDetails)
                         .ThenInclude(d => d.Product)
@@ -85,22 +85,19 @@ namespace httt.Areas.Sales.Controllers
                     .ThenByDescending(o => o.OrderId)
                     .ToListAsync();
 
-                // Tự động đồng bộ trạng thái giữa Phiếu xuất kho và Đơn hàng
+                // ĐỒNG BỘ TRẠNG THÁI CHÍNH XÁC:
+                // Chỉ đồng bộ Completed khi phiếu xuất THỰC SỰ ĐÃ LÀ Completed (Không tự ép khi phiếu mới chỉ Approved/Exported)
                 bool needSaveSync = false;
                 foreach (var ord in allOrders)
                 {
-                    // Bỏ qua các đơn hàng ĐÃ HỦY (Cancelled) để không tự động khôi phục lại trạng thái
                     bool isOrderCancelled = string.Equals(ord.Status, "Cancelled", StringComparison.OrdinalIgnoreCase)
                                          || ord.Status == "Đã hủy";
                     if (isOrderCancelled) continue;
 
                     if (receiptStatusDict.TryGetValue(ord.OrderId, out var rStatus))
                     {
-                        bool isReceiptExported = string.Equals(rStatus, "Approved", StringComparison.OrdinalIgnoreCase)
-                                              || string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase)
-                                              || string.Equals(rStatus, "Exported", StringComparison.OrdinalIgnoreCase)
-                                              || rStatus == "Đã xuất kho"
-                                              || rStatus == "Đã hoàn thành";
+                        bool isReceiptFullyCompleted = string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase)
+                                                    || rStatus == "Đã hoàn thành";
 
                         bool isReceiptRejected = string.Equals(rStatus, "Rejected", StringComparison.OrdinalIgnoreCase)
                                               || rStatus == "Từ chối";
@@ -109,15 +106,13 @@ namespace httt.Areas.Sales.Controllers
                                         || ord.Status == "Đã xong"
                                         || ord.Status == "Đã hoàn thành";
 
-                        if (isReceiptExported && !isOrderDone)
+                        if (isReceiptFullyCompleted && !isOrderDone)
                         {
-                            // Khi kho xuất hàng thành công -> Đơn tự động chuyển sang Completed
                             ord.Status = "Completed";
                             needSaveSync = true;
                         }
                         else if (isReceiptRejected && !isOrderDone && ord.Status != "Pending")
                         {
-                            // Khi kho từ chối xuất -> Đơn tự động trả về Pending (Đang chờ xử lý) để tạo lại phiếu
                             ord.Status = "Pending";
                             needSaveSync = true;
                         }
@@ -129,7 +124,7 @@ namespace httt.Areas.Sales.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // 3. Tính số lượng tồn kho đang bị giữ chỗ bởi các đơn đang chờ xuất kho HỢP LỆ (Không tính đơn đã hủy hoặc phiếu bị từ chối)
+                // 3. Tính số lượng tồn kho đang bị giữ chỗ bởi các đơn đang chờ xuất kho HỢP LỆ
                 var reservedStock = new Dictionary<int, int>();
                 foreach (var o in allOrders)
                 {
@@ -194,7 +189,6 @@ namespace httt.Areas.Sales.Controllers
                     var st = status.Trim();
                     if (string.Equals(st, "Cancelled", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Chỉ xem các đơn hàng ĐÃ HỦY khi người dùng chọn lọc "Đã hủy"
                         filteredOrders = filteredOrders.Where(o =>
                             string.Equals(o.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
                             o.Status == "Đã hủy"
@@ -202,7 +196,6 @@ namespace httt.Areas.Sales.Controllers
                     }
                     else
                     {
-                        // Loại bỏ đơn đã hủy khỏi các bộ lọc trạng thái khác
                         filteredOrders = filteredOrders.Where(o =>
                             !string.Equals(o.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
                             o.Status != "Đã hủy"
@@ -230,7 +223,7 @@ namespace httt.Areas.Sales.Controllers
                 }
                 else
                 {
-                    // Mặc định: Không hiển thị các đơn hàng đã hủy trong danh sách đơn hàng đang hoạt động
+                    // Mặc định: Không hiển thị đơn đã hủy ở màn hình chính
                     filteredOrders = filteredOrders.Where(o =>
                         !string.Equals(o.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
                         o.Status != "Đã hủy"
@@ -257,7 +250,7 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // Helper: Kiểm tra đơn đã xong
+        // Helper: Kiểm tra đơn đã xong (Chỉ xong khi đơn là Completed hoặc phiếu xuất thực sự Completed)
         private static bool IsOrderDone(SaleOrder o, Dictionary<int, string> receiptStatusDict)
         {
             if (string.Equals(o.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
@@ -266,16 +259,13 @@ namespace httt.Areas.Sales.Controllers
 
             if (receiptStatusDict.TryGetValue(o.OrderId, out var rStatus))
             {
-                if (string.Equals(rStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(rStatus, "Exported", StringComparison.OrdinalIgnoreCase) ||
-                    rStatus == "Đã xuất kho" ||
+                if (string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
                     rStatus == "Đã hoàn thành") return true;
             }
             return false;
         }
 
-        // Helper: Kiểm tra đơn đang chờ xuất kho HỢP LỆ (đã gửi phiếu và phiếu KHÔNG bị từ chối, đơn KHÔNG bị hủy)
+        // Helper: Kiểm tra đơn đang chờ xuất kho HỢP LỆ
         private static bool IsOrderWaitingExport(SaleOrder o, Dictionary<int, string> receiptStatusDict)
         {
             if (IsOrderDone(o, receiptStatusDict)) return false;
@@ -304,7 +294,7 @@ namespace httt.Areas.Sales.Controllers
                 || o.Status == "Đã gửi yêu cầu duyệt";
         }
 
-        // API: HỦY 1 ĐƠN HÀNG THỦ CÔNG (CHỈ HỦY ĐƠN HÀNG, GIỮ NGUYÊN TRẠNG THÁI PHIẾU XUẤT KHO)
+        // API: HỦY 1 ĐƠN HÀNG THỦ CÔNG (GIỮ NGUYÊN TRẠNG THÁI PHIẾU XUẤT KHO)
         [HttpPost("CancelOrder")]
         public async Task<IActionResult> CancelOrder([FromQuery] int orderId)
         {
@@ -316,7 +306,6 @@ namespace httt.Areas.Sales.Controllers
                     return Json(new { success = false, message = "Không tìm thấy đơn hàng cần hủy!" });
                 }
 
-                // Không cho phép hủy đơn đã hoàn tất xuất kho
                 if (string.Equals(order.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
                     order.Status == "Đã xong" ||
                     order.Status == "Đã hoàn thành")
@@ -324,9 +313,7 @@ namespace httt.Areas.Sales.Controllers
                     return Json(new { success = false, message = "Đơn hàng này đã xuất kho hoàn tất, không thể hủy!" });
                 }
 
-                // 1. Chỉ cập nhật trạng thái đơn hàng thành Cancelled (Không thay đổi trạng thái phiếu xuất kho ProductExportReceipt)
                 order.Status = "Cancelled";
-
                 await _context.SaveChangesAsync();
 
                 return Json(new

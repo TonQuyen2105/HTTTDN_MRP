@@ -234,7 +234,7 @@
                       {
                           foreach (var ord in orders)
                           {
-                              var rCode = !string.IsNullOrWhiteSpace(ord.RequestCode) ? ord.RequestCode : $"YCSX-{ord.RequestId}";
+                              var rCode = ord.ProductionDisplayCode;
                               <option value="@ord.RequestId">@rCode - @(ord.Product?.ProductName ?? "Sản phẩm")</option>
                           }
                       }

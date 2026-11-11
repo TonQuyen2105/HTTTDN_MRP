@@ -317,7 +317,7 @@
           <div class="order-filter-toolbar">
             <div class="order-search-box">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input type="text" aria-label="Tìm kiếm đơn đặt hàng" id="orderSearchInput" placeholder="Tìm theo mã đơn (ĐH-KHO-...), phiếu gốc (YCSX-...), tên thuốc...">
+              <input type="text" aria-label="Tìm kiếm đơn đặt hàng" id="orderSearchInput" placeholder="Tìm theo mã yêu cầu sản xuất, tên thuốc...">
             </div>
 
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -383,7 +383,7 @@
                             _ => order.Status
                         };
 
-                        var displayOrderCode = order.RequestDisplayCode;
+                        var displayOrderCode = order.ProductionDisplayCode;
                         <tr class="order-row" data-id="@order.RequestId" data-status="@order.Status" data-name="@prodName.ToLower()" data-code="@displayOrderCode.ToLower()" data-ycsx="@displayOrderCode.ToLower()">
                           <td class="text-center" style="color: #64748b; font-weight: 500;">@stt</td>
                           <td>
@@ -774,7 +774,7 @@
                       var dateStr = item.CreatedDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy");
                       var reqQty = item.QuantityRequired;
                       var isUrgent = reqQty >= 600;
-                      var pDisplayCode = item.RequestDisplayCode;
+                      var pDisplayCode = item.ProductionDisplayCode;
 
                       <tr id="row-modal-pending-@item.RequestId">
                         <td class="text-center" style="color: #64748b; font-weight: 500;">@pStt</td>
@@ -930,6 +930,7 @@
   <script src="~/js/productions/list-search.js" asp-append-version="true"></script>
   <script src="~/js/app.js" asp-append-version="true"></script>
   <script>
+    const productionRequestCodes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(allOrders.ToDictionary(o => o.RequestId.ToString(), o => o.ProductionDisplayCode)));
     let currentDetailOrderId = 0;
 
     // Filter & Search Logic
@@ -1224,7 +1225,7 @@
           return;
         }
 
-        title.textContent = `Chi tiết đơn đặt hàng: ${data.requestCode || ('YCSX-' + id)}`;
+        title.textContent = `Chi tiết đơn đặt hàng: ${data.requestCode || 'Chưa có mã'}`;
 
         let statusClass = "badge-status-inprog";
         let statusText = "Đang sản xuất";
@@ -1404,7 +1405,7 @@
       if (maxUnit) maxUnit.textContent = unit;
 
       const tag = document.getElementById('markOrderCodeTag');
-      if (tag) tag.textContent = `PHIẾU GỐC: YCSX-${id} • LỆNH SX: LSX-${id}`;
+      if (tag) tag.textContent = `MÃ YÊU CẦU: ${productionRequestCodes[id] || 'Chưa có mã'}`;
 
       const inp = document.getElementById('inputProducedQty');
       inp.max = remaining;
@@ -1555,7 +1556,7 @@
     }
 
     async function acceptSingleWarehouseOrder(id, prodName) {
-      if (!confirm(`Bạn có chắc chắn muốn TIẾP NHẬN phiếu yêu cầu YCSX-${id} (${prodName}) từ kho thành phẩm vào kế hoạch sản xuất?`)) {
+      if (!confirm(`Bạn có chắc chắn muốn TIẾP NHẬN phiếu yêu cầu ${productionRequestCodes[id] || 'Chưa có mã'} (${prodName}) từ kho thành phẩm vào kế hoạch sản xuất?`)) {
         return;
       }
 

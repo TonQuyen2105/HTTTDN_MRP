@@ -249,7 +249,7 @@
                         var note = firstDetail?.Note ?? "Nhập kho thành phẩm đạt chuẩn QC";
                         var isDone = item.Status == "Completed";
                         var receiptLabel = !string.IsNullOrWhiteSpace(item.ReceiptCode) ? item.ReceiptCode : $"NK-TP-{item.ProductReceiptId:D4}";
-                        var orderLabel = item.RequestId.HasValue ? (!string.IsNullOrWhiteSpace(item.ProductionRequest?.RequestCode) ? item.ProductionRequest.RequestCode : $"YCSX-{item.RequestId}") : (item.ProductReceiptId > 0 ? $"YCSX-{item.ProductReceiptId}" : "—");
+                        var orderLabel = item.ProductionRequest?.ProductionDisplayCode ?? "Chưa có mã";
                         <tr>
                           <td class="text-center">@stt</td>
                           <td><a href="/Productions/Home/FinishedGoodsReceiptCreate" style="color:var(--color-primary); font-weight:700;">@receiptLabel</a></td>

@@ -44,7 +44,7 @@ public class MaterialRequirementService
             Unit = r.Product?.Unit ?? "Hộp",
             Status = r.Status,
             RelatedOrderCode = (r.Status == "Approved" || r.Status == "In Production")
-                ? (!string.IsNullOrWhiteSpace(r.RequestCode) ? r.RequestCode : $"LSX-{r.RequestId}")
+                ? (r.ProductionDisplayCode)
                 : null
         }).ToList();
 
@@ -54,7 +54,7 @@ public class MaterialRequirementService
             .Select(r => new ProductionOrderItemDto
             {
                 RequestId = r.RequestId,
-                OrderCode = !string.IsNullOrWhiteSpace(r.RequestCode) ? r.RequestCode : $"LSX-{r.RequestId}",
+                OrderCode = r.ProductionDisplayCode,
                 ProductId = r.ProductId,
                 ProductName = r.Product?.ProductName ?? $"Sản phẩm #{r.ProductId}",
                 QuantityRequired = r.QuantityRequired,
@@ -132,7 +132,7 @@ public class MaterialRequirementService
 
             if (selectedReq.Status == "Approved" || selectedReq.Status == "In Production")
             {
-                vm.ProductionOrderCode = !string.IsNullOrWhiteSpace(selectedReq.RequestCode) ? selectedReq.RequestCode : $"LSX-{selectedReq.RequestId}";
+                vm.ProductionOrderCode = selectedReq.ProductionDisplayCode;
                 vm.IsLinkedToOrder = true;
             }
             else
@@ -153,7 +153,7 @@ public class MaterialRequirementService
 
             if (selectedReq.Status == "Approved" || selectedReq.Status == "In Production")
             {
-                vm.ProductionOrderCode = !string.IsNullOrWhiteSpace(selectedReq.RequestCode) ? selectedReq.RequestCode : $"LSX-{selectedReq.RequestId}";
+                vm.ProductionOrderCode = selectedReq.ProductionDisplayCode;
                 vm.IsLinkedToOrder = true;
             }
             else
@@ -513,8 +513,7 @@ public class MaterialRequirementService
         if (calcVm.Lines.Any(l => l.IsUnitMismatch))
             return (false, "Không thể tạo phiếu do có nguyên liệu bị lệch đơn vị tính giữa BOM và kho.", 0, "");
 
-        // 5. Lưu phiếu và chi tiết vào cơ sở dữ liệu trong Transaction
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        // Save the identity-based code with the receipt in one retriable transaction.
         try
         {
             var receipt = new MaterialReceipt
@@ -534,9 +533,6 @@ public class MaterialRequirementService
                     ? (req.Note.Length > 255 ? req.Note.Substring(0, 255) : req.Note)
                     : $"Yêu cầu cấp nguyên vật liệu phục vụ {req.ProductionOrderCode} ({calcVm.ProductName})"
             };
-
-            _context.MaterialReceipts.Add(receipt);
-            await _context.SaveChangesAsync();
 
             // Thêm chi tiết từng dòng nguyên vật liệu
             // Yêu cầu cấp lượng còn thiếu cho kho sản xuất (hoặc toàn bộ nếu xưởng chưa có)
@@ -560,7 +556,6 @@ public class MaterialRequirementService
 
                 var detail = new MaterialReceiptDetail
                 {
-                    ExpReceiptId = receipt.ExpReceiptId,
                     IngrId = line.IngrId,
                     Quantity = neededQty,
                     BomNorm = line.BomNorm,
@@ -573,18 +568,47 @@ public class MaterialRequirementService
                     CreatedDate = DateTime.UtcNow
                 };
 
-                _context.MaterialReceiptDetails.Add(detail);
+                receipt.Details.Add(detail);
             }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                if (receipt.ExpReceiptId > 0)
+                {
+                    // A lost commit acknowledgement must not create another receipt.
+                    var savedCode = $"YCXVT-{receipt.ExpReceiptId}";
+                    var committed = await _context.MaterialReceipts.AsNoTracking()
+                        .AnyAsync(r => r.ExpReceiptId == receipt.ExpReceiptId && r.ExpReceiptCode == savedCode);
+                    if (committed)
+                    {
+                        receipt.ExpReceiptCode = savedCode;
+                        return;
+                    }
+
+                    // The previous attempt rolled back; discard its generated keys.
+                    foreach (var detail in receipt.Details)
+                        _context.Entry(detail).State = EntityState.Detached;
+                    _context.Entry(receipt).State = EntityState.Detached;
+                    receipt.ExpReceiptId = 0;
+                    receipt.ExpReceiptCode = null;
+                    foreach (var detail in receipt.Details)
+                        detail.ExpReceiptId = 0;
+                }
+
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                _context.MaterialReceipts.Add(receipt);
+                await _context.SaveChangesAsync();
+                receipt.ExpReceiptCode = $"YCXVT-{receipt.ExpReceiptId}";
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            });
 
             string receiptCode = receipt.DisplayCode;
             return (true, $"Tạo phiếu yêu cầu cấp nguyên vật liệu thành công: {receiptCode}", receipt.ExpReceiptId, receiptCode);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             return (false, $"Lỗi lưu cơ sở dữ liệu: {ex.Message}", 0, "");
         }
     }

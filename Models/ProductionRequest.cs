@@ -87,4 +87,7 @@ public class ProductionRequest
 
     [NotMapped]
     public string RequestDisplayCode => DisplayCode;
+
+    [NotMapped]
+    public string ProductionDisplayCode => string.IsNullOrWhiteSpace(RequestCode) ? "Chưa có mã" : RequestCode;
 }

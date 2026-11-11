@@ -1,0 +1,265 @@
+@using httt.Areas.Admin.Services
+@model httt.Areas.Admin.ViewModels.UserListViewModel
+
+@{
+    ViewData["Title"] = "Quản lý Tài khoản & Phân quyền";
+}
+
+<div id="userPage"
+     data-url-index="@Url.Action("Index", "UserAccount", new { area = "Admin" })"
+     data-url-create="@Url.Action("Create", "UserAccount", new { area = "Admin" })"
+     data-url-update="@Url.Action("Update", "UserAccount", new { area = "Admin" })"
+     data-url-set-status="@Url.Action("SetStatus", "UserAccount", new { area = "Admin" })"
+     data-url-reset-password="@Url.Action("ResetPassword", "UserAccount", new { area = "Admin" })"
+     data-url-delete="@Url.Action("Delete", "UserAccount", new { area = "Admin" })"
+     data-url-bulk-status="@Url.Action("BulkSetStatus", "UserAccount", new { area = "Admin" })"
+     data-url-bulk-delete="@Url.Action("BulkDelete", "UserAccount", new { area = "Admin" })"
+     data-url-login="@Url.Action("Login", "Account", new { area = "Admin" })"
+     data-msg-password="@UserAccountRules.MsgPassword"
+     data-flash-error="@(TempData["ErrorMessage"] as string)"
+     data-flash-success="@(TempData["SuccessMessage"] as string)">
+
+    <!-- ── Page Header ── -->
+    <div class="adm-page-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="adm-page-title d-flex align-items-center gap-2 mb-1">
+                <i class="fa-solid fa-users-gear text-primary" style="font-size: 1.25rem;" aria-hidden="true"></i>
+                Quản lý Tài khoản &amp; Phân quyền
+            </h1>
+            <p class="adm-page-subtitle mb-0">Tạo mới, phân quyền và kiểm soát trạng thái tài khoản nhân sự trong toàn hệ thống</p>
+        </div>
+        <button type="button" class="adm-btn adm-btn--primary shadow-sm" data-action="create">
+            <i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i>
+            Tạo tài khoản mới
+        </button>
+    </div>
+
+    <!-- ── Bộ lọc + tìm kiếm thời gian thực (vẫn hoạt động như form GET nếu tắt JavaScript) ── -->
+    <form id="userFilterForm" data-ajax-form="true" method="get" action="@Url.Action("Index", "UserAccount", new { area = "Admin" })" role="search">
+        <div class="adm-card mb-3">
+            <div class="adm-card-body py-3">
+                <div class="adm-toolbar flex-wrap align-items-center gap-2">
+                    <div class="adm-search-box flex-grow-1" style="min-width: 220px; max-width: 380px;">
+                        <i class="fa-solid fa-magnifying-glass adm-search-icon" aria-hidden="true"></i>
+                        <input type="search" class="adm-search-input" id="filterSearch" name="search"
+                               value="@Model.Search" maxlength="100" autocomplete="off"
+                               placeholder="Tìm username, họ tên, số điện thoại..."
+                               aria-label="Tìm tài khoản theo tên đăng nhập, họ tên hoặc số điện thoại" />
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="filterRole" class="text-nowrap fw-semibold text-secondary" style="font-size: 0.8125rem;">
+                            <i class="fa-solid fa-user-tag me-1 text-primary" aria-hidden="true"></i>Vai trò
+                        </label>
+                        <select id="filterRole" name="role" class="adm-filter-select">
+                            <option value="" selected="@(Model.Role.Length == 0)">Tất cả</option>
+                            @foreach (var r in UserAccountRules.Roles)
+                            {
+                                <option value="@r" selected="@(Model.Role == r)">@r</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="filterStatus" class="text-nowrap fw-semibold text-secondary" style="font-size: 0.8125rem;">
+                            <i class="fa-solid fa-circle-half-stroke me-1 text-primary" aria-hidden="true"></i>Trạng thái
+                        </label>
+                        <select id="filterStatus" name="status" class="adm-filter-select">
+                            <option value="" selected="@(Model.Status.Length == 0)">Tất cả</option>
+                            @foreach (var s in UserAccountRules.Statuses)
+                            {
+                                <option value="@s" selected="@(Model.Status == s)">@s</option>
+                            }
+                        </select>
+                    </div>
+
+                    <button type="button" class="adm-btn adm-btn--ghost text-danger" id="clearFiltersBtn"
+                            data-action="clear-filters" title="Xóa toàn bộ bộ lọc" hidden="@(!Model.HasFilter)">
+                        <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>Xóa lọc
+                    </button>
+
+                    <noscript><button type="submit" class="adm-btn adm-btn--outline">Lọc</button></noscript>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- ── Thanh thao tác hàng loạt (chỉ hiện khi có dòng được chọn) ── -->
+    <div id="bulkBar" class="adm-bulk-bar mb-3 align-items-center justify-content-between flex-wrap gap-3" hidden>
+        <div class="d-flex align-items-center gap-2">
+            <span class="adm-bulk-badge"><i class="fa-solid fa-check-double me-1" aria-hidden="true"></i><span id="bulkCount">0</span></span>
+            <span class="fw-semibold text-white" id="bulkLabel" aria-live="polite">Đã chọn 0 tài khoản</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" id="bulkUnlockBtn" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1" disabled>
+                <i class="fa-solid fa-unlock text-success" aria-hidden="true"></i><span>Mở khóa đã chọn</span>
+            </button>
+            <button type="button" id="bulkLockBtn" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1" disabled>
+                <i class="fa-solid fa-lock text-warning" aria-hidden="true"></i><span>Khóa đã chọn</span>
+            </button>
+            <button type="button" id="bulkDeleteBtn" class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1" disabled>
+                <i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Xóa đã chọn</span>
+            </button>
+            <button type="button" id="bulkClearBtn" class="btn btn-sm btn-link text-white-50 text-decoration-none">
+                <i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Bỏ chọn
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Bảng (được thay thế bằng AJAX; không reload trang) ── -->
+    <div class="adm-card shadow-sm">
+        <div class="adm-card-body--flush" id="userTableHost" aria-live="polite">
+            @await Html.PartialAsync("_UserTable", Model)
+        </div>
+    </div>
+</div>
+
+<!-- ════ MODAL: Tạo / Sửa tài khoản ════ -->
+<div class="modal fade adm-modal" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form id="userForm" data-ajax-form="true" novalidate autocomplete="off">
+                <input type="hidden" name="id" value="0" />
+
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="userModalLabel">Tạo tài khoản mới</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="fUsername">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fUsername" name="username" required
+                               minlength="@UserAccountRules.UsernameMin"
+                               pattern="@UserAccountRules.UsernamePattern" maxlength="@UserAccountRules.UsernameMax"
+                               autocomplete="off" spellcheck="false"
+                               data-msg="@UserAccountRules.MsgUsername" />
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3" id="passwordGroup">
+                        <label class="form-label fw-semibold" for="fPassword">Mật khẩu <span class="text-danger">*</span></label>
+                        <div class="input-group has-validation">
+                            <input type="password" class="form-control" id="fPassword" name="password" required
+                                   minlength="@UserAccountRules.MinPasswordLength"
+                                   pattern="@UserAccountRules.PasswordPattern" maxlength="@UserAccountRules.PasswordMaxBytes"
+                                   autocomplete="new-password"
+                                   data-msg="@UserAccountRules.MsgPassword" />
+                            <button type="button" class="btn btn-outline-secondary" data-toggle-password tabindex="-1"
+                                    aria-label="Hiện/ẩn mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-text">Tối thiểu 8 ký tự.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="fFullName">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fFullName" name="fullName" required
+                               minlength="@UserAccountRules.FullNameMin" maxlength="@UserAccountRules.FullNameMax"
+                               autocomplete="off" data-msg="@UserAccountRules.MsgFullName" />
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="fPhone">Số điện thoại</label>
+                        <input type="tel" class="form-control" id="fPhone" name="phone"
+                               pattern="@UserAccountRules.PhonePattern" maxlength="15" placeholder="0912345678"
+                               autocomplete="off" data-msg="@UserAccountRules.MsgPhone" />
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" for="fRole">Vai trò <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fRole" name="role" required data-msg="@UserAccountRules.MsgRole">
+                                <option value="">-- Chọn vai trò --</option>
+                                @foreach (var r in UserAccountRules.Roles)
+                                {
+                                    <option value="@r">@r</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" for="fStatus">Trạng thái <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fStatus" name="status" required data-msg="@UserAccountRules.MsgStatus">
+                                @foreach (var s in UserAccountRules.Statuses)
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning small mt-3 mb-0 d-none" id="protectedNotice" role="note">
+                        <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>
+                        <span></span>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="adm-btn adm-btn--outline" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="adm-btn adm-btn--primary" id="userFormSubmit">
+                        <i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Lưu tài khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ════ MODAL: Đặt lại mật khẩu ════ -->
+<div class="modal fade adm-modal" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form id="resetForm" data-ajax-form="true" novalidate autocomplete="off">
+                <input type="hidden" name="id" value="0" />
+
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="resetModalLabel">
+                        <i class="fa-solid fa-key text-primary me-2" aria-hidden="true"></i>Đặt lại mật khẩu
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <p class="text-secondary mb-3">Đặt mật khẩu mới cho tài khoản <strong id="resetUsername" class="text-dark"></strong>.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="rPassword">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <div class="input-group has-validation">
+                            <input type="password" class="form-control" id="rPassword" name="newPassword" required
+                                   minlength="@UserAccountRules.MinPasswordLength"
+                                   pattern="@UserAccountRules.PasswordPattern" maxlength="@UserAccountRules.PasswordMaxBytes"
+                                   autocomplete="new-password" data-msg="@UserAccountRules.MsgPassword" />
+                            <button type="button" class="btn btn-outline-secondary" data-toggle-password tabindex="-1"
+                                    aria-label="Hiện/ẩn mật khẩu"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-text">Tối thiểu 8 ký tự.</div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold" for="rConfirm">Nhập lại mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="rConfirm" name="confirm" required
+                               maxlength="@UserAccountRules.PasswordMaxBytes" autocomplete="new-password"
+                               data-msg="Vui lòng nhập lại mật khẩu mới." />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="adm-btn adm-btn--outline" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="adm-btn adm-btn--primary" id="resetFormSubmit">
+                        <i class="fa-solid fa-key me-1" aria-hidden="true"></i>Đặt lại mật khẩu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin-users.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,27 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction     = ViewContext.RouteData.Values["action"]?.ToString();
+    var dashboardIsActive = currentController == "Dashboard" && currentAction == "Index";
+    var userAccountIsActive = currentController == "UserAccount";
+}
+
+<div class="adm-nav-label">Điều hướng chính</div>
+
+<ul class="adm-nav" role="list">
+    <li class="adm-nav-item" role="listitem">
+        <a class="adm-nav-link @(dashboardIsActive ? "active" : "")"
+           aria-current="@(dashboardIsActive ? "page" : null)"
+           asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+            <i class="fa-solid fa-gauge-high nav-icon" aria-hidden="true"></i>
+            <span>Dashboard</span>
+        </a>
+    </li>
+    <li class="adm-nav-item" role="listitem">
+        <a class="adm-nav-link @(userAccountIsActive ? "active" : "")"
+           aria-current="@(userAccountIsActive ? "page" : null)"
+           asp-area="Admin" asp-controller="UserAccount" asp-action="Index">
+            <i class="fa-solid fa-users-gear nav-icon" aria-hidden="true"></i>
+            <span>Quản lý Tài khoản</span>
+        </a>
+    </li>
+</ul>

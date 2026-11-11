@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "DoOBoFcR8QI=",
+  "dgSpecHash": "gwELz3RnBsg=",
   "success": true,
   "projectFilePath": "C:\\Users\\diemc\\OneDrive\\Documents\\Code\\httt\\httt.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\diemc\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.build.framework\\18.0.2\\microsoft.build.framework.18.0.2.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.11.0\\microsoft.codeanalysis.analyzers.3.11.0.nupkg.sha512",
@@ -12,11 +13,13 @@
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.codeanalysis.csharp.workspaces\\5.0.0\\microsoft.codeanalysis.csharp.workspaces.5.0.0.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.codeanalysis.workspaces.common\\5.0.0\\microsoft.codeanalysis.workspaces.common.5.0.0.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.codeanalysis.workspaces.msbuild\\5.0.0\\microsoft.codeanalysis.workspaces.msbuild.5.0.0.nupkg.sha512",
-    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.13\\microsoft.entityframeworkcore.10.0.13.nupkg.sha512",
-    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\10.0.13\\microsoft.entityframeworkcore.abstractions.10.0.13.nupkg.sha512",
-    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\10.0.13\\microsoft.entityframeworkcore.analyzers.10.0.13.nupkg.sha512",
+    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.14\\microsoft.entityframeworkcore.10.0.14.nupkg.sha512",
+    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\10.0.14\\microsoft.entityframeworkcore.abstractions.10.0.14.nupkg.sha512",
+    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\10.0.14\\microsoft.entityframeworkcore.analyzers.10.0.14.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.design\\10.0.13\\microsoft.entityframeworkcore.design.10.0.13.nupkg.sha512",
+    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.inmemory\\10.0.14\\microsoft.entityframeworkcore.inmemory.10.0.14.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\10.0.13\\microsoft.entityframeworkcore.relational.10.0.13.nupkg.sha512",
+    "C:\\Users\\diemc\\.nuget\\packages\\microsoft.entityframeworkcore.tools\\10.0.13\\microsoft.entityframeworkcore.tools.10.0.13.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.extensions.dependencymodel\\10.0.13\\microsoft.extensions.dependencymodel.10.0.13.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\microsoft.visualstudio.solutionpersistence\\1.0.52\\microsoft.visualstudio.solutionpersistence.1.0.52.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\mono.texttemplating\\3.0.0\\mono.texttemplating.3.0.0.nupkg.sha512",
@@ -29,7 +32,8 @@
     "C:\\Users\\diemc\\.nuget\\packages\\system.composition.convention\\9.0.0\\system.composition.convention.9.0.0.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\system.composition.hosting\\9.0.0\\system.composition.hosting.9.0.0.nupkg.sha512",
     "C:\\Users\\diemc\\.nuget\\packages\\system.composition.runtime\\9.0.0\\system.composition.runtime.9.0.0.nupkg.sha512",
-    "C:\\Users\\diemc\\.nuget\\packages\\system.composition.typedparts\\9.0.0\\system.composition.typedparts.9.0.0.nupkg.sha512"
+    "C:\\Users\\diemc\\.nuget\\packages\\system.composition.typedparts\\9.0.0\\system.composition.typedparts.9.0.0.nupkg.sha512",
+    "C:\\Users\\diemc\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.0\\system.security.cryptography.protecteddata.9.0.0.nupkg.sha512"
   ],
   "logs": []
 }

@@ -8,11 +8,22 @@
     ".NETCoreApp,Version=v10.0": {
       "httt/1.0.0": {
         "dependencies": {
+          "BCrypt.Net-Next": "4.0.3",
           "Microsoft.EntityFrameworkCore.Design": "10.0.13",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.3"
+          "Microsoft.EntityFrameworkCore.InMemory": "10.0.14",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.3",
+          "System.Security.Cryptography.ProtectedData": "9.0.0"
         },
         "runtime": {
           "httt.dll": {}
+        }
+      },
+      "BCrypt.Net-Next/4.0.3": {
+        "runtime": {
+          "lib/net6.0/BCrypt.Net-Next.dll": {
+            "assemblyVersion": "4.0.3.0",
+            "fileVersion": "4.0.3.0"
+          }
         }
       },
       "Humanizer.Core/2.14.1": {
@@ -303,22 +314,22 @@
           }
         }
       },
-      "Microsoft.EntityFrameworkCore/10.0.13": {
+      "Microsoft.EntityFrameworkCore/10.0.14": {
         "dependencies": {
-          "Microsoft.EntityFrameworkCore.Abstractions": "10.0.13"
+          "Microsoft.EntityFrameworkCore.Abstractions": "10.0.14"
         },
         "runtime": {
           "lib/net10.0/Microsoft.EntityFrameworkCore.dll": {
-            "assemblyVersion": "10.0.13.0",
-            "fileVersion": "10.0.1326.50504"
+            "assemblyVersion": "10.0.14.0",
+            "fileVersion": "10.0.1426.52326"
           }
         }
       },
-      "Microsoft.EntityFrameworkCore.Abstractions/10.0.13": {
+      "Microsoft.EntityFrameworkCore.Abstractions/10.0.14": {
         "runtime": {
           "lib/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll": {
-            "assemblyVersion": "10.0.13.0",
-            "fileVersion": "10.0.1326.50504"
+            "assemblyVersion": "10.0.14.0",
+            "fileVersion": "10.0.1426.52326"
           }
         }
       },
@@ -341,9 +352,20 @@
           }
         }
       },
+      "Microsoft.EntityFrameworkCore.InMemory/10.0.14": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.14"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.EntityFrameworkCore.InMemory.dll": {
+            "assemblyVersion": "10.0.14.0",
+            "fileVersion": "10.0.1426.52326"
+          }
+        }
+      },
       "Microsoft.EntityFrameworkCore.Relational/10.0.13": {
         "dependencies": {
-          "Microsoft.EntityFrameworkCore": "10.0.13"
+          "Microsoft.EntityFrameworkCore": "10.0.14"
         },
         "runtime": {
           "lib/net10.0/Microsoft.EntityFrameworkCore.Relational.dll": {
@@ -397,7 +419,7 @@
       },
       "Npgsql.EntityFrameworkCore.PostgreSQL/10.0.3": {
         "dependencies": {
-          "Microsoft.EntityFrameworkCore": "10.0.13",
+          "Microsoft.EntityFrameworkCore": "10.0.14",
           "Microsoft.EntityFrameworkCore.Relational": "10.0.13",
           "Npgsql": "10.0.3"
         },
@@ -475,6 +497,14 @@
             "fileVersion": "9.0.24.52809"
           }
         }
+      },
+      "System.Security.Cryptography.ProtectedData/9.0.0": {
+        "runtime": {
+          "lib/net9.0/System.Security.Cryptography.ProtectedData.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.24.52809"
+          }
+        }
       }
     }
   },
@@ -483,6 +513,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "BCrypt.Net-Next/4.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-W+U9WvmZQgi5cX6FS5GDtDoPzUCV4LkBLkywq/kRZhuDwcbavOzcDAr3LXJFqHUi952Yj3LEYoWW0jbEUQChsA==",
+      "path": "bcrypt.net-next/4.0.3",
+      "hashPath": "bcrypt.net-next.4.0.3.nupkg.sha512"
     },
     "Humanizer.Core/2.14.1": {
       "type": "package",
@@ -533,19 +570,19 @@
       "path": "microsoft.codeanalysis.workspaces.msbuild/5.0.0",
       "hashPath": "microsoft.codeanalysis.workspaces.msbuild.5.0.0.nupkg.sha512"
     },
-    "Microsoft.EntityFrameworkCore/10.0.13": {
+    "Microsoft.EntityFrameworkCore/10.0.14": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-u/z4nTQUJ5nJEXAQekgQEQZkh0delp4gL+ESHn7Z6k037c8HC5mSNu1/YdBgxGm7DtLjhOxktNl+aQMzw6wN7A==",
-      "path": "microsoft.entityframeworkcore/10.0.13",
-      "hashPath": "microsoft.entityframeworkcore.10.0.13.nupkg.sha512"
+      "sha512": "sha512-vY3931PYPIDBbKovGHbACmpOWvURvKNyRXfCjMh5yLW+FH6vLWeqUu2xzSCRo4Oz4tgx9GYpd0JlV5LDyAoQdg==",
+      "path": "microsoft.entityframeworkcore/10.0.14",
+      "hashPath": "microsoft.entityframeworkcore.10.0.14.nupkg.sha512"
     },
-    "Microsoft.EntityFrameworkCore.Abstractions/10.0.13": {
+    "Microsoft.EntityFrameworkCore.Abstractions/10.0.14": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ARw+tZ3eiTosnK5nJPUGEzeUQcjyqCqs3qKA3lPtIRH5yJo3qIgxm7AvkZVIT9iWkS2083UsWe3Rj1MysW3p5A==",
-      "path": "microsoft.entityframeworkcore.abstractions/10.0.13",
-      "hashPath": "microsoft.entityframeworkcore.abstractions.10.0.13.nupkg.sha512"
+      "sha512": "sha512-/SaznoTTFfKzxYEbCPAwwKBR3XT92DZgH4jJ3/cqs2skP3o2D+TL6i9Aaj+8Azwtu6/sRd0ve4P2mN12nfVmCw==",
+      "path": "microsoft.entityframeworkcore.abstractions/10.0.14",
+      "hashPath": "microsoft.entityframeworkcore.abstractions.10.0.14.nupkg.sha512"
     },
     "Microsoft.EntityFrameworkCore.Design/10.0.13": {
       "type": "package",
@@ -553,6 +590,13 @@
       "sha512": "sha512-cxYpgXy9/5+ddwlKY7K196zV0W2W+N7JkPyAK0LVgf4XSJT4exfUURjsgcLHA4KOwWYQtyKZfIHpmTqDrkkCpg==",
       "path": "microsoft.entityframeworkcore.design/10.0.13",
       "hashPath": "microsoft.entityframeworkcore.design.10.0.13.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.InMemory/10.0.14": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-g70gixwkCTNuM6lMfElDzU9mtYVX6CYZ6ZhFbxZlvQv7Y9fRHmypflGHj3ivFARSlLgYuGmeEY9ebctOcHqp1w==",
+      "path": "microsoft.entityframeworkcore.inmemory/10.0.14",
+      "hashPath": "microsoft.entityframeworkcore.inmemory.10.0.14.nupkg.sha512"
     },
     "Microsoft.EntityFrameworkCore.Relational/10.0.13": {
       "type": "package",
@@ -651,6 +695,13 @@
       "sha512": "sha512-aRZlojCCGEHDKqh43jaDgaVpYETsgd7Nx4g1zwLKMtv4iTo0627715ajEFNpEEBTgLmvZuv8K0EVxc3sM4NWJA==",
       "path": "system.composition.typedparts/9.0.0",
       "hashPath": "system.composition.typedparts.9.0.0.nupkg.sha512"
+    },
+    "System.Security.Cryptography.ProtectedData/9.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CJW+x/F6fmRQ7N6K8paasTw9PDZp4t7G76UjGNlSDgoHPF0h08vTzLYbLZpOLEJSg35d5wy2jCXGo84EN05DpQ==",
+      "path": "system.security.cryptography.protecteddata/9.0.0",
+      "hashPath": "system.security.cryptography.protecteddata.9.0.0.nupkg.sha512"
     }
   }
 }

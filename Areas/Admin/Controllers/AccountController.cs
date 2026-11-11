@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using httt.Areas.Admin.Services;
@@ -17,15 +18,18 @@ public class AccountController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserAccountService _accountService;
+    private readonly IPasswordHasher<UserAccount> _passwordHasher;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
         ApplicationDbContext context,
         UserAccountService accountService,
+        IPasswordHasher<UserAccount> passwordHasher,
         ILogger<AccountController> logger)
     {
         _context = context;
         _accountService = accountService;
+        _passwordHasher = passwordHasher;
         _logger = logger;
     }
 
@@ -36,19 +40,15 @@ public class AccountController : Controller
     [AllowAnonymous]
     public IActionResult Login(string? returnUrl = null)
     {
-        // Nếu đã đăng nhập, chuyển hướng theo vai trò tương ứng
-        if (User.Identity?.IsAuthenticated == true)
+        var currentRole = AppRoles.NormalizeRole(User.FindFirstValue(ClaimTypes.Role));
+        // Nếu đã đăng nhập đúng với quyền Admin, chuyển hướng thẳng vào Dashboard
+        if (User.Identity?.IsAuthenticated == true && currentRole == AppRoles.Admin)
         {
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && AppRoles.CanAccessUrl(User, returnUrl))
             {
                 return Redirect(returnUrl);
             }
-            if (User.IsInRole(AppRoles.Admin))
-            {
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-            }
-            return Redirect(AppRoles.GetDefaultUrlForRole(role));
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
         }
 
         ViewBag.ReturnUrl = returnUrl;
@@ -72,17 +72,35 @@ public class AccountController : Controller
             return View();
         }
 
-        // So khớp bằng lower() thay vì ILike: ILike coi % và _ trong input là wildcard,
-        // cho phép đăng nhập/dò tài khoản bằng pattern (ví dụ username "a%").
         var loweredUsername = username.Trim().ToLowerInvariant();
         var user = await _context.UserAccounts
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username.ToLower() == loweredUsername);
 
-        // Luôn tốn đúng 1 lần BCrypt dù user có tồn tại hay không (chống dò tài khoản qua thời gian phản hồi).
-        var isValidPassword = user is null
-            ? UserAccountService.BurnPasswordCheck(password)
-            : UserAccountService.VerifyPassword(password, user.Password);
+        bool isValidPassword = false;
+        if (user is null)
+        {
+            UserAccountService.BurnPasswordCheck(password);
+        }
+        else if (UserAccountService.VerifyPassword(password, user.Password))
+        {
+            isValidPassword = true;
+        }
+        else
+        {
+            try
+            {
+                var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.Password, password);
+                if (verifyResult == PasswordVerificationResult.Success || verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    isValidPassword = true;
+                }
+            }
+            catch
+            {
+                isValidPassword = false;
+            }
+        }
 
         if (user is null || !isValidPassword)
         {
@@ -91,29 +109,27 @@ public class AccountController : Controller
             return View();
         }
 
+        var normalizedRole = AppRoles.NormalizeRole(user.Role);
         var isActive = UserAccountRules.StatusKey(user.Status) == UserAccountRules.StatusActive
             || string.Equals(user.Status, "true", StringComparison.OrdinalIgnoreCase);
 
-        if (!isActive)
+        // Chỉ cho phép tài khoản Role Admin đăng nhập vào trang Admin
+        if (!isActive || normalizedRole != AppRoles.Admin)
         {
-            ViewBag.Error = "Tài khoản hiện đang bị khóa hoặc vô hiệu hóa.";
+            ViewBag.Error = "Tài khoản không có quyền truy cập phân hệ Admin hoặc đã bị khóa.";
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
 
-        // Tự động nâng cấp mật khẩu cũ sang BCrypt hash nếu cần
         await _accountService.UpgradePasswordIfNeededAsync(user, password);
-
-        // Chuẩn hóa role về vai trò hệ thống chuẩn (Admin, Production, Warehouse, Sales)
-        var normalizedRole = AppRoles.NormalizeRole(user.Role);
 
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, normalizedRole),
+            new Claim(ClaimTypes.Role, AppRoles.Admin),
             new Claim("FullName", user.FullName ?? user.Username),
-            new Claim("OriginalRole", user.Role ?? normalizedRole)
+            new Claim("OriginalRole", user.Role ?? AppRoles.Admin)
         };
 
         var identity = new ClaimsIdentity(
@@ -138,12 +154,7 @@ public class AccountController : Controller
             return Redirect(returnUrl);
         }
 
-        if (normalizedRole == AppRoles.Admin)
-        {
-            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-        }
-
-        return Redirect(AppRoles.GetDefaultUrlForRole(normalizedRole));
+        return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
     }
 
     // ── POST: /Admin/Account/Logout hoặc /Admin/Logout ───────────────────

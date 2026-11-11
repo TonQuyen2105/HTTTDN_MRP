@@ -10,7 +10,7 @@ using httt.Services;
 namespace httt.Areas.Productions.Controllers
 {
     [Area("Productions")]
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Production}")]
+    [Authorize(Roles = "Production,Manager,Employee")]
     public partial class HomeController : Controller
     {
         private readonly ApplicationDbContext _context;

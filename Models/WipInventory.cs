@@ -27,10 +27,10 @@ public class WipInventory
     [Column("lastupdated")]
     public DateTime? LastUpdated { get; set; }
 
-    [Column("stage")]
+    [NotMapped]
     public string? Stage { get; set; }
 
-    [Column("updatedat")]
+    [NotMapped]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey("RequestId")]

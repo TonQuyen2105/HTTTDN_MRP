@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace httt.Areas.Sales.Controllers
 {
     [Area("Sales")]
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Sales}")]
+    [Authorize(Roles = "Sales,BanHang")]
     [IgnoreAntiforgeryToken]
     [Route("Sales/MedicineInventory")]
     public class MedicineInventoryController : Controller

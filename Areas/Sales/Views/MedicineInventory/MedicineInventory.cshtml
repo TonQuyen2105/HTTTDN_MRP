@@ -73,7 +73,7 @@
                     <strong>@(User.FindFirst("FullName")?.Value ?? "Nhân viên bán hàng")</strong>
                     <span>@(User.Identity?.Name ?? "sales_user") • Pharma Store</span>
                 </div>
-                <a href="/Account/LogoutGet" style="display: block; margin-top: 8px; padding: 6px 10px; text-align: center; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none;">
+                <a href="/Sales/Account/Logout" style="display: block; margin-top: 8px; padding: 6px 10px; text-align: center; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none;">
                     Đăng xuất
                 </a>
             </div>

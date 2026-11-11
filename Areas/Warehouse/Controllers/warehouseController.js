@@ -257,11 +257,7 @@ const WarehouseController = (function (Model, View) {
                     e.preventDefault();
                     Model.closeUserDropdown();
                     renderHeaderOnly();
-                    if (window.WhNotification) {
-                        WhNotification.toast('Chức năng Đăng xuất: Hệ thống hiện đang chạy ở chế độ Demo. Giao diện đăng nhập sẽ được kích hoạt sau.', 'info');
-                    } else {
-                        alert('Chức năng Đăng xuất: Hệ thống hiện đang chạy ở chế độ Demo. Giao diện đăng nhập sẽ được kích hoạt sau.');
-                    }
+                    window.location.href = '/Warehouse/Account/Logout';
                     break;
                 }
 

@@ -55,10 +55,10 @@ public class Ingredient
     [Range(1, int.MaxValue, ErrorMessage = "Thời hạn sử dụng phải là số tháng dương.")]
     public int? ShelfLifeMonths { get; set; }
 
-    [Column("lowstockthreshold")]
+    [NotMapped]
     public decimal LowStockThreshold { get; set; }
 
-    [Column("highstockthreshold")]
+    [NotMapped]
     public decimal? HighStockThreshold { get; set; }
 }
 

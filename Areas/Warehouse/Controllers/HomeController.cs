@@ -5,7 +5,7 @@ using httt.Constants;
 namespace httt.Areas.Warehouse.Controllers
 {
     [Area("Warehouse")]
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Warehouse}")]
+    [Authorize(Roles = "Warehouse,Kho")]
     public class HomeController : Controller
     {
         public IActionResult Index()

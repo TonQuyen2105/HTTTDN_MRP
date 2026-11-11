@@ -113,7 +113,7 @@
 
         @if (User.Identity?.IsAuthenticated == true)
         {
-          <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin: 0 0 0 10px;">
+          <form action="/Productions/Account/Logout" method="post" style="margin: 0 0 0 10px;">
             @Html.AntiForgeryToken()
             <button type="submit" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 12.5px; font-weight: 500; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;" title="Đăng xuất khỏi hệ thống">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

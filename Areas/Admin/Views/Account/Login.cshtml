@@ -12,6 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"]</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
     <style>
         body {
             background: #f3f4f6;
@@ -28,7 +29,7 @@
 
         .login-card {
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 20px;
@@ -142,8 +143,8 @@
                 </div>
             </div>
 
-            <h1 class="form-title">Đăng nhập</h1>
-            <p class="form-subtitle">Quản trị viên hệ thống</p>
+            <h1 class="form-title">Đăng nhập Admin</h1>
+            <p class="form-subtitle">Dành riêng cho Quản trị viên hệ thống (`Admin`)</p>
 
             @if (!string.IsNullOrWhiteSpace(errorMessage))
             {
@@ -155,7 +156,7 @@
 
                 <div class="mb-3">
                     <label for="username" class="form-label visually-hidden">Tên đăng nhập</label>
-                    <input id="username" name="username" type="text" class="form-control" placeholder="Tên đăng nhập" autocomplete="username" required autofocus />
+                    <input id="username" name="username" type="text" class="form-control" placeholder="Tên đăng nhập Quản trị viên" autocomplete="username" required autofocus />
                 </div>
 
                 <div class="mb-3">
@@ -164,7 +165,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary" id="btnLoginSubmit">
-                    Đăng nhập
+                    Đăng nhập Quản trị
                 </button>
             </form>
         </div>
@@ -190,4 +191,3 @@
     </script>
 </body>
 </html>
-

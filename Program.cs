@@ -104,7 +104,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                     return context.Response.WriteAsync("{\"success\":false,\"message\":\"Chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.\",\"requireLogin\":true}");
                 }
 
-                context.Response.Redirect(context.RedirectUri);
+                var reqPath = context.Request.Path.Value ?? string.Empty;
+                var targetLoginPath = AppRoles.GetLoginUrlForPath(reqPath);
+                var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
+                var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
+                    ? targetLoginPath
+                    : $"{targetLoginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}";
+
+                context.Response.Redirect(redirectUrl);
                 return Task.CompletedTask;
             },
             OnRedirectToAccessDenied = context =>
@@ -116,7 +123,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                     return context.Response.WriteAsync("{\"success\":false,\"message\":\"Bạn không có quyền thực hiện thao tác này.\",\"accessDenied\":true}");
                 }
 
-                context.Response.Redirect(context.RedirectUri);
+                // Khi người dùng đang đăng nhập ở phân hệ khác và gõ URL sang phân hệ mới,
+                // điều hướng về trang đăng nhập riêng của phân hệ đích để họ đăng nhập tài khoản phù hợp.
+                var reqPath = context.Request.Path.Value ?? string.Empty;
+                var targetLoginPath = AppRoles.GetLoginUrlForPath(reqPath);
+                var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
+                var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
+                    ? targetLoginPath
+                    : $"{targetLoginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}";
+
+                context.Response.Redirect(redirectUrl);
                 return Task.CompletedTask;
             },
             // Kiểm tra claim trong cookie, sau đó đối chiếu DB (kết quả cache 30s)
@@ -352,7 +368,45 @@ app.UseSwaggerUI(c =>
 
 app.UseStaticFiles();
 
-// Cho phép phục vụ trực tiếp các file HTML, CSS, JS trong thư mục Areas (VD: /Areas/Warehouse/Views/Index.html)
+app.UseRouting();
+
+// Xác thực & Phân quyền
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Bảo vệ các tài nguyên tĩnh trong /Areas/Warehouse (đặc biệt là /Areas/Warehouse/Views/Index.html)
+// để chỉ tài khoản có vai trò Warehouse/Kho mới được truy cập trực tiếp.
+app.Use(async (context, next) =>
+{
+    var reqPath = context.Request.Path.Value ?? string.Empty;
+    if (reqPath.StartsWith("/Areas/Warehouse", StringComparison.OrdinalIgnoreCase))
+    {
+        var isAuthenticated = context.User.Identity?.IsAuthenticated == true;
+        var isWarehouseRole = isAuthenticated &&
+            (context.User.IsInRole(AppRoles.Warehouse) ||
+             context.User.IsInRole("Kho") ||
+             AppRoles.NormalizeRole(context.User.FindFirstValue(ClaimTypes.Role)) == AppRoles.Warehouse);
+
+        if (!isWarehouseRole)
+        {
+            if (IsAjaxOrApiRequest(context.Request))
+            {
+                context.Response.StatusCode = isAuthenticated ? StatusCodes.Status403Forbidden : StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync("{\"success\":false,\"message\":\"Vui lòng đăng nhập tài khoản Phân hệ Kho dược phẩm.\"}");
+                return;
+            }
+
+            var returnUrl = Uri.EscapeDataString("/Warehouse/Dashboard");
+            context.Response.Redirect($"/Warehouse/Account/Login?returnUrl={returnUrl}");
+            return;
+        }
+    }
+
+    await next();
+});
+
+// Cho phép phục vụ các file HTML, CSS, JS trong thư mục Areas sau khi đã qua bước kiểm tra quyền
 var areasPath = Path.Combine(builder.Environment.ContentRootPath, "Areas");
 if (Directory.Exists(areasPath))
 {
@@ -368,12 +422,6 @@ if (Directory.Exists(areasPath))
         }
     });
 }
-
-app.UseRouting();
-
-// Xác thực & Phân quyền
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapControllers();

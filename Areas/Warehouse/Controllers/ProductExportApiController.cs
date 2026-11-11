@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using httt.Data;
@@ -8,6 +9,7 @@ using httt.Areas.Warehouse.Services;
 namespace httt.Areas.Warehouse.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Warehouse,Kho")]
 [IgnoreAntiforgeryToken]
 [Route("api/warehouse/product-exports")]
 [Produces("application/json")]

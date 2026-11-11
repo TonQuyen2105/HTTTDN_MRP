@@ -77,13 +77,13 @@ public class Product
         set => ShelfLifeMonths = value;
     }
 
-    [Column("lowstockthreshold")]
+    [NotMapped]
     public decimal LowStockThreshold { get; set; }
 
-    [Column("highstockthreshold")]
+    [NotMapped]
     public decimal? HighStockThreshold { get; set; }
 
-    [Column("status")]
+    [NotMapped]
     public string Status { get; set; } = "Active";
 
     public virtual ICollection<SaleOrderDetail> SaleOrderDetails { get; set; } = new List<SaleOrderDetail>();

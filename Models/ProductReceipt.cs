@@ -37,13 +37,13 @@ public class ProductReceipt
     [Column("receiptcode")]
     public string? ReceiptCode { get; set; }
 
-    [Column("supplierid")]
+    [NotMapped]
     public int? SupplierId { get; set; }
 
-    [Column("totalamount")]
+    [NotMapped]
     public decimal? TotalAmount { get; set; }
 
-    [Column("notes")]
+    [NotMapped]
     public string? Notes { get; set; }
 
     [ForeignKey("RequestedBy")]

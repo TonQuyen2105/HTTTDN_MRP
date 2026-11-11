@@ -1,0 +1,289 @@
+@model httt.Models.LoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Đăng nhập Kho Dược phẩm - AMIS Warehouse";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@ViewData["Title"]</title>
+  <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, #f1f5f9 60%, #e0f2fe 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e293b;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 12px 28px -5px rgba(2, 132, 199, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      border: 1px solid #bae6fd;
+      overflow: hidden;
+    }
+
+    .login-header {
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+      padding: 28px 32px 24px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+      margin-bottom: 14px;
+    }
+
+    .login-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .login-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: #e0f2fe;
+    }
+
+    .login-body {
+      padding: 28px 32px 32px;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      color: #b91c1c;
+      font-size: 13.5px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      font-size: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    .input-has-btn {
+      padding-right: 42px;
+    }
+
+    .btn-toggle-pwd {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 44px;
+      width: 42px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .form-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      font-size: 13.5px;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .form-checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #0284c7;
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 46px;
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: filter 0.15s ease;
+    }
+
+    .btn-submit:hover {
+      filter: brightness(1.05);
+    }
+
+    .btn-submit:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="login-header">
+      <div class="brand-badge">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <h1 class="login-title">AMIS Kho Dược phẩm</h1>
+      <p class="login-subtitle">Quản lý nhập xuất nguyên vật liệu, thành phẩm &amp; nhà cung cấp</p>
+    </div>
+
+    <div class="login-body">
+      @if (!ViewData.ModelState.IsValid)
+      {
+        <div class="alert-error" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+              <div>@error.ErrorMessage</div>
+            }
+          </div>
+        </div>
+      }
+
+      <form action="/Warehouse/Account/Login" method="post" id="loginForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        <div class="form-group">
+          <label class="form-label" asp-for="Username">Tài khoản Thủ kho <span style="color:#ef4444;">*</span></label>
+          <div class="input-wrapper">
+            <input asp-for="Username" class="form-input" placeholder="Nhập tài khoản Thủ kho..." autocomplete="username" maxlength="50" autofocus required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" asp-for="Password">Mật khẩu <span style="color:#ef4444;">*</span></label>
+          <div class="input-wrapper">
+            <input asp-for="Password" id="passwordInput" type="password" class="form-input input-has-btn" placeholder="Nhập mật khẩu..." autocomplete="current-password" required />
+            <button type="button" class="btn-toggle-pwd" id="btnTogglePwd" title="Hiện/Ẩn mật khẩu">
+              <svg id="eyeIconOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg id="eyeIconClosed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <label class="form-checkbox-row">
+          <input asp-for="RememberMe" type="checkbox" />
+          <span>Ghi nhớ phiên làm việc</span>
+        </label>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">
+          <span id="btnText">Đăng nhập Phân hệ Kho</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const btnToggle = document.getElementById('btnTogglePwd');
+      const pwdInput = document.getElementById('passwordInput');
+      const eyeOpen = document.getElementById('eyeIconOpen');
+      const eyeClosed = document.getElementById('eyeIconClosed');
+      const form = document.getElementById('loginForm');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnText = document.getElementById('btnText');
+
+      if (btnToggle && pwdInput) {
+        btnToggle.addEventListener('click', function () {
+          const isPassword = pwdInput.type === 'password';
+          pwdInput.type = isPassword ? 'text' : 'password';
+          eyeOpen.style.display = isPassword ? 'none' : 'block';
+          eyeClosed.style.display = isPassword ? 'block' : 'none';
+        });
+      }
+
+      if (form && btnSubmit) {
+        form.addEventListener('submit', function () {
+          btnSubmit.disabled = true;
+          if (btnText) btnText.textContent = 'Đang xác thực...';
+        });
+      }
+    });
+  </script>
+</body>
+</html>

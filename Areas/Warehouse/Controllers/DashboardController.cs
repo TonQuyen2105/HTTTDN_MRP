@@ -6,7 +6,7 @@ namespace httt.Areas.Warehouse.Controllers;
 
 [Area("Warehouse")]
 [Route("Warehouse/[controller]")]
-[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Warehouse}")]
+[Authorize(Roles = "Warehouse,Kho")]
 public class DashboardController : Controller
 {
     [HttpGet("/Warehouse")]

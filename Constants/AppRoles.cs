@@ -68,7 +68,7 @@ namespace httt.Constants
             return normalized switch
             {
                 Admin => "Quản trị viên (Admin)",
-                Production => "Phân hệ Sản xuất",
+                Production => "Phân hệ Sản xuất & MRP",
                 Warehouse => "Phân hệ Kho dược phẩm",
                 Sales => "Phân hệ Bán hàng & Phân phối",
                 _ => role ?? "Người dùng"
@@ -92,6 +92,46 @@ namespace httt.Constants
         }
 
         /// <summary>
+        /// Trang đăng nhập riêng cho từng phân hệ (Role)
+        /// </summary>
+        public static string GetLoginUrlForRole(string? role)
+        {
+            var normalized = NormalizeRole(role);
+            return normalized switch
+            {
+                Admin => "/Admin/Account/Login",
+                Sales => "/Sales/Account/Login",
+                Production => "/Productions/Account/Login",
+                Warehouse => "/Warehouse/Account/Login",
+                _ => "/Productions/Account/Login"
+            };
+        }
+
+        /// <summary>
+        /// Xác định trang đăng nhập phù hợp dựa trên đường dẫn URL mà người dùng đang truy cập hoặc vừa đăng xuất
+        /// </summary>
+        public static string GetLoginUrlForPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return "/Productions/Account/Login";
+
+            if (path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
+                return "/Admin/Account/Login";
+
+            if (path.StartsWith("/Sales", StringComparison.OrdinalIgnoreCase))
+                return "/Sales/Account/Login";
+
+            if (path.StartsWith("/Warehouse", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/Areas/Warehouse", StringComparison.OrdinalIgnoreCase))
+                return "/Warehouse/Account/Login";
+
+            if (path.StartsWith("/Productions", StringComparison.OrdinalIgnoreCase))
+                return "/Productions/Account/Login";
+
+            return "/Productions/Account/Login";
+        }
+
+        /// <summary>
         /// Kiểm tra xem người dùng có quyền truy cập URL nội bộ này không
         /// </summary>
         public static bool CanAccessUrl(ClaimsPrincipal? user, string? localUrl)
@@ -99,8 +139,8 @@ namespace httt.Constants
             if (user?.Identity?.IsAuthenticated != true || string.IsNullOrEmpty(localUrl))
                 return false;
 
-            // Chặn chuyển hướng lại chính trang Login hoặc AccessDenied
-            if (localUrl.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase) ||
+            // Chặn chuyển hướng lại chính các trang Login hoặc AccessDenied
+            if (localUrl.Contains("/Login", StringComparison.OrdinalIgnoreCase) ||
                 localUrl.StartsWith("/Account/AccessDenied", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
@@ -108,12 +148,8 @@ namespace httt.Constants
 
             var role = NormalizeRole(user.FindFirst(ClaimTypes.Role)?.Value);
 
-            // Admin được truy cập cả 4 phân hệ
-            if (role == Admin)
-                return true;
-
             if (localUrl.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
-                return false;
+                return role == Admin;
 
             if (localUrl.StartsWith("/Productions", StringComparison.OrdinalIgnoreCase))
                 return role == Production;

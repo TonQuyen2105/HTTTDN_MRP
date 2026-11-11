@@ -101,12 +101,6 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(p => p.ImageUrl)
                   .HasMaxLength(255);
-
-            entity.Property(p => p.LowStockThreshold)
-                  .HasColumnType("numeric(18,2)");
-
-            entity.Property(p => p.HighStockThreshold)
-                  .HasColumnType("numeric(18,2)");
         });
 
         // Nguyên vật liệu
@@ -135,12 +129,6 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(i => i.ImageUrl)
                   .HasMaxLength(255);
-
-            entity.Property(i => i.LowStockThreshold)
-                  .HasColumnType("numeric(18,2)");
-
-            entity.Property(i => i.HighStockThreshold)
-                  .HasColumnType("numeric(18,2)");
         });
 
         // Định mức BOM
@@ -270,9 +258,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(r => r.Status)
                   .HasMaxLength(50);
 
-            entity.Property(r => r.TotalAmount)
-                  .HasColumnType("numeric(18,2)");
-
             entity.HasIndex(r => r.CreatedDate)
                   .HasDatabaseName("ix_productreceipt_createddate");
         });
@@ -337,7 +322,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(w => w.ProductId).HasColumnName("productid");
             entity.Property(w => w.Quantity).HasColumnName("quantity").HasColumnType("numeric");
             entity.Property(w => w.LastUpdated).HasColumnName("lastupdated");
-            entity.Property(w => w.UpdatedAt).HasColumnType("timestamp with time zone");
 
             entity.HasOne(w => w.ProductionRequest)
                   .WithMany()

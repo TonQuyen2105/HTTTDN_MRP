@@ -38,7 +38,7 @@ public class ProductionRequest
     [Column("requestcode")]
     public string? RequestCode { get; set; }
 
-    [Column("notes")]
+    [NotMapped]
     public string? Notes { get; set; }
 
     [ForeignKey("ProductId")]

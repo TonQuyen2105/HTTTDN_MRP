@@ -196,7 +196,7 @@
     {
       var unit = item.Request.Product?.Unit ?? "";
       <tr data-stat-row>
-        <td><a class="ref-link" href="@Url.Action("ProductionStatisticsDetail", new { id = item.Request.RequestId })">@item.Request.DisplayCode</a></td>
+        <td><a class="ref-link" href="@Url.Action("ProductionStatisticsDetail", new { id = item.Request.RequestId })">@item.Request.ProductionDisplayCode</a></td>
         <td class="stats-product-name">@(item.Request.Product?.ProductName ?? "—")</td>
         <td>@(item.Request.Manager?.FullName ?? "—")</td>
         <td class="text-right">@item.Request.QuantityRequired.ToString("N0") @unit</td>
@@ -205,7 +205,7 @@
         </td>
         <td class="text-right">@item.Remaining.ToString("N0") @unit</td>
         <td>@httt.Models.ProductionStatisticsViewModel.DisplayTime(item.LatestProduction)</td>
-        <td class="text-center"><a class="stats-detail-link" href="@Url.Action("ProductionStatisticsDetail", new { id = item.Request.RequestId })" aria-label="Xem chi tiết @item.Request.DisplayCode">Xem chi tiết <span aria-hidden="true">→</span></a></td>
+        <td class="text-center"><a class="stats-detail-link" href="@Url.Action("ProductionStatisticsDetail", new { id = item.Request.RequestId })" aria-label="Xem chi tiết @item.Request.ProductionDisplayCode">Xem chi tiết <span aria-hidden="true">→</span></a></td>
       </tr>
     }
     <tr id="statsEmptyRow" hidden="@(Model.Any())"><td colspan="8" class="stats-empty">@(ViewBag.LoadError != null ? "Dữ liệu tạm thời không khả dụng." : "Không có yêu cầu sản xuất phù hợp.")</td></tr>

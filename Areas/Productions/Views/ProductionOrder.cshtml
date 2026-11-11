@@ -355,7 +355,7 @@
                               _ => order.Status
                           };
 
-                          var orderCode = order.DisplayCode;
+                          var orderCode = order.ProductionDisplayCode;
                           <tr data-status="@order.Status" data-name="@prodName.ToLower()" data-code="@orderCode.ToLower()">
                             <td class="text-center">@stt</td>
                             <td><strong style="color: var(--color-primary);">@orderCode</strong></td>
@@ -462,7 +462,7 @@
                       {
                         foreach (var ord in Model)
                         {
-                          <option value="@ord.RequestId">@ord.RequestDisplayCode (@(ord.Product?.ProductName ?? "Thuốc"))</option>
+                          <option value="@ord.RequestId">@ord.ProductionDisplayCode (@(ord.Product?.ProductName ?? "Thuốc"))</option>
                         }
                       }
                     </select>

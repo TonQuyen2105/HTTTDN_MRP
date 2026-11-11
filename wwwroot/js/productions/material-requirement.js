@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (inputNote) {
           inputNote.value = data.isApprovedOrder
             ? `Cấp phát nguyên vật liệu cho ${data.productionOrderCode} (${data.productName})`
-            : `Tính nhu cầu nguyên vật liệu cho YCSX-${data.requestId} (${data.productName})`;
+            : `Tính nhu cầu nguyên vật liệu cho ${data.requestCode || 'Chưa có mã'} (${data.productName})`;
         }
 
         // Tự động tính toán lại

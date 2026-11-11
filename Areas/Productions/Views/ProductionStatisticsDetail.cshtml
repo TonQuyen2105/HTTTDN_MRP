@@ -185,7 +185,7 @@
     var req = Model.Request;
     var unit = req.Product?.Unit ?? "";
     <div class="stats-form-card"><div class="stats-form-body">
-      <div class="stats-order-heading"><span class="stats-order-code">@req.DisplayCode</span><h2 class="section-legend">@(req.Product?.ProductName ?? "—")</h2></div>
+      <div class="stats-order-heading"><span class="stats-order-code">@req.ProductionDisplayCode</span><h2 class="section-legend">@(req.Product?.ProductName ?? "—")</h2></div>
       <p class="stats-owner">Người phụ trách: <strong>@(req.Manager?.FullName ?? "—")</strong></p>
       <div class="stats-summary">
         <div><span>Số lượng yêu cầu</span><strong>@req.QuantityRequired.ToString("N0") @unit</strong></div>

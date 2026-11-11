@@ -10,7 +10,7 @@
     var isDone = string.Equals(Model?.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(Model?.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(Model?.Status, "Received", StringComparison.OrdinalIgnoreCase);
-    var reqCode = Model?.ProductionRequest != null ? Model.ProductionRequest.DisplayCode : (Model?.RequestId.HasValue == true ? $"YCSX-{Model.RequestId}" : "—");
+    var reqCode = Model?.ProductionRequest != null ? Model.ProductionRequest.ProductionDisplayCode : "Chưa có mã";
     var receiptCode = Model != null ? Model.DisplayCode : "—";
     var firstDetailNote = Model?.Details?.FirstOrDefault()?.Note ?? string.Empty;
     var cleanNote = System.Text.RegularExpressions.Regex.Replace(firstDetailNote, @"^\[IK:[^\]]+\]\s*", string.Empty).Trim();

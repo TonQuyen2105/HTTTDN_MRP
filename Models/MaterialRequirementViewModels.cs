@@ -51,7 +51,7 @@ public class ProductionRequestItemDto
 {
     public int RequestId { get; set; }
     public string? DbRequestCode { get; set; }
-    public string RequestCode => !string.IsNullOrWhiteSpace(DbRequestCode) ? DbRequestCode : $"YCSX-{RequestId}";
+    public string RequestCode => !string.IsNullOrWhiteSpace(DbRequestCode) ? DbRequestCode : "Chưa có mã";
     public int ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public int QuantityRequired { get; set; }

@@ -339,10 +339,10 @@
               <small>Định mức cho 1 đơn vị thành phẩm × số lượng cần sản xuất.</small>
             </div>
 
-            <div class="mrp-field">
+            @* <div class="mrp-field">
               <label class="mrp-label">Ngày cần nguyên vật liệu <span class="required">*</span></label>
               <input type="date" class="form-input" id="inputRequiredDate" value="@(Model.RequiredDate?.ToString("yyyy-MM-dd") ?? DateTime.Now.AddDays(1).ToString("yyyy-MM-dd"))">
-            </div>
+            </div> *@
           </div>
 
           <!-- Dòng 3: Ghi chú -->
@@ -373,7 +373,7 @@
           <div id="existingSlipAlert" class="mrp-alert mrp-alert-blue" style="display: @(Model.HasExistingSlip ? "flex" : "none");">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
             <div style="flex: 1;">
-              <strong>Đã có phiếu yêu cầu cấp vật tư đang xử lý cho lệnh này:</strong> Phiếu <a id="existingSlipLink" href="/Productions/Home/MaterialRequisitionCreate?id=@Model.ExistingReceiptId" target="_blank">@Model.ExistingReceiptCode (Trạng thái: @Model.ExistingReceiptStatus)</a>. Hệ thống sẽ chặn tạo trùng ngoài ý muốn.
+              <strong>Đã có phiếu yêu cầu cấp vật tư đang xử lý cho lệnh này:</strong> Phiếu <a id="existingSlipLink" href="/Productions/Home/MaterialRequisitionCreate?id=@Model.ExistingReceiptId" target="_blank">@Model.ExistingReceiptCode (Trạng thái: @Model.ExistingReceiptStatus)</a>.
             </div>
           </div>
 
@@ -536,14 +536,14 @@
             </table>
           </div>
 
-          <!-- Chú thích giới hạn số tồn -->
+          @* <!-- Chú thích giới hạn số tồn -->
           <div class="mrp-table-note">
             * <strong>Đối chiếu tồn kho 2 cấp:</strong>
             <ul style="margin: 4px 0 0 18px; padding: 0;">
               <li><strong>Tồn kho SX (WIP):</strong> Tra cứu từ bảng <code>wip_inventory</code> theo đúng Lệnh sản xuất đang chọn. <strong>Lượng còn thiếu</strong> được tính trực tiếp từ tồn kho sản xuất: <code>Lượng thiếu = Tổng lượng cần - Tồn kho SX</code>.</li>
               <li><strong>Tồn kho NVL (Kho tổng):</strong> Số lượng tồn thực tế trên sổ sách kho chính (bảng <code>ingredient</code>) để đối chiếu khả năng cấp bù khi tạo Phiếu yêu cầu xuất kho.</li>
             </ul>
-          </div>
+          </div> *@
 
         </div>
 
@@ -553,6 +553,6 @@
   </div>
 
   <script src="/js/app.js"></script>
-  <script src="/js/productions/material-requirement.js"></script>
+  <script src="/js/productions/material-requirement.js" asp-append-version="true"></script>
 </body>
 </html>

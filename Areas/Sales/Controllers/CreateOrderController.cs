@@ -43,14 +43,13 @@ namespace httt.Areas.Sales.Controllers
         {
             try
             {
-                // ĐÃ XÓA KHỐI AUTO-SYNC ÉP COMPLETED Ở ĐÂY.
-                // Đảm bảo không ghi đè phiếu bị từ chối và giữ quyền duyệt thủ công.
-
+                // Danh sách đơn hàng trong dropdown (chỉ hiển thị đơn chưa bị hủy)
                 var orders = await _context.SaleOrders
                     .AsNoTracking()
                     .Include(o => o.SaleOrderDetails)
                         .ThenInclude(d => d.Product)
                     .Include(o => o.ProductExportReceipts)
+                    .Where(o => o.Status != "Cancelled" && o.Status != "Đã hủy")
                     .Where(o => o.Ordercode == null || !o.Ordercode.StartsWith("DH000"))
                     .Where(o => o.SaleOrderDetails.Any())
                     .OrderByDescending(o => o.Orderdate)
@@ -61,20 +60,34 @@ namespace httt.Areas.Sales.Controllers
                 if (orderId.HasValue)
                 {
                     selectedOrder = orders.FirstOrDefault(o => o.Orderid == orderId.Value);
+
+                    // Nếu người dùng chọn xem lại đơn đã bị hủy từ trang đơn hàng
+                    if (selectedOrder == null)
+                    {
+                        selectedOrder = await _context.SaleOrders
+                            .AsNoTracking()
+                            .Include(o => o.SaleOrderDetails)
+                                .ThenInclude(d => d.Product)
+                            .Include(o => o.ProductExportReceipts)
+                            .FirstOrDefaultAsync(o => o.Orderid == orderId.Value);
+                    }
                 }
+
                 if (selectedOrder == null && orders.Any())
                 {
                     selectedOrder = orders.First();
                 }
 
-                // Lấy toàn bộ phiếu xuất (Bao gồm cả các phiếu bị Rejected và phiếu mới)
+                // VẪN HIỂN THỊ TẤT CẢ PHIẾU XUẤT ĐÃ YÊU CẦU (KỂ CẢ ĐƠN ĐÃ HỦY ĐỂ LƯU VẾT)
+                // Chỉ loại trừ các phiếu lỗi có orderid = NULL
                 var rawReceipts = await _context.ProductExportReceipts
                     .AsNoTracking()
                     .Include(r => r.SaleOrder)
                     .Include(r => r.ProductExportReceiptDetails)
                         .ThenInclude(d => d.Product)
+                    .Where(r => r.Orderid != null && r.ProductExportReceiptDetails.Any())
                     .OrderByDescending(r => r.Createddate)
-                    .Take(50)
+                    .Take(60)
                     .ToListAsync();
 
                 var exportReceipts = rawReceipts
@@ -84,10 +97,15 @@ namespace httt.Areas.Sales.Controllers
                     .Take(30)
                     .ToList();
 
-                var orderLookup = orders.ToDictionary(
-                    o => o.Orderid, 
-                    o => (Code: o.Ordercode ?? ("DH-" + o.Orderid), Customer: o.Customername ?? "Khách hàng")
-                );
+                // Tra cứu thông tin đơn hàng
+                var orderIds = exportReceipts.Where(r => r.Orderid.HasValue).Select(r => r.Orderid!.Value).Distinct().ToList();
+                var dbOrders = await _context.SaleOrders
+                    .AsNoTracking()
+                    .Where(o => orderIds.Contains(o.Orderid))
+                    .ToDictionaryAsync(
+                        o => o.Orderid, 
+                        o => (Code: o.Ordercode ?? ("DH-" + o.Orderid), Customer: o.Customername ?? "Khách hàng", Status: o.Status ?? "")
+                    );
 
                 // Lấy phiếu mới nhất của đơn hàng đang chọn
                 ProductExportReceipt? existingReceipt = null;
@@ -104,7 +122,7 @@ namespace httt.Areas.Sales.Controllers
                 ViewBag.SelectedOrder = selectedOrder;
                 ViewBag.ExistingReceipt = existingReceipt;
                 ViewBag.ExportReceipts = exportReceipts;
-                ViewBag.OrderLookup = orderLookup;
+                ViewBag.OrderLookupFull = dbOrders;
 
                 return View("~/Areas/Sales/Views/CreateOrder/CreateOrder.cshtml", orders);
             }
@@ -139,13 +157,17 @@ namespace httt.Areas.Sales.Controllers
                     if (order == null) 
                         throw new InvalidOperationException("Không tìm thấy đơn hàng này.");
 
+                    // CHẶN KHÔNG CHO TẠO PHIẾU XUẤT NẾU ĐƠN HÀNG ĐÃ BỊ HỦY
+                    if (string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã hủy")
+                    {
+                        throw new InvalidOperationException("Đơn hàng này đã bị HỦY, không thể tạo phiếu xuất kho!");
+                    }
+
                     if (!order.SaleOrderDetails.Any()) 
                         throw new InvalidOperationException("Đơn hàng chưa có danh mục sản phẩm.");
 
-                    // CHỈ CHẶN NẾU ĐƠN ĐANG CÓ PHIẾU ĐANG CHỜ HOẶC ĐÃ HOÀN TẤT
-                    // Nếu phiếu trước đó là Rejected (Từ chối) -> Cho phép tạo thêm phiếu mới!
                     var activeReceipt = order.ProductExportReceipts?
-                        .FirstOrDefault(r => r.Status != "Rejected" && r.Status != "Từ chối");
+                        .FirstOrDefault(r => r.Status != "Rejected" && r.Status != "Từ chối" && r.Status != "Cancelled");
 
                     if (activeReceipt != null)
                     {
@@ -188,7 +210,6 @@ namespace httt.Areas.Sales.Controllers
                     }
 
                     _context.ProductExportReceipts.Add(newReceipt);
-
                     order.Status = "PendingApproval";
 
                     await _context.SaveChangesAsync();
@@ -236,11 +257,15 @@ namespace httt.Areas.Sales.Controllers
                     if (order == null)
                         throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
+                    if (string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã hủy")
+                    {
+                        throw new InvalidOperationException("Đơn hàng đã bị hủy, không thể duyệt hoàn tất!");
+                    }
+
                     order.Status = "Completed";
-                    // Giữ nguyên các phiếu cũ bị từ chối
                     foreach (var r in order.ProductExportReceipts)
                     {
-                        if (r.Status != "Rejected" && r.Status != "Từ chối")
+                        if (r.Status != "Rejected" && r.Status != "Từ chối" && r.Status != "Cancelled")
                         {
                             r.Status = "Completed";
                         }
@@ -291,7 +316,7 @@ namespace httt.Areas.Sales.Controllers
                 }
 
                 var order = await _context.SaleOrders.FirstOrDefaultAsync(o => o.Orderid == orderId);
-                if (order != null)
+                if (order != null && order.Status != "Cancelled" && order.Status != "Đã hủy")
                 {
                     order.Status = "Pending";
                 }

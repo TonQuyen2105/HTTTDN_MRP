@@ -66,9 +66,6 @@ namespace httt.Areas.Sales.Controllers
         {
             try
             {
-                // ĐÃ XÓA KHỐI AUTO-SYNC ÉP COMPLETED Ở ĐÂY.
-                // Trạng thái phiếu bị từ chối (Rejected) và đơn hàng giữ nguyên theo thao tác thực tế.
-
                 bool isSupplierTab = string.Equals(tab, "supplier", StringComparison.OrdinalIgnoreCase) 
                                   || string.Equals(tab, "purchase", StringComparison.OrdinalIgnoreCase);
 
@@ -121,6 +118,7 @@ namespace httt.Areas.Sales.Controllers
                     .Where(o => string.IsNullOrEmpty(o.Customername) || !supplierNames.Contains(o.Customername.ToLower().Trim()))
                     .AsQueryable();
 
+                // Lọc theo từ khóa
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     var kw = keyword.Trim().ToLower();
@@ -129,9 +127,20 @@ namespace httt.Areas.Sales.Controllers
                                           || (o.Customerphone != null && o.Customerphone.ToLower().Contains(kw)));
                 }
 
-                if (!string.IsNullOrWhiteSpace(status))
+                // QUY TẮC HIỂN THỊ ĐƠN ĐÃ HỦY:
+                // Nếu người dùng KHÔNG chọn lọc 'Cancelled', mặc định LOẠI BỎ các đơn đã hủy ra khỏi UI
+                if (string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase) || status == "Đã hủy")
                 {
-                    query = query.Where(o => o.Status == status);
+                    query = query.Where(o => o.Status == "Cancelled" || o.Status == "Đã hủy");
+                }
+                else
+                {
+                    query = query.Where(o => o.Status != "Cancelled" && o.Status != "Đã hủy");
+
+                    if (!string.IsNullOrWhiteSpace(status))
+                    {
+                        query = query.Where(o => o.Status == status);
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(date) && DateTime.TryParse(date, out DateTime parsedDate))
@@ -195,6 +204,86 @@ namespace httt.Areas.Sales.Controllers
                     current = current.InnerException;
                 }
                 return Content($"[LỖI TẢI DANH SÁCH]:\n{fullError}");
+            }
+        }
+
+        // =====================================================================
+        // POST: /Sales/Order/CancelOrder (HỦY ĐƠN HÀNG THỦ CÔNG)
+        // =====================================================================
+        [HttpPost("CancelOrder")]
+        public async Task<IActionResult> CancelOrder(int orderId)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            try
+            {
+                string orderCode = "";
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    var order = await _context.SaleOrders
+                        .Include(o => o.ProductExportReceipts)
+                            .ThenInclude(r => r.ProductExportReceiptDetails)
+                        .FirstOrDefaultAsync(o => o.Orderid == orderId);
+
+                    if (order == null)
+                    {
+                        throw new InvalidOperationException("Không tìm thấy đơn hàng.");
+                    }
+
+                    // Đơn đã xong không được phép hủy
+                    if (string.Equals(order.Status, "Completed", StringComparison.OrdinalIgnoreCase) 
+                        || order.Status == "Đã xong" || order.Status == "Đã hoàn thành")
+                    {
+                        throw new InvalidOperationException("Đơn hàng đã xuất kho hoàn tất (Đã xong), không thể hủy!");
+                    }
+
+                    orderCode = order.Ordercode ?? ("HD" + order.Orderid);
+
+                    // 1. Cập nhật trạng thái đơn thành Cancelled
+                    order.Status = "Cancelled";
+
+                    // 2. Đồng thời hủy các phiếu xuất kho liên quan của đơn này
+                    if (order.ProductExportReceipts != null)
+                    {
+                        foreach (var receipt in order.ProductExportReceipts)
+                        {
+                            if (receipt.Status != "Completed" && receipt.Status != "Đã xong")
+                            {
+                                receipt.Status = "Cancelled";
+                                if (receipt.ProductExportReceiptDetails != null)
+                                {
+                                    foreach (var detail in receipt.ProductExportReceiptDetails)
+                                    {
+                                        detail.Status = "Cancelled";
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                });
+
+                InvalidateOrderCaches();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Đã hủy thành công đơn hàng {orderCode}! Đơn hàng đã được lưu trạng thái Đã hủy và ẩn khỏi màn hình chính."
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                string inner = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = "Lỗi hủy đơn: " + inner });
             }
         }
 
@@ -347,10 +436,9 @@ namespace httt.Areas.Sales.Controllers
                     orderCode = order.Ordercode ?? ("HD" + order.Orderid);
                     order.Status = "Completed";
 
-                    // CHỈ CẬP NHẬT PHIẾU KHÔNG BỊ TỪ CHỐI
                     foreach (var receipt in order.ProductExportReceipts)
                     {
-                        if (receipt.Status != "Rejected" && receipt.Status != "Từ chối")
+                        if (receipt.Status != "Rejected" && receipt.Status != "Từ chối" && receipt.Status != "Cancelled")
                         {
                             receipt.Status = "Completed";
                         }

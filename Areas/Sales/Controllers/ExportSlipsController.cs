@@ -34,25 +34,28 @@ namespace httt.Areas.Sales.Controllers
         }
 
         // =====================================================================
-        // GET: /Sales/ExportSlips (DANH SÁCH PHIẾU XUẤT KHO THÀNH PHẨM)
+        // GET: /Sales/ExportSlips (DANH SÁCH & BỘ LỌC THEO STATUS)
         // =====================================================================
         [HttpGet("")]
         [HttpGet("Index")]
-        public async Task<IActionResult> Index(string? keyword, string? status)
+        public async Task<IActionResult> Index(string? keyword, string? status, string? date)
         {
             try
             {
                 ViewBag.Keyword = keyword;
                 ViewBag.Status = status;
+                ViewBag.Date = date;
 
+                // 1. CHỈ LẤY CÁC PHIẾU CÓ ORDERID KHÁC NULL VÀ CÓ CHI TIẾT SẢN PHẨM
                 var query = _context.ProductExportReceipts
                     .AsNoTracking()
                     .Include(r => r.SaleOrder)
                     .Include(r => r.ProductExportReceiptDetails)
                         .ThenInclude(d => d.Product)
-                    .Where(r => r.ProductExportReceiptDetails.Any())
+                    .Where(r => r.Orderid != null && r.ProductExportReceiptDetails.Any())
                     .AsQueryable();
 
+                // 2. LỌC THEO TỪ KHÓA
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     var kw = keyword.Trim().ToLower();
@@ -61,25 +64,80 @@ namespace httt.Areas.Sales.Controllers
                                           || (r.SaleOrder != null && r.SaleOrder.Ordercode != null && r.SaleOrder.Ordercode.ToLower().Contains(kw)));
                 }
 
-                if (!string.IsNullOrWhiteSpace(status))
+                // 3. LỌC THEO NGÀY LẬP PHIẾU
+                if (!string.IsNullOrWhiteSpace(date) && DateTime.TryParse(date, out DateTime parsedDate))
                 {
-                    query = query.Where(r => r.Status == status);
+                    query = query.Where(r => r.Createddate.HasValue && r.Createddate.Value.Date == parsedDate.Date);
                 }
 
-                var slips = await query
+                // 4. QUY TẮC ĐỐI VỚI ĐƠN HÀNG/PHIẾU ĐÃ HỦY:
+                // Nếu người dùng KHÔNG chọn lọc 'cancelled', mặc định LOẠI BỎ các phiếu bị hủy hoặc thuộc đơn hàng bị hủy
+                if (string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(r => r.Status == "Cancelled" || r.Status == "Đã hủy" 
+                                          || (r.SaleOrder != null && (r.SaleOrder.Status == "Cancelled" || r.SaleOrder.Status == "Đã hủy")));
+                }
+                else
+                {
+                    query = query.Where(r => r.Status != "Cancelled" && r.Status != "Đã hủy"
+                                          && (r.SaleOrder == null || (r.SaleOrder.Status != "Cancelled" && r.SaleOrder.Status != "Đã hủy")));
+                }
+
+                var allSlips = await query
                     .OrderByDescending(r => r.Createddate)
-                    .Take(50)
+                    .Take(100)
                     .ToListAsync();
 
-                // Lọc bỏ trùng lặp mã phiếu
-                slips = slips
+                // 5. LOẠI BỎ BẢN GHI TRÙNG LẶP MÃ PHIẾU
+                allSlips = allSlips
                     .GroupBy(s => s.Expreceiptcode ?? ("PX-" + s.Exportreceiptid))
                     .Select(g => g.OrderByDescending(x => x.ProductExportReceiptDetails?.Count ?? 0)
                                   .ThenByDescending(x => x.Createddate)
                                   .First())
                     .ToList();
 
-                return View("~/Areas/Sales/Views/ExportSlips/Index.cshtml", slips);
+                ViewBag.AllSlips = allSlips;
+
+                // 6. LỌC THEO TRẠNG THÁI CỤ THỂ
+                var filteredSlips = allSlips.AsEnumerable();
+
+                if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    var st = status.Trim().ToLower();
+
+                    if (st == "completed")
+                    {
+                        filteredSlips = filteredSlips.Where(s => 
+                            string.Equals(s.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                            s.Status == "Đã hoàn thành" || s.Status == "Đã xong");
+                    }
+                    else if (st == "ready" || st == "exported")
+                    {
+                        filteredSlips = filteredSlips.Where(s => 
+                            (string.Equals(s.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(s.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
+                             s.Status == "Tán thành" || s.Status == "Đã duyệt" || s.Status == "Đã xuất kho") &&
+                            !string.Equals(s.Status, "Completed", StringComparison.OrdinalIgnoreCase) &&
+                            s.Status != "Đã xong");
+                    }
+                    else if (st == "rejected")
+                    {
+                        filteredSlips = filteredSlips.Where(s => 
+                            string.Equals(s.Status, "Rejected", StringComparison.OrdinalIgnoreCase) ||
+                            s.Status == "Từ chối");
+                    }
+                    else if (st == "waiting" || st == "pending")
+                    {
+                        filteredSlips = filteredSlips.Where(s => 
+                            !string.Equals(s.Status, "Completed", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(s.Status, "Exported", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(s.Status, "Approved", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(s.Status, "Rejected", StringComparison.OrdinalIgnoreCase) &&
+                            s.Status != "Đã xong" && s.Status != "Đã xuất kho" && s.Status != "Từ chối");
+                    }
+                }
+
+                return View("~/Areas/Sales/Views/ExportSlips/Index.cshtml", filteredSlips.ToList());
             }
             catch (Exception ex)
             {
@@ -90,7 +148,6 @@ namespace httt.Areas.Sales.Controllers
 
         // =====================================================================
         // POST: /Sales/ExportSlips/ApproveCompletedOrder
-        // BẤM NÚT DUYỆT THỦ CÔNG -> ĐỒNG BỘ CẢ 2 BẢNG SANG 'Completed'
         // =====================================================================
         [HttpPost("ApproveCompletedOrder")]
         public async Task<IActionResult> ApproveCompletedOrder(int receiptId)
@@ -108,16 +165,20 @@ namespace httt.Areas.Sales.Controllers
                     var receipt = await _context.ProductExportReceipts
                         .Include(r => r.SaleOrder)
                         .Include(r => r.ProductExportReceiptDetails)
-                        .FirstOrDefaultAsync(r => r.Exportreceiptid == receiptId);
+                        .FirstOrDefaultAsync(r => r.Exportreceiptid == receiptId && r.Orderid != null);
 
                     if (receipt == null)
                     {
-                        throw new InvalidOperationException("Không tìm thấy phiếu xuất kho này.");
+                        throw new InvalidOperationException("Không tìm thấy phiếu xuất kho hợp lệ.");
+                    }
+
+                    if (receipt.SaleOrder != null && (receipt.SaleOrder.Status == "Cancelled" || receipt.SaleOrder.Status == "Đã hủy"))
+                    {
+                        throw new InvalidOperationException("Đơn hàng này đã bị hủy, không thể duyệt xuất kho!");
                     }
 
                     expReceiptCode = receipt.Expreceiptcode ?? $"PX-{receipt.Exportreceiptid}";
 
-                    // 1. Cập nhật phiếu xuất kho và chi tiết phiếu thành "Completed"
                     receipt.Status = "Completed";
                     if (receipt.ProductExportReceiptDetails != null)
                     {
@@ -127,7 +188,6 @@ namespace httt.Areas.Sales.Controllers
                         }
                     }
 
-                    // 2. Cập nhật đơn hàng (SaleOrder) thành "Completed"
                     SaleOrder? targetOrder = receipt.SaleOrder;
                     if (targetOrder == null && receipt.Orderid.HasValue)
                     {
@@ -139,12 +199,10 @@ namespace httt.Areas.Sales.Controllers
                         targetOrder.Status = "Completed";
                     }
 
-                    // 3. Thực thi lưu đồng thời và commit transaction
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 });
 
-                // 4. Xóa cache liên quan sau khi commit thành công
                 InvalidateOrderCaches();
 
                 return Json(new
@@ -166,7 +224,6 @@ namespace httt.Areas.Sales.Controllers
 
         // =====================================================================
         // POST: /Sales/ExportSlips/RejectExportSlip
-        // KHI KHO TỪ CHỐI: receipt = 'Rejected', order = 'Pending'
         // =====================================================================
         [HttpPost("RejectExportSlip")]
         public async Task<IActionResult> RejectExportSlip(int receiptId)
@@ -184,16 +241,15 @@ namespace httt.Areas.Sales.Controllers
                     var receipt = await _context.ProductExportReceipts
                         .Include(r => r.SaleOrder)
                         .Include(r => r.ProductExportReceiptDetails)
-                        .FirstOrDefaultAsync(r => r.Exportreceiptid == receiptId);
+                        .FirstOrDefaultAsync(r => r.Exportreceiptid == receiptId && r.Orderid != null);
 
                     if (receipt == null)
                     {
-                        throw new InvalidOperationException("Không tìm thấy phiếu xuất kho này.");
+                        throw new InvalidOperationException("Không tìm thấy phiếu xuất kho hợp lệ.");
                     }
 
                     expReceiptCode = receipt.Expreceiptcode ?? $"PX-{receipt.Exportreceiptid}";
 
-                    // 1. Cập nhật phiếu xuất kho thành "Rejected"
                     receipt.Status = "Rejected";
                     if (receipt.ProductExportReceiptDetails != null)
                     {
@@ -203,14 +259,13 @@ namespace httt.Areas.Sales.Controllers
                         }
                     }
 
-                    // 2. Trả đơn hàng về "Pending" (Chờ xử lý)
                     SaleOrder? targetOrder = receipt.SaleOrder;
                     if (targetOrder == null && receipt.Orderid.HasValue)
                     {
                         targetOrder = await _context.SaleOrders.FirstOrDefaultAsync(o => o.Orderid == receipt.Orderid.Value);
                     }
 
-                    if (targetOrder != null)
+                    if (targetOrder != null && targetOrder.Status != "Cancelled" && targetOrder.Status != "Đã hủy")
                     {
                         targetOrder.Status = "Pending";
                     }

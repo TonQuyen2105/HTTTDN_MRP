@@ -13,6 +13,8 @@
     var shortageDict = ViewBag.OrderShortageDict as Dictionary<int, bool> ?? new Dictionary<int, bool>();
     var receiptStatusDict = ViewBag.ReceiptStatusDict as Dictionary<int, string> ?? new Dictionary<int, string>();
 
+    var currentFilterStatus = Context.Request.Query["status"].ToString();
+
     // Helper kiểm tra đơn đã hoàn tất
     bool CheckOrderIsDone(httt.Models.SaleOrder ord)
     {
@@ -76,6 +78,43 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <style>
+        /* Nút icon hủy đơn hình vuông nhỏ đỏ pastel */
+        .btn-cancel-order {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: #FEF2F2;
+            color: #EF4444;
+            border: 1px solid #FECACA;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 800;
+            transition: all 0.15s ease;
+            line-height: 1;
+            padding: 0;
+            margin-left: 6px;
+        }
+        .btn-cancel-order:hover {
+            background: #EF4444;
+            color: #FFFFFF;
+            border-color: #DC2626;
+            transform: scale(1.05);
+        }
+        .order-status.status-cancelled {
+            background: #FEF2F2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+        }
+        .card-theme-cancelled {
+            border-color: #FECACA !important;
+            background: #FFFAFA !important;
+            opacity: 0.88;
+        }
+    </style>
 }
 
 <div class="order-page">
@@ -229,11 +268,12 @@
                         <div class="order-filter-field">
                             <label for="status">Trạng thái</label>
                             <select id="status" name="status" class="form-select">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="Pending" selected="@(Context.Request.Query["status"] == "Pending" ? "selected" : null)">Đang chờ xử lý</option>
-                                <option value="Holding" selected="@(Context.Request.Query["status"] == "Holding" ? "selected" : null)">Đã giữ chốt kho</option>
-                                <option value="PendingApproval" selected="@(Context.Request.Query["status"] == "PendingApproval" ? "selected" : null)">Chờ xuất kho</option>
-                                <option value="Completed" selected="@(Context.Request.Query["status"] == "Completed" ? "selected" : null)">Đã xong</option>
+                                <option value="">Tất cả trạng thái đang xử lý</option>
+                                <option value="Pending" selected="@(currentFilterStatus == "Pending" ? "selected" : null)">Đang chờ xử lý</option>
+                                <option value="Holding" selected="@(currentFilterStatus == "Holding" ? "selected" : null)">Đã giữ chốt kho</option>
+                                <option value="PendingApproval" selected="@(currentFilterStatus == "PendingApproval" ? "selected" : null)">Chờ xuất kho</option>
+                                <option value="Completed" selected="@(currentFilterStatus == "Completed" ? "selected" : null)">Đã xong</option>
+                                <option value="Cancelled" selected="@(currentFilterStatus == "Cancelled" ? "selected" : null)">✕ Đã hủy (Cancelled)</option>
                             </select>
                         </div>
 
@@ -257,7 +297,13 @@
 
                 <section class="order-list-section">
                     <div class="order-list-heading">
-                        <h2>Danh sách đơn bán gần đây</h2>
+                        <h2>
+                            Danh sách đơn bán gần đây
+                            @if (currentFilterStatus == "Cancelled")
+                            {
+                                <span style="font-size: 11px; font-weight: 700; color: #DC2626; margin-left: 6px;">(Đang lọc danh sách ĐÃ HỦY)</span>
+                            }
+                        </h2>
                         <span class="order-count">@totalOrders.ToString("D2") đơn</span>
                     </div>
 
@@ -266,10 +312,15 @@
                         <div class="order-empty-box" style="padding: 40px 20px; text-align: center; color: #64748B; background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; margin: 10px 0;">
                             <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
                             <h3 style="font-size: 15px; font-weight: 700; color: #1E293B; margin-bottom: 4px;">Chưa có đơn hàng nào trong hệ thống</h3>
-                            <p style="font-size: 12px; margin: 0 0 16px 0; color: #64748B;">Bấm nút bên dưới để tạo 1 đơn hàng giả lập có định mức BOM.</p>
-                            <a href="/Sales/Order/GenerateMockOrders" class="order-btn-generate" style="display: inline-block; text-decoration: none;">
-                                + Tạo mới 1 đơn hàng
-                            </a>
+                            <p style="font-size: 12px; margin: 0 0 16px 0; color: #64748B;">
+                                @(currentFilterStatus == "Cancelled" ? "Hiện tại không có đơn hàng nào bị hủy." : "Bấm nút bên dưới để tạo 1 đơn hàng giả lập có định mức BOM.")
+                            </p>
+                            @if (currentFilterStatus != "Cancelled")
+                            {
+                                <a href="/Sales/Order/GenerateMockOrders" class="order-btn-generate" style="display: inline-block; text-decoration: none;">
+                                    + Tạo mới 1 đơn hàng
+                                </a>
+                            }
                         </div>
                     }
                     else
@@ -277,26 +328,38 @@
                         @foreach (var order in ordersList)
                         {
                             var isDone = CheckOrderIsDone(order);
-                            var isWaitingExport = CheckOrderIsWaitingExport(order);
-                            var isWarehouseApproved = CheckWarehouseApproved(order.Orderid);
+                            var isCancelled = string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã hủy";
+                            var isWaitingExport = !isCancelled && CheckOrderIsWaitingExport(order);
+                            var isWarehouseApproved = !isCancelled && CheckWarehouseApproved(order.Orderid);
                             var isShortage = shortageDict.ContainsKey(order.Orderid) ? shortageDict[order.Orderid] : false;
                             
                             string receiptStatus = receiptStatusDict.ContainsKey(order.Orderid) ? receiptStatusDict[order.Orderid] : "Chưa gửi";
                             bool isRejected = string.Equals(receiptStatus, "Rejected", StringComparison.OrdinalIgnoreCase) || receiptStatus == "Từ chối";
                             bool isHoldingOrder = string.Equals(order.Status, "Holding", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã giữ chốt số lượng";
 
-                            <article class="order-card @(isDone ? "card-completed" : "")">
+                            <article class="order-card @(isCancelled ? "card-theme-cancelled" : (isDone ? "card-completed" : ""))" id="order-card-@order.Orderid">
                                 <div class="order-card-top">
                                     <div class="order-id-group">
                                         <span class="order-id-label">MÃ ĐƠN HÀNG</span>
                                         <a href="/Sales/Order/Details/@order.Orderid" class="order-id">
                                             @(order.Ordercode ?? ("DH-" + order.Orderid))
                                         </a>
+
+                                        <!-- NÚT DẤU X ĐỎ HỦY ĐƠN: CHỈ HIỂN THỊ KHI ĐƠN CHƯA HOÀN TẤT VÀ CHƯA HỦY -->
+                                        @if (!isDone && !isCancelled)
+                                        {
+                                            <button type="button" 
+                                                    class="btn-cancel-order" 
+                                                    onclick="cancelSingleOrder(@order.Orderid, '@(order.Ordercode ?? ("DH-" + order.Orderid))')" 
+                                                    title="Hủy đơn hàng này">
+                                                ✕
+                                            </button>
+                                        }
                                     </div>
 
                                     <div class="order-card-actions" style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                                         <div style="display: flex; gap: 8px; align-items: center;">
-                                            @if (!isDone)
+                                            @if (!isDone && !isCancelled)
                                             {
                                                 if (isShortage)
                                                 {
@@ -308,7 +371,13 @@
                                                 }
                                             }
 
-                                            @if (isDone)
+                                            @if (isCancelled)
+                                            {
+                                                <span class="order-status status-cancelled">
+                                                    ✕ Đã hủy (Cancelled)
+                                                </span>
+                                            }
+                                            else if (isDone)
                                             {
                                                 <span class="order-status status-completed">
                                                     Đã xong (Completed)
@@ -335,7 +404,13 @@
                                         </div>
 
                                         <div class="sub-status-action">
-                                            @if (isDone)
+                                            @if (isCancelled)
+                                            {
+                                                <span style="font-size: 11px; color: #DC2626; font-weight: 600;">
+                                                    Đơn hàng này đã bị hủy bỏ
+                                                </span>
+                                            }
+                                            else if (isDone)
                                             {
                                                 <span style="font-size: 11px; font-weight: 750; color: #166534; background: #DCFCE7; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
                                                     ✓ Kho đã xuất hàng thành công
@@ -522,6 +597,30 @@
 
 @section Scripts {
     <script>
+        // HÀM HỦY ĐƠN HÀNG THỦ CÔNG
+        async function cancelSingleOrder(orderId, orderCode) {
+            if (!confirm(`Bạn có chắc chắn muốn HỦY đơn hàng ${orderCode}?\n- Đơn hàng sẽ được chuyển sang trạng thái ĐÃ HỦY.\n- Đơn sẽ được ẩn khỏi danh sách chính (vẫn xem lại được khi chọn lọc 'Đã hủy').\n- Các phiếu xuất liên quan sẽ tự động hủy.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/Sales/Order/CancelOrder?orderId=' + orderId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('✓ ' + data.message);
+                    window.location.reload();
+                } else {
+                    alert('✕ ' + data.message);
+                }
+            } catch (err) {
+                alert('✕ Lỗi kết nối: ' + err.message);
+            }
+        }
+
         async function quickCompleteOrder(orderId) {
             if (!confirm("Xác nhận cập nhật đơn hàng này thành ĐÃ XONG (Completed)?")) return;
 

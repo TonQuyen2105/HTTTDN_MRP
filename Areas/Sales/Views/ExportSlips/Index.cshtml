@@ -5,7 +5,11 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     var slipsList = Model?.ToList() ?? new List<httt.Models.ProductExportReceipt>();
-    var totalSlips = slipsList.Count;
+    var allSlips = ViewBag.AllSlips as List<httt.Models.ProductExportReceipt> ?? slipsList;
+
+    var currentStatus = (ViewBag.Status as string)?.ToLower() ?? "";
+    var currentKeyword = ViewBag.Keyword as string ?? "";
+    var currentDate = ViewBag.Date as string ?? "";
 
     // Helper: Kiểm tra trạng thái độc lập của từng phiếu xuất
     bool CheckSlipCompleted(string? s) => string.Equals(s, "Completed", StringComparison.OrdinalIgnoreCase) 
@@ -18,10 +22,14 @@
     bool CheckSlipRejected(string? s) => string.Equals(s, "Rejected", StringComparison.OrdinalIgnoreCase) 
                                       || s == "Từ chối";
 
-    var completedSlips = slipsList.Count(s => CheckSlipCompleted(s.Status));
-    var readyToCompleteSlips = slipsList.Count(s => CheckSlipReady(s.Status) && !CheckSlipCompleted(s.Status));
-    var rejectedSlips = slipsList.Count(s => CheckSlipRejected(s.Status));
-    var waitingSlips = slipsList.Count(s => !CheckSlipCompleted(s.Status) && !CheckSlipReady(s.Status) && !CheckSlipRejected(s.Status));
+    bool CheckSlipCancelled(string? s) => string.Equals(s, "Cancelled", StringComparison.OrdinalIgnoreCase)
+                                       || s == "Đã hủy";
+
+    var totalAllSlips = allSlips.Count;
+    var completedSlips = allSlips.Count(s => CheckSlipCompleted(s.Status));
+    var readyToCompleteSlips = allSlips.Count(s => CheckSlipReady(s.Status) && !CheckSlipCompleted(s.Status));
+    var rejectedSlips = allSlips.Count(s => CheckSlipRejected(s.Status));
+    var waitingSlips = allSlips.Count(s => !CheckSlipCompleted(s.Status) && !CheckSlipReady(s.Status) && !CheckSlipRejected(s.Status) && !CheckSlipCancelled(s.Status));
 }
 
 @section Styles {
@@ -97,57 +105,106 @@
                         <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>Theo dõi phiếu xuất kho</strong>
                     </div>
                     <h1>Theo dõi phiếu xuất kho thành phẩm</h1>
-                    <p>Đối soát tiến trình giao nhận hàng từ kho và xác nhận hoàn tất đơn hàng.</p>
+                    <p>Đối soát tiến trình giao nhận hàng từ kho, lọc theo từng trạng thái và xác nhận hoàn tất đơn hàng.</p>
                 </div>
             </div>
 
             <!-- 4 THẺ TỔNG QUAN TIẾN ĐỘ -->
             <div class="order-summary-grid">
-                <div class="order-summary-card">
+                <a href="/Sales/ExportSlips" class="order-summary-card @(string.IsNullOrEmpty(currentStatus) ? "active-filter-card" : "")" style="text-decoration: none; cursor: pointer;">
                     <div>
                         <span>Tổng phiếu xuất</span>
-                        <strong>@totalSlips.ToString("D2")</strong>
-                        <small>Phiếu trong hệ thống</small>
+                        <strong>@totalAllSlips.ToString("D2")</strong>
+                        <small>Phiếu khả dụng trong hệ thống</small>
                     </div>
-                </div>
-                <div class="order-summary-card card-waiting">
+                </a>
+                <a href="/Sales/ExportSlips?status=waiting" class="order-summary-card card-waiting @(currentStatus == "waiting" ? "active-filter-card" : "")" style="text-decoration: none; cursor: pointer;">
                     <div>
                         <span>Chờ kho xử lý</span>
-                        <strong>@waitingSlips.ToString("D2")</strong>
-                        <small>Kho đang soạn hàng</small>
+                        <strong class="color-blue">@waitingSlips.ToString("D2")</strong>
+                        <small>Kho đang chuẩn bị hàng</small>
                     </div>
-                </div>
-                <div class="order-summary-card card-ready">
+                </a>
+                <a href="/Sales/ExportSlips?status=ready" class="order-summary-card card-ready @(currentStatus == "ready" ? "active-filter-card" : "")" style="text-decoration: none; cursor: pointer;">
                     <div>
                         <span>Kho đã xuất hàng</span>
-                        <strong>@readyToCompleteSlips.ToString("D2")</strong>
-                        <small>Chờ duyệt thủ công</small>
+                        <strong class="color-amber">@readyToCompleteSlips.ToString("D2")</strong>
+                        <small>Chờ duyệt ĐÃ XONG</small>
                     </div>
-                </div>
-                <div class="order-summary-card card-done">
+                </a>
+                <a href="/Sales/ExportSlips?status=completed" class="order-summary-card card-done @(currentStatus == "completed" ? "active-filter-card" : "")" style="text-decoration: none; cursor: pointer;">
                     <div>
                         <span>Đã chốt hoàn tất</span>
-                        <strong>@completedSlips.ToString("D2")</strong>
+                        <strong class="color-green">@completedSlips.ToString("D2")</strong>
                         <small>Đã ghi nhận doanh thu</small>
                     </div>
-                </div>
+                </a>
             </div>
+
+            <!-- KHỐI BỘ LỌC TÌM KIẾM -->
+            <section class="order-filter-card">
+                <div class="order-section-heading">
+                    <h2>Lọc danh sách phiếu xuất kho</h2>
+                    <p>Tra cứu theo mã phiếu, tên khách hàng hoặc chọn trạng thái tiến trình cụ thể.</p>
+                </div>
+
+                <form method="get" action="/Sales/ExportSlips" class="order-filter-form">
+                    <div class="order-filter-field">
+                        <label for="keyword">Mã phiếu / Khách nhận / Mã đơn</label>
+                        <input id="keyword" type="text" name="keyword" value="@currentKeyword" class="form-control" placeholder="Nhập mã phiếu, tên khách hàng..." />
+                    </div>
+
+                    <div class="order-filter-field">
+                        <label for="status">Trạng thái phiếu</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="">-- Tất cả trạng thái đang xử lý --</option>
+                            <option value="waiting" selected="@(currentStatus == "waiting" ? "selected" : null)">⏳ Đang chờ kho xử lý</option>
+                            <option value="ready" selected="@(currentStatus == "ready" ? "selected" : null)">🔔 Kho đã xuất hàng (Chờ duyệt)</option>
+                            <option value="completed" selected="@(currentStatus == "completed" ? "selected" : null)">✓ Đã xong (Completed)</option>
+                            <option value="rejected" selected="@(currentStatus == "rejected" ? "selected" : null)">✕ Kho từ chối xuất hàng</option>
+                            <option value="cancelled" selected="@(currentStatus == "cancelled" ? "selected" : null)">⊘ Đã hủy (Cancelled)</option>
+                        </select>
+                    </div>
+
+                    <div class="order-filter-field">
+                        <label for="date">Ngày lập phiếu</label>
+                        <input id="date" type="date" name="date" value="@currentDate" class="form-control" />
+                    </div>
+
+                    <div class="order-filter-actions">
+                        <button type="submit" class="order-btn-primary">Lọc dữ liệu</button>
+                        <a href="/Sales/ExportSlips" class="order-btn-reset">Đặt lại</a>
+                    </div>
+                </form>
+            </section>
 
             <!-- DANH SÁCH PHIẾU XUẤT KHO -->
             <section class="order-list-section">
                 <div class="order-list-heading">
-                    <h2>Danh sách phiếu xuất kho gần đây</h2>
-                    <span class="order-count">@totalSlips.ToString("D2") phiếu</span>
+                    <h2>
+                        Kết quả lọc phiếu xuất kho
+                        @if (!string.IsNullOrEmpty(currentStatus))
+                        {
+                            <span style="font-size: 11px; font-weight: 600; color: #64748B;">
+                                (Đang lọc: 
+                                @(currentStatus == "completed" ? "Đã xong" : 
+                                  currentStatus == "ready" ? "Kho đã xuất" : 
+                                  currentStatus == "rejected" ? "Bị từ chối" : 
+                                  currentStatus == "cancelled" ? "Đã hủy" : "Đang chờ xử lý"))
+                            </span>
+                        }
+                    </h2>
+                    <span class="order-count">@slipsList.Count.ToString("D2") phiếu</span>
                 </div>
 
                 @if (!slipsList.Any())
                 {
                     <div class="order-empty-box">
                         <div class="empty-icon">📋</div>
-                        <h3>Chưa có phiếu xuất kho nào</h3>
-                        <p>Bạn có thể chuyển sang trang lập phiếu để tạo yêu cầu xuất kho mới.</p>
-                        <a href="/Sales/CreateOrder" class="btn-primary-soft">
-                            + Tạo phiếu xuất kho ngay
+                        <h3>Không tìm thấy phiếu xuất kho phù hợp</h3>
+                        <p>Không có phiếu xuất nào khớp với điều kiện lọc hiện tại. Bạn có thể xóa bộ lọc để xem toàn bộ danh sách.</p>
+                        <a href="/Sales/ExportSlips" class="order-btn-reset" style="display: inline-flex; margin-top: 6px;">
+                            Xóa bộ lọc
                         </a>
                     </div>
                 }
@@ -157,13 +214,14 @@
                     {
                         bool isSlipDone = CheckSlipCompleted(slip.Status);
                         bool isSlipRejected = CheckSlipRejected(slip.Status);
-                        bool isSlipReady = CheckSlipReady(slip.Status) && !isSlipDone;
+                        bool isSlipCancelled = CheckSlipCancelled(slip.Status) || (slip.SaleOrder != null && (slip.SaleOrder.Status == "Cancelled" || slip.SaleOrder.Status == "Đã hủy"));
+                        bool isSlipReady = CheckSlipReady(slip.Status) && !isSlipDone && !isSlipCancelled;
 
                         var slipCode = !string.IsNullOrWhiteSpace(slip.Expreceiptcode) ? slip.Expreceiptcode : ("PX-" + slip.Exportreceiptid);
                         var orderCode = slip.SaleOrder?.Ordercode ?? (slip.Orderid.HasValue ? ("HD-" + slip.Orderid.Value) : "Đơn ngoài");
                         decimal totalVal = slip.ProductExportReceiptDetails?.Sum(d => (d.Price ?? 0) * d.Quantity) ?? (slip.SaleOrder?.Totalamount ?? 0);
 
-                        string cardClass = isSlipDone ? "card-theme-done" : (isSlipRejected ? "card-theme-rejected" : (isSlipReady ? "card-theme-ready" : ""));
+                        string cardClass = isSlipCancelled ? "card-theme-rejected" : (isSlipDone ? "card-theme-done" : (isSlipRejected ? "card-theme-rejected" : (isSlipReady ? "card-theme-ready" : "")));
 
                         <article class="slip-card @cardClass">
                             <div class="slip-card-top">
@@ -173,7 +231,13 @@
                                 </div>
 
                                 <div class="slip-actions-wrap">
-                                    @if (isSlipDone)
+                                    @if (isSlipCancelled)
+                                    {
+                                        <span class="pill-badge pill-rejected">
+                                            ⊘ Đã hủy (Cancelled)
+                                        </span>
+                                    }
+                                    else if (isSlipDone)
                                     {
                                         <span class="pill-badge pill-done">
                                             ✓ Đã xong (Completed)
@@ -237,21 +301,25 @@
                                         </div>
                                         <div class="meta-item">
                                             <span class="meta-caption">TRẠNG THÁI KHO</span>
-                                            @if (isSlipDone)
+                                            @if (isSlipCancelled)
                                             {
-                                                <strong class="color-green">Đã xuất kho</strong>
+                                                <strong class="color-red font-semibold">Đã hủy bỏ</strong>
+                                            }
+                                            else if (isSlipDone)
+                                            {
+                                                <strong class="color-green font-semibold">Đã xuất kho</strong>
                                             }
                                             else if (isSlipRejected)
                                             {
-                                                <strong class="color-red">Bị từ chối</strong>
+                                                <strong class="color-red font-semibold">Bị từ chối</strong>
                                             }
                                             else if (isSlipReady)
                                             {
-                                                <strong class="color-amber">Đã bàn giao</strong>
+                                                <strong class="color-amber font-semibold">Đã bàn giao</strong>
                                             }
                                             else
                                             {
-                                                <strong class="color-blue">Đang chuẩn bị</strong>
+                                                <strong class="color-blue font-semibold">Đang chuẩn bị</strong>
                                             }
                                         </div>
                                         <div class="meta-item text-right">
@@ -317,7 +385,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
+                    alert('✓ ' + data.message);
                     location.reload();
                 } else {
                     alert("✕ " + data.message);

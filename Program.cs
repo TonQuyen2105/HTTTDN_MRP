@@ -77,106 +77,131 @@ builder.Services.AddAntiforgery(options =>
     options.HeaderName = "RequestVerificationToken";
 });
 
-// 3. Xác thực bằng Cookie Authentication chuẩn MVC
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+// 3. Xác thực bằng Multi-Scheme Cookie Authentication theo từng Phân hệ
+// Cho phép mở 4 tab của 4 phân hệ (Admin, Sales, Productions, Warehouse) đăng nhập song song trên cùng 1 trình duyệt
+static void ConfigurePortalCookie(
+    CookieAuthenticationOptions options,
+    string schemeName,
+    string cookieName,
+    string loginPath,
+    string logoutPath)
+{
+    options.Cookie.Name = cookieName;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.LoginPath = loginPath;
+    options.LogoutPath = logoutPath;
+    options.AccessDeniedPath = "/Account/AccessDenied";
+
+    options.Events = new CookieAuthenticationEvents
     {
-        options.Cookie.Name = ".AMIS.MRP.Auth";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = true;
-        options.LoginPath = "/Account/Login";
-        options.LogoutPath = "/Account/Logout";
-        options.AccessDeniedPath = "/Account/AccessDenied";
-
-        options.Events = new CookieAuthenticationEvents
+        // Request AJAX (fetch) không được redirect sang trang login/AccessDenied (HTML 200 làm client
+        // parse JSON lỗi) mà phải nhận 401/403 để hiển thị "phiên đã hết hạn".
+        OnRedirectToLogin = context =>
         {
-            // Request AJAX (fetch) không được redirect sang trang login/AccessDenied (HTML 200 làm client
-            // parse JSON lỗi) mà phải nhận 401/403 để hiển thị "phiên đã hết hạn".
-            OnRedirectToLogin = context =>
+            if (IsAjaxOrApiRequest(context.Request))
             {
-                if (IsAjaxOrApiRequest(context.Request))
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    context.Response.ContentType = "application/json";
-                    return context.Response.WriteAsync("{\"success\":false,\"message\":\"Chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.\",\"requireLogin\":true}");
-                }
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsync("{\"success\":false,\"message\":\"Chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.\",\"requireLogin\":true}");
+            }
 
-                var reqPath = context.Request.Path.Value ?? string.Empty;
-                var targetLoginPath = AppRoles.GetLoginUrlForPath(reqPath);
-                var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
-                var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
-                    ? targetLoginPath
-                    : $"{targetLoginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}";
+            var reqPath = context.Request.Path.Value ?? string.Empty;
+            var targetLoginPath = AppRoles.GetLoginUrlForPath(reqPath);
+            var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
+            var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
+                ? targetLoginPath
+                : $"{targetLoginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}";
 
-                context.Response.Redirect(redirectUrl);
-                return Task.CompletedTask;
-            },
-            OnRedirectToAccessDenied = context =>
+            context.Response.Redirect(redirectUrl);
+            return Task.CompletedTask;
+        },
+        OnRedirectToAccessDenied = context =>
+        {
+            if (IsAjaxOrApiRequest(context.Request))
             {
-                if (IsAjaxOrApiRequest(context.Request))
-                {
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    context.Response.ContentType = "application/json";
-                    return context.Response.WriteAsync("{\"success\":false,\"message\":\"Bạn không có quyền thực hiện thao tác này.\",\"accessDenied\":true}");
-                }
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsync("{\"success\":false,\"message\":\"Bạn không có quyền thực hiện thao tác này.\",\"accessDenied\":true}");
+            }
 
-                // Khi người dùng đang đăng nhập ở phân hệ khác và gõ URL sang phân hệ mới,
-                // điều hướng về trang đăng nhập riêng của phân hệ đích để họ đăng nhập tài khoản phù hợp.
-                var reqPath = context.Request.Path.Value ?? string.Empty;
-                var targetLoginPath = AppRoles.GetLoginUrlForPath(reqPath);
-                var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
-                var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
-                    ? targetLoginPath
-                    : $"{targetLoginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}";
+            // Khi người dùng đang đăng nhập ở phân hệ khác và gõ URL sang phân hệ mới,
+            // điều hướng về trang đăng nhập riêng của phân hệ đích để họ đăng nhập tài khoản phù hợp.
+            var reqPath = context.Request.Path.Value ?? string.Empty;
+            var targetLoginPath = AppRoles.GetLoginUrlForPath(reqPath);
+            var returnUrl = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
+            var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
+                ? targetLoginPath
+                : $"{targetLoginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}";
 
-                context.Response.Redirect(redirectUrl);
-                return Task.CompletedTask;
-            },
-            // Kiểm tra claim trong cookie, sau đó đối chiếu DB (kết quả cache 30s)
-            // để tài khoản bị khóa/xóa/đổi vai trò bị thu hồi phiên gần như tức thì.
-            OnValidatePrincipal = async context =>
+            context.Response.Redirect(redirectUrl);
+            return Task.CompletedTask;
+        },
+        // Kiểm tra claim trong cookie, sau đó đối chiếu DB (kết quả cache 30s)
+        // để tài khoản bị khóa/xóa/đổi vai trò bị thu hồi phiên gần như tức thì.
+        OnValidatePrincipal = async context =>
+        {
+            var principal = context.Principal;
+            if (principal is null || principal.Identity?.IsAuthenticated != true)
             {
-                var principal = context.Principal;
-                if (principal is null || principal.Identity?.IsAuthenticated != true)
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(schemeName);
+                return;
+            }
+
+            var idValue = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var roleValue = principal.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (!int.TryParse(idValue, out var userId) || string.IsNullOrWhiteSpace(roleValue))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(schemeName);
+                return;
+            }
+
+            try
+            {
+                var accountService = context.HttpContext.RequestServices.GetRequiredService<UserAccountService>();
+                // Kiểm tra tài khoản còn tồn tại, đang Active và vai trò DB còn khớp với claim
+                if (!await accountService.IsActiveUserSessionAsync(userId, roleValue))
                 {
                     context.RejectPrincipal();
-                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    return;
-                }
-
-                var idValue = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var roleValue = principal.FindFirst(ClaimTypes.Role)?.Value;
-
-                if (!int.TryParse(idValue, out var userId) || string.IsNullOrWhiteSpace(roleValue))
-                {
-                    context.RejectPrincipal();
-                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    return;
-                }
-
-                try
-                {
-                    var accountService = context.HttpContext.RequestServices.GetRequiredService<UserAccountService>();
-                    // Kiểm tra tài khoản còn tồn tại, đang Active và vai trò DB còn khớp với claim
-                    if (!await accountService.IsActiveUserSessionAsync(userId, roleValue))
-                    {
-                        context.RejectPrincipal();
-                        await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // DB tạm thời không truy cập được: giữ phiên thay vì đăng xuất hàng loạt
-                    context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
-                        .CreateLogger("UserSession")
-                        .LogWarning(ex, "Could not re-validate session for user {UserId}.", userId);
+                    await context.HttpContext.SignOutAsync(schemeName);
                 }
             }
-        };
-    });
+            catch (Exception ex)
+            {
+                // DB tạm thời không truy cập được: giữ phiên thay vì đăng xuất hàng loạt
+                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("UserSession")
+                    .LogWarning(ex, "Could not re-validate session for user {UserId} on scheme {Scheme}.", userId, schemeName);
+            }
+        }
+    };
+}
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = AppRoles.DynamicScheme;
+        options.DefaultAuthenticateScheme = AppRoles.DynamicScheme;
+        options.DefaultChallengeScheme = AppRoles.DynamicScheme;
+        options.DefaultSignInScheme = AppRoles.DynamicScheme;
+    })
+    .AddPolicyScheme(AppRoles.DynamicScheme, "Dynamic Portal Authentication Scheme", options =>
+    {
+        options.ForwardDefaultSelector = context => AppRoles.ResolveSchemeForContext(context);
+    })
+    .AddCookie(AppRoles.AdminScheme, options =>
+        ConfigurePortalCookie(options, AppRoles.AdminScheme, AppRoles.AdminCookieName, "/Admin/Account/Login", "/Admin/Account/Logout"))
+    .AddCookie(AppRoles.SalesScheme, options =>
+        ConfigurePortalCookie(options, AppRoles.SalesScheme, AppRoles.SalesCookieName, "/Sales/Account/Login", "/Sales/Account/Logout"))
+    .AddCookie(AppRoles.ProductionScheme, options =>
+        ConfigurePortalCookie(options, AppRoles.ProductionScheme, AppRoles.ProductionCookieName, "/Productions/Account/Login", "/Productions/Account/Logout"))
+    .AddCookie(AppRoles.WarehouseScheme, options =>
+        ConfigurePortalCookie(options, AppRoles.WarehouseScheme, AppRoles.WarehouseCookieName, "/Warehouse/Account/Login", "/Warehouse/Account/Logout"));
 
 builder.Services.AddControllersWithViews(options =>
 {

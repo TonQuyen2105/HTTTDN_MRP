@@ -81,8 +81,22 @@ public class AccountController : Controller
         if (user is null)
         {
             UserAccountService.BurnPasswordCheck(password);
+            ViewBag.Error = "Không tìm thấy tài khoản hoặc thông tin đăng nhập không chính xác.";
+            ViewBag.ErrorMessage = ViewBag.Error;
+            return View();
         }
-        else if (UserAccountService.VerifyPassword(password, user.Password))
+
+        var normalizedRole = AppRoles.NormalizeRole(user.Role);
+        // Nếu tài khoản thuộc Role khác (Sales, Production, Warehouse) đăng nhập vào Admin -> báo không tìm thấy tài khoản
+        if (normalizedRole != AppRoles.Admin)
+        {
+            UserAccountService.BurnPasswordCheck(password);
+            ViewBag.Error = "Không tìm thấy tài khoản hoặc thông tin đăng nhập không chính xác.";
+            ViewBag.ErrorMessage = ViewBag.Error;
+            return View();
+        }
+
+        if (UserAccountService.VerifyPassword(password, user.Password))
         {
             isValidPassword = true;
         }
@@ -102,21 +116,19 @@ public class AccountController : Controller
             }
         }
 
-        if (user is null || !isValidPassword)
+        if (!isValidPassword)
         {
             ViewBag.Error = "Tên đăng nhập hoặc mật khẩu không chính xác.";
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
 
-        var normalizedRole = AppRoles.NormalizeRole(user.Role);
         var isActive = UserAccountRules.StatusKey(user.Status) == UserAccountRules.StatusActive
             || string.Equals(user.Status, "true", StringComparison.OrdinalIgnoreCase);
 
-        // Chỉ cho phép tài khoản Role Admin đăng nhập vào trang Admin
-        if (!isActive || normalizedRole != AppRoles.Admin)
+        if (!isActive)
         {
-            ViewBag.Error = "Tài khoản không có quyền truy cập phân hệ Admin hoặc đã bị khóa.";
+            ViewBag.Error = "Tài khoản hiện đang bị tạm khóa hoặc chưa được kích hoạt.";
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
@@ -134,7 +146,7 @@ public class AccountController : Controller
 
         var identity = new ClaimsIdentity(
             claims,
-            CookieAuthenticationDefaults.AuthenticationScheme,
+            AppRoles.AdminScheme,
             ClaimTypes.Name,
             ClaimTypes.Role);
 
@@ -147,7 +159,7 @@ public class AccountController : Controller
             AllowRefresh = true
         };
 
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
+        await HttpContext.SignInAsync(AppRoles.AdminScheme, principal, authProperties);
 
         if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && AppRoles.CanAccessUrl(principal, returnUrl))
         {
@@ -165,7 +177,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignOutAsync(AppRoles.AdminScheme);
         _logger.LogInformation("User logged out of Admin area.");
         return RedirectToAction(nameof(Login));
     }
@@ -177,7 +189,7 @@ public class AccountController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> LogoutGet()
     {
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignOutAsync(AppRoles.AdminScheme);
         return RedirectToAction(nameof(Login));
     }
 

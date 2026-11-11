@@ -224,8 +224,6 @@ namespace httt.Areas.Sales.Controllers
                     using var transaction = await _context.Database.BeginTransactionAsync();
 
                     var order = await _context.SaleOrders
-                        .Include(o => o.ProductExportReceipts)
-                            .ThenInclude(r => r.ProductExportReceiptDetails)
                         .FirstOrDefaultAsync(o => o.Orderid == orderId);
 
                     if (order == null)
@@ -242,27 +240,9 @@ namespace httt.Areas.Sales.Controllers
 
                     orderCode = order.Ordercode ?? ("HD" + order.Orderid);
 
-                    // 1. Cập nhật trạng thái đơn thành Cancelled
+                    // 1. Chỉ cập nhật trạng thái đơn thành Cancelled
+                    // Giữ nguyên trạng thái của các phiếu xuất kho liên quan
                     order.Status = "Cancelled";
-
-                    // 2. Đồng thời hủy các phiếu xuất kho liên quan của đơn này
-                    if (order.ProductExportReceipts != null)
-                    {
-                        foreach (var receipt in order.ProductExportReceipts)
-                        {
-                            if (receipt.Status != "Completed" && receipt.Status != "Đã xong")
-                            {
-                                receipt.Status = "Cancelled";
-                                if (receipt.ProductExportReceiptDetails != null)
-                                {
-                                    foreach (var detail in receipt.ProductExportReceiptDetails)
-                                    {
-                                        detail.Status = "Cancelled";
-                                    }
-                                }
-                            }
-                        }
-                    }
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();

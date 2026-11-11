@@ -100,13 +100,13 @@ namespace httt.Areas.Sales.Controllers
                     using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
-                        int pId = reader.GetInt32(0);
-                        int ingrId = reader.GetInt32(1);
-                        string ingrName = reader.GetString(2);
-                        decimal qty = reader.GetDecimal(3);
-                        string unit = reader.GetString(4);
-                        decimal unitPrice = reader.GetDecimal(5);
-                        decimal subTotal = reader.GetDecimal(6);
+                        int pId = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                        int ingrId = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                        string ingrName = reader.IsDBNull(2) ? "Nguyên liệu" : reader.GetString(2);
+                        decimal qty = reader.IsDBNull(3) ? 0m : reader.GetDecimal(3);
+                        string unit = reader.IsDBNull(4) ? "kg" : reader.GetString(4);
+                        decimal unitPrice = reader.IsDBNull(5) ? 0m : reader.GetDecimal(5);
+                        decimal subTotal = reader.IsDBNull(6) ? 0m : reader.GetDecimal(6);
 
                         if (!bomCostDict.ContainsKey(pId))
                         {
@@ -135,8 +135,10 @@ namespace httt.Areas.Sales.Controllers
                 var allProducts = await _context.Products.AsNoTracking().ToListAsync();
 
                 // 3. LẤY DANH SÁCH CHI TIẾT ĐƠN HÀNG ĐÃ HOÀN TẤT
+                // FIX LOGIC: Bắt buộc loại trừ đơn đã bị hủy (Cancelled) để không tính sai doanh thu khi phiếu xuất giữ nguyên
                 var completedOrderIds = await _context.SaleOrders
                     .AsNoTracking()
+                    .Where(o => o.Status != "Cancelled" && o.Status != "Đã hủy")
                     .Where(o => o.Status == "Completed" 
                              || o.Status == "Đã hoàn thành" 
                              || o.Status == "Đã xong"

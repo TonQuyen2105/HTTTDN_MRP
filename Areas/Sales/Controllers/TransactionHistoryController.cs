@@ -42,14 +42,14 @@ namespace httt.Areas.Sales.Controllers
         {
             try
             {
-                // ĐÃ XÓA KHỐI CODE TỰ ĐỘNG ÉP COMPLETED Ở ĐÂY.
-                // Chỉ lấy đúng những đơn thực sự đã hoàn tất (Completed / Đã xong) trong CSDL
-
-                var completedOrders = await _context.SaleOrders
+                // FIX LOGIC: Bắt buộc loại bỏ đơn đã bị hủy (Cancelled)
+                // Chỉ lấy các đơn KHÔNG BỊ HỦY và thực sự đã hoàn tất
+                var query = _context.SaleOrders
                     .AsNoTracking()
                     .Include(o => o.SaleOrderDetails)
                         .ThenInclude(d => d.Product)
                     .Include(o => o.ProductExportReceipts)
+                    .Where(o => o.Status != "Cancelled" && o.Status != "Đã hủy")
                     .Where(o => o.Status == "Completed"
                              || o.Status == "Đã xong" 
                              || o.Status == "Đã hoàn thành" 
@@ -60,7 +60,9 @@ namespace httt.Areas.Sales.Controllers
                                  r.Status == "Approved" || 
                                  r.Status == "Tán thành" || 
                                  r.Status == "Đã xuất kho" || 
-                                 r.Status == "Đã hoàn thành"))
+                                 r.Status == "Đã hoàn thành"));
+
+                var completedOrders = await query
                     .OrderByDescending(o => o.Orderdate)
                     .ToListAsync();
 
@@ -73,9 +75,9 @@ namespace httt.Areas.Sales.Controllers
                         .Select(d => $"{d.Product?.Productname ?? "Thuốc"} (x{d.Quantity})")
                         .ToList() ?? new List<string>();
 
-                    // Ưu tiên lấy phiếu hợp lệ gần nhất (không lấy phiếu Rejected làm đại diện nếu có phiếu khác)
+                    // Lấy phiếu hợp lệ gần nhất (không lấy phiếu Rejected / Cancelled)
                     var latestReceipt = ord.ProductExportReceipts?
-                        .Where(r => r.Status != "Rejected" && r.Status != "Từ chối")
+                        .Where(r => r.Status != "Rejected" && r.Status != "Từ chối" && r.Status != "Cancelled")
                         .OrderByDescending(r => r.Createddate)
                         .FirstOrDefault() ?? ord.ProductExportReceipts?.OrderByDescending(r => r.Createddate).FirstOrDefault();
 
@@ -111,25 +113,30 @@ namespace httt.Areas.Sales.Controllers
                 // Sắp xếp ngày mới nhất lên đầu
                 list = list.OrderByDescending(x => x.RawDate).ToList();
 
-                // Lọc tìm kiếm
+                // Lọc tìm kiếm an toàn (tránh NullReference)
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     var kw = keyword.Trim().ToLower();
-                    list = list.Where(x => x.Id.ToLower().Contains(kw) 
-                                        || x.ReceiptCode.ToLower().Contains(kw)
-                                        || x.Partner.ToLower().Contains(kw)
-                                        || x.ProductSummary.ToLower().Contains(kw)).ToList();
+                    list = list.Where(x => (x.Id != null && x.Id.ToLower().Contains(kw))
+                                        || (x.ReceiptCode != null && x.ReceiptCode.ToLower().Contains(kw))
+                                        || (x.Partner != null && x.Partner.ToLower().Contains(kw))
+                                        || (x.ProductSummary != null && x.ProductSummary.ToLower().Contains(kw))).ToList();
                 }
 
-                // Thống kê tổng kết
+                // FIX LOGIC: Thống kê chính xác theo danh sách thực tế sau khi lọc
                 decimal totalRevenue = list.Sum(o => o.TotalAmount);
+                
+                // Đếm số lượng phiếu xuất hợp lệ thuộc các đơn đã lọc
+                var filteredOrderIds = list.Select(x => x.OrderId).ToHashSet();
                 int totalExportReceipts = completedOrders
+                    .Where(o => filteredOrderIds.Contains(o.Orderid))
                     .SelectMany(o => o.ProductExportReceipts ?? new List<ProductExportReceipt>())
                     .Count(r => r.Status == "Completed" || r.Status == "Exported" || r.Status == "Approved" || r.Status == "Tán thành" || r.Status == "Đã xuất kho" || r.Status == "Đã hoàn thành");
 
                 ViewBag.TotalDoneOrders = list.Count;
                 ViewBag.TotalExportReceipts = totalExportReceipts > 0 ? totalExportReceipts : list.Count;
                 ViewBag.TotalRevenue = totalRevenue;
+                ViewBag.Keyword = keyword;
 
                 return View("~/Areas/Sales/Views/TransactionHistory/TransactionHistory.cshtml", list);
             }

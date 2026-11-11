@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using httt.Data;
 using httt.Areas.Warehouse.Models;
+using httt.Areas.Warehouse.Services;
 
 namespace httt.Areas.Warehouse.Controllers;
 
@@ -24,16 +25,23 @@ public class ProductReceiptApiController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetProductReceipts([FromQuery] string? status = null, [FromQuery] string? keyword = null)
     {
-        var query = _context.ProductReceipts.AsNoTracking();
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
+        // Điều kiện: status = ['Approve', 'Pending', 'Rejected'] và receiptcode khác NULL
+        var query = _context.ProductReceipts.AsNoTracking()
+            .Where(p => p.ReceiptCode != null && p.ReceiptCode.Trim() != "" &&
+                       (p.Status == "Pending" || p.Status == "Chờ nhập kho" ||
+                        p.Status == "Approved" || p.Status == "Approve" || p.Status == "Đã nhập kho" ||
+                        p.Status == "Rejected" || p.Status == "Reject" || p.Status == "Từ chối"));
 
         if (!string.IsNullOrWhiteSpace(status) && status != "Tất cả")
         {
             if (status == "Chờ nhập kho" || status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
                 query = query.Where(p => p.Status == "Pending" || p.Status == "Chờ nhập kho");
-            else if (status == "Đã nhập kho" || status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
-                query = query.Where(p => p.Status == "Approved" || p.Status == "Đã nhập kho");
-            else if (status == "Từ chối" || status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
-                query = query.Where(p => p.Status == "Rejected" || p.Status == "Từ chối");
+            else if (status == "Đã nhập kho" || status.Equals("Approved", StringComparison.OrdinalIgnoreCase) || status.Equals("Approve", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(p => p.Status == "Approved" || p.Status == "Approve" || p.Status == "Đã nhập kho");
+            else if (status == "Từ chối" || status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || status.Equals("Reject", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(p => p.Status == "Rejected" || p.Status == "Reject" || p.Status == "Từ chối");
         }
 
         var list = await query.OrderByDescending(p => p.CreatedDate).ToListAsync();
@@ -55,6 +63,12 @@ public class ProductReceiptApiController : ControllerBase
             .AsNoTracking()
             .Where(r => reqIds.Contains(r.RequestId))
             .ToDictionaryAsync(r => r.RequestId);
+
+        var requestCodes = prodRequests.Values.Where(r => !string.IsNullOrWhiteSpace(r.RequestCode)).Select(r => r.RequestCode!).Distinct().ToList();
+        var siblingRequests = requestCodes.Count > 0
+            ? await _context.ProductionRequests.AsNoTracking().Where(r => requestCodes.Contains(r.RequestCode!)).ToListAsync()
+            : new List<ProductionRequest>();
+        var allRequests = prodRequests.Values.UnionBy(siblingRequests, r => r.RequestId).ToList();
 
         var assignedUserIds = prodRequests.Values.Select(r => r.AssignedTo).Where(u => u.HasValue).Select(u => u!.Value);
         var userIds = list.Select(p => p.RequestedBy).Where(u => u.HasValue).Select(u => u!.Value)
@@ -130,15 +144,29 @@ public class ProductReceiptApiController : ControllerBase
             // Trạng thái hiển thị
             string displayStatus = "Chờ nhập kho";
             string statusType = "warning";
-            if (p.Status == "Approved" || p.Status == "Đã nhập kho")
+            if (p.Status == "Approved" || p.Status == "Approve" || p.Status == "Đã nhập kho")
             {
                 displayStatus = "Đã nhập kho";
                 statusType = "success";
             }
-            else if (p.Status == "Rejected" || p.Status == "Từ chối")
+            else if (p.Status == "Rejected" || p.Status == "Reject" || p.Status == "Từ chối")
             {
                 displayStatus = "Từ chối";
                 statusType = "danger";
+            }
+
+            var pSiblingReqIds = new HashSet<int>();
+            if (p.RequestId.HasValue)
+            {
+                pSiblingReqIds.Add(p.RequestId.Value);
+                var myReq = allRequests.FirstOrDefault(r => r.RequestId == p.RequestId.Value);
+                if (myReq != null && !string.IsNullOrWhiteSpace(myReq.RequestCode))
+                {
+                    foreach (var sib in allRequests.Where(r => r.RequestCode == myReq.RequestCode))
+                    {
+                        pSiblingReqIds.Add(sib.RequestId);
+                    }
+                }
             }
 
             var items = pDetails.Select((d, idx) =>
@@ -150,6 +178,32 @@ public class ProductReceiptApiController : ControllerBase
                     : orderDt.AddMonths(months).ToString("dd/MM/yyyy");
 
                 string itemCode = $"SP{d.ProductId:D3}";
+                decimal itemCost = (d.Cost.HasValue && d.Cost.Value > 0) ? d.Cost.Value : (pr?.Cost ?? 0);
+
+                // Lấy quantityrequired từ ProductionRequest
+                int quantityRequired = d.Quantity;
+                if (pSiblingReqIds.Count > 0)
+                {
+                    var matchingReq = allRequests.FirstOrDefault(r => pSiblingReqIds.Contains(r.RequestId) && r.ProductId == d.ProductId);
+                    if (matchingReq != null) quantityRequired = matchingReq.QuantityRequired;
+                }
+
+                // Tính số lượng thực nhập lũy kế
+                int priorApprovedQty = 0;
+                if (pSiblingReqIds.Count > 0)
+                {
+                    var priorApprovedReceiptIds = list
+                        .Where(r => r.RequestId.HasValue && pSiblingReqIds.Contains(r.RequestId.Value) && r.ProductReceiptId < p.ProductReceiptId && (r.Status == "Approved" || r.Status == "Đã nhập kho"))
+                        .Select(r => r.ProductReceiptId)
+                        .ToList();
+
+                    priorApprovedQty = details
+                        .Where(rd => priorApprovedReceiptIds.Contains(rd.ProductReceiptId) && rd.ProductId == d.ProductId)
+                        .Sum(rd => rd.Quantity);
+                }
+
+                int accumulatedActualQty = priorApprovedQty + d.Quantity;
+                string actualQtyDisplay = $"{accumulatedActualQty}/{quantityRequired}";
 
                 return new
                 {
@@ -161,13 +215,20 @@ public class ProductReceiptApiController : ControllerBase
                     itemName = pr?.ProductName ?? "N/A",
                     productName = pr?.ProductName ?? "N/A",
                     unit = pr?.Unit ?? "Hộp",
-                    reqQty = d.Quantity,
-                    actualQty = d.Quantity,
+                    reqQty = quantityRequired,
+                    actualQty = accumulatedActualQty,
+                    actualQtyDisplay,
+                    quantityRequired,
+                    receiptQty = d.Quantity,
                     quantity = d.Quantity,
+                    cost = itemCost,
+                    costFormatted = itemCost.ToString("N0"),
+                    amount = itemCost * d.Quantity,
+                    amountFormatted = (itemCost * d.Quantity).ToString("N0"),
                     status = d.Status,
                     expiryDate = expStr,
                     note = d.Note ?? "",
-                    isFull = true
+                    isFull = (accumulatedActualQty >= quantityRequired)
                 };
             }).ToList();
 
@@ -223,6 +284,8 @@ public class ProductReceiptApiController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetProductReceiptById(int id)
     {
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
         var receipt = await _context.ProductReceipts.FindAsync(id);
         if (receipt == null)
         {
@@ -247,6 +310,44 @@ public class ProductReceiptApiController : ControllerBase
         if (receipt.Status == "Approved" || receipt.Status == "Đã nhập kho") displayStatus = "Đã nhập kho";
         else if (receipt.Status == "Rejected" || receipt.Status == "Từ chối") displayStatus = "Từ chối";
 
+        // Tải thông tin Lệnh sản xuất và các phiếu nhập thành phẩm cùng lệnh sản xuất
+        ProductionRequest? prq = null;
+        var relatedReceipts = new List<ProductReceipt>();
+        var relatedDetails = new List<ProductReceiptDetail>();
+        var siblingProdRequests = new List<ProductionRequest>();
+
+        if (receipt.RequestId.HasValue)
+        {
+            prq = await _context.ProductionRequests.FindAsync(receipt.RequestId.Value);
+            var reqIds = new HashSet<int> { receipt.RequestId.Value };
+
+            if (prq != null && !string.IsNullOrWhiteSpace(prq.RequestCode))
+            {
+                var sibs = await _context.ProductionRequests
+                    .AsNoTracking()
+                    .Where(r => r.RequestCode == prq.RequestCode)
+                    .ToListAsync();
+                siblingProdRequests.AddRange(sibs);
+                foreach (var sib in sibs) reqIds.Add(sib.RequestId);
+            }
+            else if (prq != null)
+            {
+                siblingProdRequests.Add(prq);
+            }
+
+            relatedReceipts = await _context.ProductReceipts
+                .AsNoTracking()
+                .Where(r => r.RequestId.HasValue && reqIds.Contains(r.RequestId.Value))
+                .OrderBy(r => r.ProductReceiptId)
+                .ToListAsync();
+
+            var relatedIds = relatedReceipts.Select(r => r.ProductReceiptId).ToList();
+            relatedDetails = await _context.ProductReceiptDetails
+                .AsNoTracking()
+                .Where(d => relatedIds.Contains(d.ProductReceiptId))
+                .ToListAsync();
+        }
+
         var items = details.Select((d, idx) =>
         {
             prods.TryGetValue(d.ProductId, out var prod);
@@ -256,6 +357,38 @@ public class ProductReceiptApiController : ControllerBase
                 : orderDt.AddMonths(months).ToString("dd/MM/yyyy");
 
             string itemCode = $"SP{d.ProductId:D3}";
+            decimal itemCost = (d.Cost.HasValue && d.Cost.Value > 0) ? d.Cost.Value : (prod?.Cost ?? 0);
+
+            // 1. Cột SL nhập lấy từ quantityrequired trong bảng productionrequest
+            int quantityRequired = d.Quantity;
+            var matchingReq = siblingProdRequests.FirstOrDefault(r => r.ProductId == d.ProductId)
+                ?? (prq != null && prq.ProductId == d.ProductId ? prq : null);
+            if (matchingReq != null)
+            {
+                quantityRequired = matchingReq.QuantityRequired;
+            }
+            else if (prq != null && prq.QuantityRequired > 0)
+            {
+                quantityRequired = prq.QuantityRequired;
+            }
+
+            // 2. Cột thực nhập so sánh với quantityrequired (lũy kế từ các phiếu trước đã duyệt + số lượng phiếu này)
+            int priorApprovedQty = 0;
+            if (relatedReceipts.Count > 0)
+            {
+                var priorApprovedReceiptIds = relatedReceipts
+                    .Where(r => r.ProductReceiptId < receipt.ProductReceiptId && (r.Status == "Approved" || r.Status == "Đã nhập kho"))
+                    .Select(r => r.ProductReceiptId)
+                    .ToList();
+
+                priorApprovedQty = relatedDetails
+                    .Where(rd => priorApprovedReceiptIds.Contains(rd.ProductReceiptId) && rd.ProductId == d.ProductId)
+                    .Sum(rd => rd.Quantity);
+            }
+
+            int accumulatedActualQty = priorApprovedQty + d.Quantity;
+            string actualQtyDisplay = $"{accumulatedActualQty}/{quantityRequired}";
+
             return new
             {
                 id = idx + 1,
@@ -265,13 +398,20 @@ public class ProductReceiptApiController : ControllerBase
                 itemName = prod?.ProductName ?? "N/A",
                 productName = prod?.ProductName ?? "N/A",
                 unit = prod?.Unit ?? "Hộp",
-                reqQty = d.Quantity,
-                actualQty = d.Quantity,
+                reqQty = quantityRequired,
+                actualQty = accumulatedActualQty,
+                actualQtyDisplay,
+                quantityRequired,
+                receiptQty = d.Quantity,
                 quantity = d.Quantity,
+                cost = itemCost,
+                costFormatted = itemCost.ToString("N0"),
+                amount = itemCost * d.Quantity,
+                amountFormatted = (itemCost * d.Quantity).ToString("N0"),
                 status = d.Status,
                 expiryDate = expStr,
                 note = d.Note ?? "",
-                isFull = true
+                isFull = (accumulatedActualQty >= quantityRequired)
             };
         }).ToList();
 
@@ -279,21 +419,17 @@ public class ProductReceiptApiController : ControllerBase
         string? assignedToName = null;
         string? assignedToEmployeeCode = null;
         string? requestCode = null;
-        if (receipt.RequestId.HasValue)
+        if (prq != null)
         {
-            var prq = await _context.ProductionRequests.FindAsync(receipt.RequestId.Value);
-            if (prq != null)
+            requestCode = !string.IsNullOrWhiteSpace(prq.RequestCode) ? prq.RequestCode : $"LSX{prq.RequestId:D5}";
+            assignedTo = prq.AssignedTo;
+            if (prq.AssignedTo.HasValue)
             {
-                requestCode = !string.IsNullOrWhiteSpace(prq.RequestCode) ? prq.RequestCode : $"LSX{prq.RequestId:D5}";
-                assignedTo = prq.AssignedTo;
-                if (prq.AssignedTo.HasValue)
+                var au = await _context.UserAccounts.FindAsync(prq.AssignedTo.Value);
+                if (au != null)
                 {
-                    var au = await _context.UserAccounts.FindAsync(prq.AssignedTo.Value);
-                    if (au != null)
-                    {
-                        assignedToName = !string.IsNullOrWhiteSpace(au.FullName) ? au.FullName : au.Username;
-                        assignedToEmployeeCode = $"NV{au.UserID:D4}";
-                    }
+                    assignedToName = !string.IsNullOrWhiteSpace(au.FullName) ? au.FullName : au.Username;
+                    assignedToEmployeeCode = $"NV{au.UserID:D4}";
                 }
             }
         }
@@ -317,7 +453,7 @@ public class ProductReceiptApiController : ControllerBase
             rawStatus = receipt.Status,
             statusText = displayStatus,
             employeeName = creatorName,
-            department = "Phân xưởng Sản xuất GMP",
+            department = orderNo.StartsWith("HOAN-", StringComparison.OrdinalIgnoreCase) ? "Kho thành phẩm (Hoàn hàng)" : "Phân xưởng Sản xuất GMP",
             productName = productNameStr,
             description,
             requestId = receipt.RequestId,
@@ -326,8 +462,8 @@ public class ProductReceiptApiController : ControllerBase
             assignedTo,
             assignedToName,
             assignedToEmployeeCode,
-            reqQtyColLabel = "SL Yêu cầu",
-            actualQtyColLabel = "SL thực nhập",
+            reqQtyColLabel = "SL nhập",
+            actualQtyColLabel = "Thực nhập",
             items
         });
     }
@@ -360,6 +496,11 @@ public class ProductReceiptApiController : ControllerBase
                 prod.Quantity = (prod.Quantity ?? 0) + d.Quantity;
                 int months = prod.ShelfLifeMonths.HasValue && prod.ShelfLifeMonths.Value > 0 ? prod.ShelfLifeMonths.Value : 24;
                 d.ExpiredDate = now.AddMonths(months);
+
+                if (d.Cost.HasValue && d.Cost.Value > 0 && d.Cost.Value > (prod.MaterialCost ?? 0))
+                {
+                    prod.MaterialCost = d.Cost.Value;
+                }
             }
 
             d.Status = "Approved";

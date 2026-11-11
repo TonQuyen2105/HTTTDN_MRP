@@ -47,6 +47,8 @@ public class IngredientApiController : ControllerBase
             unit = i.Unit ?? "kg",
             price = i.Price ?? 0,
             priceFormatted = (i.Price ?? 0).ToString("N0"),
+            cost = i.Cost ?? 0,
+            costFormatted = (i.Cost ?? 0).ToString("N0"),
             imageUrl = i.ImageUrl ?? "",
             description = i.Description ?? "",
             shelfLifeMonths = i.ShelfLifeMonths ?? 0,
@@ -98,12 +100,47 @@ public class IngredientApiController : ControllerBase
                                expiredDate = d.ExpiredDate.HasValue
                                    ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
                                    : "31/12/2028",
+                               rawExpiredDate = d.ExpiredDate,
                                status = r.Status ?? "Approve",
                                statusType = (r.Status == "Approve" || r.Status == "Approved" || r.Status == "Đã nhập kho") ? "success" :
                                             (r.Status == "Reject" || r.Status == "Rejected" || r.Status == "Từ chối") ? "danger" : "warning"
                            };
 
-        var receiptDetails = await detailsQuery.ToListAsync();
+        var disposedCodes = await _context.MaterialReceipts.AsNoTracking()
+            .Where(m => m.ExpReceiptCode != null && m.ExpReceiptCode.StartsWith("HMY-"))
+            .Select(m => m.ExpReceiptCode!)
+            .ToListAsync();
+
+        var rawReceiptDetails = await detailsQuery.ToListAsync();
+        var now = DateTime.UtcNow;
+        var receiptDetails = rawReceiptDetails.Select(d =>
+        {
+            var vCode = d.voucherNo;
+            bool isDisposed = disposedCodes.Contains($"HMY-{vCode}") || disposedCodes.Contains($"HMY-PNK{d.ipReceiptId:D5}");
+            bool isExpired = d.rawExpiredDate.HasValue && d.rawExpiredDate.Value <= now;
+            return new
+            {
+                d.ipReceiptId,
+                d.voucherNo,
+                d.orderNo,
+                d.importDate,
+                d.supplierId,
+                d.supplierCode,
+                d.supplierName,
+                d.quantity,
+                d.quantityFormatted,
+                d.unit,
+                d.cost,
+                d.costFormatted,
+                d.amount,
+                d.amountFormatted,
+                d.expiredDate,
+                isExpired = isExpired,
+                isDisposed = isDisposed,
+                status = isDisposed ? "Đã hủy" : d.status,
+                statusType = isDisposed ? "danger" : d.statusType
+            };
+        }).ToList();
 
         return Ok(new
         {
@@ -116,6 +153,8 @@ public class IngredientApiController : ControllerBase
             unit = item.Unit ?? "kg",
             price = item.Price ?? 0,
             priceFormatted = (item.Price ?? 0).ToString("N0"),
+            cost = item.Cost ?? 0,
+            costFormatted = (item.Cost ?? 0).ToString("N0"),
             imageUrl = item.ImageUrl ?? "",
             description = item.Description ?? "",
             shelfLifeMonths = item.ShelfLifeMonths ?? 0,
@@ -164,12 +203,48 @@ public class IngredientApiController : ControllerBase
                                expiredDate = d.ExpiredDate.HasValue
                                    ? d.ExpiredDate.Value.ToString("dd/MM/yyyy")
                                    : "31/12/2028",
+                               rawExpiredDate = d.ExpiredDate,
                                status = r.Status ?? "Approve",
                                statusType = (r.Status == "Approve" || r.Status == "Approved" || r.Status == "Đã nhập kho") ? "success" :
                                             (r.Status == "Reject" || r.Status == "Rejected" || r.Status == "Từ chối") ? "danger" : "warning"
                            };
 
-        return Ok(await detailsQuery.ToListAsync());
+        var disposedCodes = await _context.MaterialReceipts.AsNoTracking()
+            .Where(m => m.ExpReceiptCode != null && m.ExpReceiptCode.StartsWith("HMY-"))
+            .Select(m => m.ExpReceiptCode!)
+            .ToListAsync();
+
+        var rawList = await detailsQuery.ToListAsync();
+        var nowTime = DateTime.UtcNow;
+        var resultList = rawList.Select(d =>
+        {
+            var vCode = d.voucherNo;
+            bool isDisposed = disposedCodes.Contains($"HMY-{vCode}") || disposedCodes.Contains($"HMY-PNK{d.ipReceiptId:D5}");
+            bool isExpired = d.rawExpiredDate.HasValue && d.rawExpiredDate.Value <= nowTime;
+            return new
+            {
+                d.ipReceiptId,
+                d.voucherNo,
+                d.orderNo,
+                d.importDate,
+                d.supplierId,
+                d.supplierCode,
+                d.supplierName,
+                d.quantity,
+                d.quantityFormatted,
+                d.cost,
+                d.costFormatted,
+                d.amount,
+                d.amountFormatted,
+                d.expiredDate,
+                isExpired = isExpired,
+                isDisposed = isDisposed,
+                status = isDisposed ? "Đã hủy" : d.status,
+                statusType = isDisposed ? "danger" : d.statusType
+            };
+        }).ToList();
+
+        return Ok(resultList);
     }
 
     /// <summary>
@@ -183,12 +258,19 @@ public class IngredientApiController : ControllerBase
             return BadRequest(new { message = "Tên nguyên vật liệu không được để trống." });
         }
 
+        // Ràng buộc: đơn giá không được bằng 0
+        if (!dto.Price.HasValue || dto.Price.Value <= 0)
+        {
+            return BadRequest(new { message = "Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0." });
+        }
+
         var ingredient = new Ingredient
         {
             IngrName = dto.IngrName.Trim(),
             Quantity = dto.Quantity >= 0 ? dto.Quantity : 0,
             Unit = !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : "",
-            Price = dto.Price >= 0 ? dto.Price : 0,
+            Price = dto.Price.Value,
+            Cost = dto.Cost.HasValue && dto.Cost.Value >= 0 ? dto.Cost.Value : 0,
             ImageUrl = dto.ImageUrl?.Trim(),
             Description = dto.Description?.Trim(),
             ShelfLifeMonths = dto.ShelfLifeMonths >= 0 ? dto.ShelfLifeMonths : 24
@@ -208,6 +290,8 @@ public class IngredientApiController : ControllerBase
             unit = ingredient.Unit,
             price = ingredient.Price ?? 0,
             priceFormatted = (ingredient.Price ?? 0).ToString("N0"),
+            cost = ingredient.Cost ?? 0,
+            costFormatted = (ingredient.Cost ?? 0).ToString("N0"),
             imageUrl = ingredient.ImageUrl ?? "",
             description = ingredient.Description ?? "",
             shelfLifeMonths = ingredient.ShelfLifeMonths ?? 0,
@@ -230,6 +314,7 @@ public class IngredientApiController : ControllerBase
                 .SetProperty(i => i.Quantity, i => dto.Quantity.HasValue && dto.Quantity.Value >= 0 ? dto.Quantity.Value : i.Quantity)
                 .SetProperty(i => i.Unit, i => !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : i.Unit)
                 .SetProperty(i => i.Price, i => dto.Price.HasValue && dto.Price.Value >= 0 ? dto.Price.Value : i.Price)
+                .SetProperty(i => i.Cost, i => dto.Cost.HasValue && dto.Cost.Value >= 0 ? dto.Cost.Value : i.Cost)
                 .SetProperty(i => i.ImageUrl, i => dto.ImageUrl != null ? dto.ImageUrl.Trim() : i.ImageUrl)
                 .SetProperty(i => i.Description, i => dto.Description != null ? dto.Description.Trim() : i.Description)
                 .SetProperty(i => i.ShelfLifeMonths, i => dto.ShelfLifeMonths.HasValue && dto.ShelfLifeMonths.Value >= 0 ? dto.ShelfLifeMonths.Value : i.ShelfLifeMonths));
@@ -270,6 +355,76 @@ public class IngredientApiController : ControllerBase
         }
 
         return Ok(new { success = true, message = $"Đã xóa nguyên vật liệu NVL{id:D3} thành công." });
+    }
+
+    /// <summary>
+    /// POST /api/warehouse/ingredients/{id}/dispose-expired-batch/{receiptId} : Hủy lô nguyên vật liệu hết hạn sử dụng
+    /// </summary>
+    [HttpPost("{id:int}/dispose-expired-batch/{receiptId:int}")]
+    public async Task<IActionResult> DisposeExpiredBatch(int id, int receiptId)
+    {
+        var detail = await _context.ImportReceiptDetails.FirstOrDefaultAsync(d => d.IngrId == id && d.IpReceiptId == receiptId);
+        if (detail == null)
+        {
+            return NotFound(new { message = $"Không tìm thấy thông tin lô nhập của nguyên vật liệu ID {id} từ phiếu PNK{receiptId:D5}." });
+        }
+
+        var receipt = await _context.ImportReceipts.FirstOrDefaultAsync(r => r.IpReceiptId == receiptId);
+        var voucherCode = receipt?.IpReceiptCode ?? $"PNK{receiptId:D5}";
+        var disposalVoucherCode = $"HMY-{voucherCode}";
+
+        bool alreadyDisposed = await _context.MaterialReceipts.AnyAsync(m => m.ExpReceiptCode == disposalVoucherCode || m.ExpReceiptCode == $"HMY-PNK{receiptId:D5}");
+        if (alreadyDisposed)
+        {
+            return BadRequest(new { message = "Lô nguyên vật liệu này đã được xử lý hủy trước đó." });
+        }
+
+        var now = DateTime.UtcNow;
+        if (!detail.ExpiredDate.HasValue || detail.ExpiredDate.Value > now)
+        {
+            return BadRequest(new { message = "Lô nguyên vật liệu này chưa hết hạn sử dụng. Chỉ được phép hủy các lô đã hết hạn." });
+        }
+
+        var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.IngrId == id);
+        if (ingredient == null)
+        {
+            return NotFound(new { message = $"Không tìm thấy nguyên vật liệu có ID {id}." });
+        }
+
+        var disposedQty = detail.Quantity;
+        ingredient.Quantity = Math.Max(0m, (ingredient.Quantity ?? 0m) - disposedQty);
+
+        // Lưu vào bảng materialreceipt & materialreceiptdetail có sẵn mà không thêm cột vào bảng
+        var disposalReceipt = new MaterialReceipt
+        {
+            ExpReceiptCode = disposalVoucherCode,
+            Status = "Approved",
+            CreatedDate = now
+        };
+        _context.MaterialReceipts.Add(disposalReceipt);
+        await _context.SaveChangesAsync();
+
+        var disposalDetail = new MaterialReceiptDetail
+        {
+            ExpReceiptId = disposalReceipt.ExpReceiptId,
+            IngrId = id,
+            Quantity = disposedQty,
+            UnitCost = detail.Cost ?? ingredient.Price ?? 0,
+            Status = "Đã hủy",
+            Note = $"Hủy nguyên vật liệu hết hạn từ phiếu {voucherCode}",
+            CreatedDate = now,
+            ExportDate = now
+        };
+        _context.MaterialReceiptDetails.Add(disposalDetail);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = $"Đã hủy thành công {disposedQty:N2} {ingredient.Unit} nguyên vật liệu hết hạn sử dụng.",
+            disposedQty = disposedQty,
+            remainingStock = ingredient.Quantity
+        });
     }
 }
 

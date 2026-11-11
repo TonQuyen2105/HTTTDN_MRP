@@ -173,6 +173,19 @@ public class ImportReceiptApiController : ControllerBase
             return BadRequest(new { message = "Phiếu nhập phải có ít nhất 1 dòng nguyên vật liệu." });
         }
 
+        // Kiểm tra trùng lặp nguyên vật liệu trong cùng một phiếu nhập kho
+        var duplicateGroup = dto.Items.GroupBy(i => i.IngrId).FirstOrDefault(g => g.Count() > 1);
+        if (duplicateGroup != null)
+        {
+            var dupIngr = await _context.Ingredients.AsNoTracking().FirstOrDefaultAsync(i => i.IngrId == duplicateGroup.Key);
+            var dupLabel = dupIngr != null ? $"{dupIngr.IngrName} (NVL{dupIngr.IngrId:D3})" : $"NVL{duplicateGroup.Key:D3}";
+            return BadRequest(new
+            {
+                success = false,
+                message = $"Nguyên vật liệu '{dupLabel}' đã được thêm trước đó trong phiếu nhập. Không được thêm nguyên vật liệu trùng lặp."
+            });
+        }
+
         string finalStatus = (dto.Status == "Reject" || dto.IsReject) ? "Reject" : "Approve";
 
         int? createdBy = dto.CreatedBy;
@@ -200,27 +213,37 @@ public class ImportReceiptApiController : ControllerBase
             receipt.IpReceiptCode = $"PNK{receipt.IpReceiptId:D5}";
         }
 
+        var sup = await _context.Suppliers.AsNoTracking().FirstOrDefaultAsync(s => s.SupplierId == dto.SupplierId);
+        decimal importCostPct = sup?.ImportCost ?? 0;
+
         var now = DateTime.UtcNow;
         foreach (var it in dto.Items)
         {
+            // Giới hạn tối đa 6 chữ số cho số lượng nhập (tối đa 999,999)
+            decimal validQty = Math.Min(Math.Max(it.Quantity, 1), 999999m);
+
+            var ingr = await _context.Ingredients.FindAsync(it.IngrId);
+
             DateTime? expDate = null;
-            if (finalStatus == "Approve")
+            if (finalStatus == "Approve" && ingr != null)
             {
-                var ingr = await _context.Ingredients.FindAsync(it.IngrId);
-                if (ingr != null)
-                {
-                    ingr.Quantity = (ingr.Quantity ?? 0) + it.Quantity;
-                    int months = (ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0) ? ingr.ShelfLifeMonths.Value : 12;
-                    expDate = now.AddMonths(months);
-                }
+                ingr.Quantity = (ingr.Quantity ?? 0) + validQty;
+                int months = (ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0) ? ingr.ShelfLifeMonths.Value : 12;
+                expDate = now.AddMonths(months);
             }
+
+            // Đơn giá: nếu client không truyền giá hoặc = 0, tính theo công thức:
+            // Đơn giá nguyên liệu + (đơn giá nguyên liệu * import_cost của NCC)
+            decimal itemCost = (it.Cost.HasValue && it.Cost.Value > 0)
+                ? it.Cost.Value
+                : ((ingr?.Price ?? 0) + ((ingr?.Price ?? 0) * importCostPct / 100m));
 
             var detail = new ImportReceiptDetail
             {
                 IpReceiptId = receipt.IpReceiptId,
                 IngrId = it.IngrId,
-                Quantity = it.Quantity > 0 ? it.Quantity : 1,
-                Cost = it.Cost,
+                Quantity = validQty,
+                Cost = itemCost,
                 ExpiredDate = expDate,
                 CreatedDate = now
             };

@@ -28,6 +28,9 @@ public class Supplier
     [MaxLength(100)]
     [Column("mail")]
     public string? Mail { get; set; }
+
+    [Column("import_cost")]
+    public decimal? ImportCost { get; set; } = 0;
 }
 
 [Table("ingredient")]
@@ -51,6 +54,9 @@ public class Ingredient
 
     [Column("price")]
     public decimal? Price { get; set; }
+
+    [Column("cost")]
+    public decimal? Cost { get; set; } = 0;
 
     [MaxLength(255)]
     [Column("imageurl")]
@@ -84,6 +90,9 @@ public class Product
 
     [Column("cost")]
     public decimal? Cost { get; set; }
+
+    [Column("materialcost")]
+    public decimal? MaterialCost { get; set; }
 
     [MaxLength(255)]
     [Column("imageurl")]
@@ -322,6 +331,9 @@ public class ProductReceiptDetail
 
     [Column("expireddate")]
     public DateTime? ExpiredDate { get; set; }
+
+    [Column("cost")]
+    public decimal? Cost { get; set; }
 }
 
 [Table("productexportreceipt")]

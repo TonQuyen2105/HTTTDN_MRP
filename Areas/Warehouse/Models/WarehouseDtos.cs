@@ -6,6 +6,7 @@ public class IngredientDto
     public decimal? Quantity { get; set; }
     public string? Unit { get; set; }
     public decimal? Price { get; set; }
+    public decimal? Cost { get; set; }
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public int? ShelfLifeMonths { get; set; }
@@ -17,6 +18,7 @@ public class ProductDto
     public int? Quantity { get; set; }
     public string? Unit { get; set; }
     public decimal? Cost { get; set; }
+    public decimal? MaterialCost { get; set; }
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public int? ShelfLifeMonths { get; set; }
@@ -28,6 +30,7 @@ public class SupplierDto
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? Mail { get; set; }
+    public decimal? ImportCost { get; set; }
 }
 
 public class CreateImportReceiptDto

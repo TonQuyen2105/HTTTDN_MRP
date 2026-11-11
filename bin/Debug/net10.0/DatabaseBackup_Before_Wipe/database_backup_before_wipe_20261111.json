@@ -1,0 +1,1483 @@
+{
+  "__EFMigrationsHistory": [
+    {
+      "MigrationId": "20261028070737_InitialAdminSetup",
+      "ProductVersion": "10.0.14"
+    }
+  ],
+  "bom": [
+    {
+      "bomid": 8,
+      "bomname": "SP_1",
+      "productid": 7,
+      "ingrid": 11,
+      "itemquantity": 1,
+      "materialquantity": 1.0,
+      "bomcode": "BOM-SP-1"
+    },
+    {
+      "bomid": 9,
+      "bomname": "SP_1",
+      "productid": 7,
+      "ingrid": 12,
+      "itemquantity": 1,
+      "materialquantity": 2.0,
+      "bomcode": "BOM-SP-1"
+    },
+    {
+      "bomid": 10,
+      "bomname": "SP_2",
+      "productid": 8,
+      "ingrid": 13,
+      "itemquantity": 1,
+      "materialquantity": 2.0,
+      "bomcode": "BOM-SP-2"
+    },
+    {
+      "bomid": 11,
+      "bomname": "SP_2",
+      "productid": 8,
+      "ingrid": 14,
+      "itemquantity": 1,
+      "materialquantity": 1.5,
+      "bomcode": "BOM-SP-2"
+    }
+  ],
+  "importreceipt": [
+    {
+      "ipreceiptid": 10,
+      "supplierid": 9,
+      "createdby": 1,
+      "createddate": "2026-11-10T08:56:22.417780",
+      "ipreceiptcode": "PNK00010",
+      "status": "Approve"
+    },
+    {
+      "ipreceiptid": 11,
+      "supplierid": 8,
+      "createdby": 1,
+      "createddate": "2026-11-10T09:12:43.265104",
+      "ipreceiptcode": "PNK00011",
+      "status": "Approve"
+    },
+    {
+      "ipreceiptid": 12,
+      "supplierid": 9,
+      "createdby": 1,
+      "createddate": "2026-11-10T09:42:23.326004",
+      "ipreceiptcode": "PNK00012",
+      "status": "Approve"
+    },
+    {
+      "ipreceiptid": 13,
+      "supplierid": 8,
+      "createdby": 1,
+      "createddate": "2026-11-10T14:08:16.187375",
+      "ipreceiptcode": "PNK00013",
+      "status": "Approve"
+    },
+    {
+      "ipreceiptid": 16,
+      "supplierid": 8,
+      "createdby": 1,
+      "createddate": "2026-11-10T15:53:49.835182",
+      "ipreceiptcode": "PNK00014",
+      "status": "Approve"
+    },
+    {
+      "ipreceiptid": 17,
+      "supplierid": 8,
+      "createdby": 1,
+      "createddate": "2026-11-10T15:57:22.617206",
+      "ipreceiptcode": "PNK00015",
+      "status": "Approve"
+    }
+  ],
+  "importreceiptdetail": [
+    {
+      "ipreceiptid": 10,
+      "ingrid": 11,
+      "quantity": 100.0,
+      "cost": 65000.0,
+      "createddate": "2026-11-10T08:56:22.623293",
+      "expireddate": "2028-11-10T08:56:22.623293"
+    },
+    {
+      "ipreceiptid": 10,
+      "ingrid": 12,
+      "quantity": 100.0,
+      "cost": 130000.0,
+      "createddate": "2026-11-10T08:56:22.623293",
+      "expireddate": "2028-11-10T08:56:22.623293"
+    },
+    {
+      "ipreceiptid": 10,
+      "ingrid": 13,
+      "quantity": 100.0,
+      "cost": 195000.0,
+      "createddate": "2026-11-10T08:56:22.623293",
+      "expireddate": "2028-11-10T08:56:22.623293"
+    },
+    {
+      "ipreceiptid": 10,
+      "ingrid": 14,
+      "quantity": 100.0,
+      "cost": 260000.0,
+      "createddate": "2026-11-10T08:56:22.623293",
+      "expireddate": "2028-11-10T08:56:22.623293"
+    },
+    {
+      "ipreceiptid": 11,
+      "ingrid": 12,
+      "quantity": 100.0,
+      "cost": 120000.0,
+      "createddate": "2026-11-10T09:12:43.471881",
+      "expireddate": "2028-11-10T09:12:43.471881"
+    },
+    {
+      "ipreceiptid": 11,
+      "ingrid": 13,
+      "quantity": 200.0,
+      "cost": 180000.0,
+      "createddate": "2026-11-10T09:12:43.471881",
+      "expireddate": "2028-11-10T09:12:43.471881"
+    },
+    {
+      "ipreceiptid": 11,
+      "ingrid": 14,
+      "quantity": 200.0,
+      "cost": 240000.0,
+      "createddate": "2026-11-10T09:12:43.471881",
+      "expireddate": "2028-11-10T09:12:43.471881"
+    },
+    {
+      "ipreceiptid": 12,
+      "ingrid": 12,
+      "quantity": 1000.0,
+      "cost": 130000.0,
+      "createddate": "2026-11-10T09:42:23.507732",
+      "expireddate": "2028-11-10T09:42:23.507732"
+    },
+    {
+      "ipreceiptid": 12,
+      "ingrid": 11,
+      "quantity": 500.0,
+      "cost": 65000.0,
+      "createddate": "2026-11-10T09:42:23.507732",
+      "expireddate": "2025-11-10T09:42:23.507732"
+    },
+    {
+      "ipreceiptid": 10,
+      "ingrid": 15,
+      "quantity": 100.0,
+      "cost": 325000.0,
+      "createddate": "2026-11-10T08:56:22.623293",
+      "expireddate": "2025-11-10T08:56:22.623293"
+    },
+    {
+      "ipreceiptid": 16,
+      "ingrid": 11,
+      "quantity": 470.0,
+      "cost": 60000.0,
+      "createddate": "2026-11-10T15:53:50.060430",
+      "expireddate": "2028-11-10T15:53:50.060430"
+    },
+    {
+      "ipreceiptid": 17,
+      "ingrid": 11,
+      "quantity": 100.0,
+      "cost": 60000.0,
+      "createddate": "2026-11-10T15:57:22.833350",
+      "expireddate": "2025-11-10T15:57:22.833350"
+    }
+  ],
+  "ingredient": [
+    {
+      "ingrid": 11,
+      "ingrname": "NVL_1",
+      "quantity": 0.0,
+      "unit": "kg",
+      "price": 50000.0,
+      "imageurl": "",
+      "description": "",
+      "shelflifemonths": 24,
+      "cost": 65000.0
+    },
+    {
+      "ingrid": 12,
+      "ingrname": "NVL_2",
+      "quantity": 60.0,
+      "unit": "kg",
+      "price": 100000.0,
+      "imageurl": "",
+      "description": "",
+      "shelflifemonths": 24,
+      "cost": 130000.0
+    },
+    {
+      "ingrid": 13,
+      "ingrname": "NVL_3",
+      "quantity": 140.0,
+      "unit": "kg",
+      "price": 150000.0,
+      "imageurl": "",
+      "description": "",
+      "shelflifemonths": 24,
+      "cost": 195000.0
+    },
+    {
+      "ingrid": 14,
+      "ingrname": "NVL_4",
+      "quantity": 180.0,
+      "unit": "kg",
+      "price": 200000.0,
+      "imageurl": "",
+      "description": "",
+      "shelflifemonths": 24,
+      "cost": 260000.0
+    },
+    {
+      "ingrid": 15,
+      "ingrname": "NVL_5",
+      "quantity": 0.0,
+      "unit": "kg",
+      "price": 250000.0,
+      "imageurl": "",
+      "description": "",
+      "shelflifemonths": 24,
+      "cost": 325000.0
+    }
+  ],
+  "materialreceipt": [
+    {
+      "expreceiptid": 15,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:04:01.591963",
+      "status": "Approved",
+      "expreceiptcode": null,
+      "requestid": 19
+    },
+    {
+      "expreceiptid": 16,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:04:26.883500",
+      "status": "Approved",
+      "expreceiptcode": null,
+      "requestid": 18
+    },
+    {
+      "expreceiptid": 17,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:08:26.043089",
+      "status": "Approved",
+      "expreceiptcode": null,
+      "requestid": 20
+    },
+    {
+      "expreceiptid": 19,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:11:35.856284",
+      "status": "Approved",
+      "expreceiptcode": null,
+      "requestid": 21
+    },
+    {
+      "expreceiptid": 18,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:11:15.536088",
+      "status": "Approved",
+      "expreceiptcode": null,
+      "requestid": 22
+    },
+    {
+      "expreceiptid": 24,
+      "requestedby": null,
+      "approvedby": null,
+      "createddate": "2026-11-10T15:50:27.479881",
+      "status": "Approved",
+      "expreceiptcode": "HMY-PNK00012",
+      "requestid": null
+    },
+    {
+      "expreceiptid": 25,
+      "requestedby": null,
+      "approvedby": null,
+      "createddate": "2026-11-10T15:54:29.105428",
+      "status": "Approved",
+      "expreceiptcode": "HMY-PNK00010",
+      "requestid": null
+    },
+    {
+      "expreceiptid": 26,
+      "requestedby": null,
+      "approvedby": null,
+      "createddate": "2026-11-10T15:59:20.212797",
+      "status": "Approved",
+      "expreceiptcode": "HMY-PNK00015",
+      "requestid": null
+    },
+    {
+      "expreceiptid": 20,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:39:38.755121",
+      "status": "Approved",
+      "expreceiptcode": null,
+      "requestid": 23
+    }
+  ],
+  "materialreceiptdetail": [
+    {
+      "expreceiptid": 15,
+      "ingrid": 13,
+      "quantity": 40.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 40,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 40,00 kg)",
+      "createddate": "2026-11-10T09:04:01.924835",
+      "exportdate": "2026-11-10T09:03:58.394937",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 15,
+      "ingrid": 14,
+      "quantity": 30.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 30,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 30,00 kg)",
+      "createddate": "2026-11-10T09:04:01.943050",
+      "exportdate": "2026-11-10T09:03:58.394937",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 16,
+      "ingrid": 11,
+      "quantity": 20.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 20,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 20,00 kg)",
+      "createddate": "2026-11-10T09:04:27.174862",
+      "exportdate": "2026-11-10T09:04:43.056984",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 16,
+      "ingrid": 12,
+      "quantity": 40.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 40,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 40,00 kg)",
+      "createddate": "2026-11-10T09:04:27.175968",
+      "exportdate": "2026-11-10T09:04:43.056984",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 17,
+      "ingrid": 13,
+      "quantity": 20.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 20,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 20,00 kg)",
+      "createddate": "2026-11-10T09:08:26.271763",
+      "exportdate": "2026-11-10T09:08:14.351286",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 17,
+      "ingrid": 14,
+      "quantity": 15.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 15,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 15,00 kg)",
+      "createddate": "2026-11-10T09:08:26.272107",
+      "exportdate": "2026-11-10T09:08:14.351286",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 19,
+      "ingrid": 11,
+      "quantity": 50.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 50,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 50,00 kg)",
+      "createddate": "2026-11-10T09:11:36.082414",
+      "exportdate": "2026-11-10T09:12:55.405292",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 19,
+      "ingrid": 12,
+      "quantity": 100.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 100,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 100,00 kg)",
+      "createddate": "2026-11-10T09:11:36.082609",
+      "exportdate": "2026-11-10T09:12:55.405292",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 18,
+      "ingrid": 13,
+      "quantity": 100.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 100,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 100,00 kg)",
+      "createddate": "2026-11-10T09:11:15.762255",
+      "exportdate": "2026-11-10T09:12:58.464463",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 18,
+      "ingrid": 14,
+      "quantity": 75.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 75,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 75,00 kg)",
+      "createddate": "2026-11-10T09:11:15.762821",
+      "exportdate": "2026-11-10T09:12:58.464463",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 24,
+      "ingrid": 11,
+      "quantity": 500.0,
+      "status": "Đã hủy",
+      "note": "Hủy nguyên vật liệu hết hạn từ phiếu PNK00012",
+      "createddate": "2026-11-10T15:50:27.479881",
+      "exportdate": "2026-11-10T15:50:27.479881",
+      "unitcost": 65000.0
+    },
+    {
+      "expreceiptid": 25,
+      "ingrid": 15,
+      "quantity": 100.0,
+      "status": "Đã hủy",
+      "note": "Hủy nguyên vật liệu hết hạn từ phiếu PNK00010",
+      "createddate": "2026-11-10T15:54:29.105428",
+      "exportdate": "2026-11-10T15:54:29.105428",
+      "unitcost": 325000.0
+    },
+    {
+      "expreceiptid": 26,
+      "ingrid": 11,
+      "quantity": 100.0,
+      "status": "Đã hủy",
+      "note": "Hủy nguyên vật liệu hết hạn từ phiếu PNK00015",
+      "createddate": "2026-11-10T15:59:20.212797",
+      "exportdate": "2026-11-10T15:59:20.212797",
+      "unitcost": 60000.0
+    },
+    {
+      "expreceiptid": 20,
+      "ingrid": 11,
+      "quantity": 500.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 500,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 500,00 kg)",
+      "createddate": "2026-11-10T09:39:38.996352",
+      "exportdate": "2026-11-10T16:06:15.720479",
+      "unitcost": null
+    },
+    {
+      "expreceiptid": 20,
+      "ingrid": 12,
+      "quantity": 1000.0,
+      "status": "Approved",
+      "note": "Yêu cầu cấp 1.000,00 kg (Tồn xưởng: 0,00 kg, Thiếu: 1.000,00 kg)",
+      "createddate": "2026-11-10T09:39:39.013758",
+      "exportdate": "2026-11-10T16:06:15.720479",
+      "unitcost": null
+    }
+  ],
+  "product": [
+    {
+      "productid": 9,
+      "productname": "SP_3",
+      "quantity": 0,
+      "unit": "Hộp",
+      "cost": 0.0,
+      "imageurl": "",
+      "description": "",
+      "shelflifemonths": 24,
+      "materialcost": 0.0
+    },
+    {
+      "productid": 8,
+      "productname": "SP_2",
+      "quantity": 46,
+      "unit": "Hộp",
+      "cost": 1000000.0,
+      "imageurl": "",
+      "description": null,
+      "shelflifemonths": 24,
+      "materialcost": 780000.0
+    },
+    {
+      "productid": 7,
+      "productname": "SP_1",
+      "quantity": 0,
+      "unit": "Hộp",
+      "cost": 500000.0,
+      "imageurl": "",
+      "description": "Thuốc trị táo bón",
+      "shelflifemonths": 24,
+      "materialcost": 325000.0
+    }
+  ],
+  "productexportreceipt": [
+    {
+      "exportreceiptid": 24,
+      "requestedby": null,
+      "approvedby": null,
+      "createddate": "2026-11-11T10:42:53.840499",
+      "status": "Pending",
+      "expreceiptcode": "PXTP0ACE3B57",
+      "orderid": 64
+    },
+    {
+      "exportreceiptid": 25,
+      "requestedby": null,
+      "approvedby": null,
+      "createddate": "2026-11-11T04:14:20.180778",
+      "status": "Approved",
+      "expreceiptcode": "HSP-BG-DPH-0044",
+      "orderid": null
+    }
+  ],
+  "productexportreceiptdetail": [
+    {
+      "exportreceiptid": 24,
+      "productid": 7,
+      "quantity": 12,
+      "price": 500000.0,
+      "status": "Pending",
+      "note": "Yêu cầu xuất từ đơn HD3SEL2D42CC",
+      "createddate": "2026-11-11T10:42:53.840499"
+    },
+    {
+      "exportreceiptid": 25,
+      "productid": 7,
+      "quantity": 50,
+      "price": 325000.0,
+      "status": "Đã hủy",
+      "note": "Hủy sản phẩm hết hạn từ phiếu BG-DPH-0044",
+      "createddate": "2026-11-11T04:14:20.180778"
+    }
+  ],
+  "production_log": [
+    {
+      "logid": 19,
+      "requestid": 19,
+      "productid": 8,
+      "producedquantity": 20,
+      "producedat": "2026-11-10T09:04:37.491652+00:00",
+      "createdat": "2026-11-10T09:04:37.491652+00:00",
+      "createdby": 1,
+      "operationkey": "25dcb062-eb8f-4427-9b5a-f30a60df2580",
+      "note": "",
+      "expireddate": "2028-11-10"
+    },
+    {
+      "logid": 20,
+      "requestid": 18,
+      "productid": 7,
+      "producedquantity": 20,
+      "producedat": "2026-11-10T09:06:48.179987+00:00",
+      "createdat": "2026-11-10T09:06:48.179987+00:00",
+      "createdby": 1,
+      "operationkey": "0e31b4ff-67e3-4ff4-938c-0e65025c0d42",
+      "note": "",
+      "expireddate": "2028-11-10"
+    },
+    {
+      "logid": 21,
+      "requestid": 20,
+      "productid": 8,
+      "producedquantity": 10,
+      "producedat": "2026-11-10T09:08:55.207010+00:00",
+      "createdat": "2026-11-10T09:08:55.207010+00:00",
+      "createdby": 1,
+      "operationkey": "ca19c2a6-ae69-42eb-92bc-a744ca8a6114",
+      "note": "",
+      "expireddate": "2028-11-10"
+    },
+    {
+      "logid": 22,
+      "requestid": 22,
+      "productid": 8,
+      "producedquantity": 50,
+      "producedat": "2026-11-10T09:14:29.793897+00:00",
+      "createdat": "2026-11-10T09:14:29.793897+00:00",
+      "createdby": 1,
+      "operationkey": "dab59911-c6a2-4ae5-8101-1ff6bb12291f",
+      "note": "",
+      "expireddate": "2028-11-10"
+    },
+    {
+      "logid": 23,
+      "requestid": 21,
+      "productid": 7,
+      "producedquantity": 50,
+      "producedat": "2026-11-10T09:14:34.720879+00:00",
+      "createdat": "2026-11-10T09:14:34.720879+00:00",
+      "createdby": 1,
+      "operationkey": "b44150f5-6afb-4114-a6fc-f20a70d62e62",
+      "note": "",
+      "expireddate": "2028-11-10"
+    }
+  ],
+  "productionrequest": [
+    {
+      "requestid": 19,
+      "managerid": 24,
+      "productid": 8,
+      "quantityrequired": 20,
+      "status": "Completed",
+      "createddate": "2026-11-10T09:02:06.251176",
+      "requestcode": "LSX00001",
+      "assignedto": 1
+    },
+    {
+      "requestid": 18,
+      "managerid": 24,
+      "productid": 7,
+      "quantityrequired": 20,
+      "status": "Completed",
+      "createddate": "2026-11-10T09:02:06.251176",
+      "requestcode": "LSX00001",
+      "assignedto": 1
+    },
+    {
+      "requestid": 20,
+      "managerid": 24,
+      "productid": 8,
+      "quantityrequired": 10,
+      "status": "Completed",
+      "createddate": "2026-11-10T09:07:33.494186",
+      "requestcode": "LSX00003",
+      "assignedto": 1
+    },
+    {
+      "requestid": 22,
+      "managerid": 24,
+      "productid": 8,
+      "quantityrequired": 50,
+      "status": "Completed",
+      "createddate": "2026-11-10T09:10:07.920827",
+      "requestcode": "LSX00004",
+      "assignedto": 1
+    },
+    {
+      "requestid": 21,
+      "managerid": 24,
+      "productid": 7,
+      "quantityrequired": 50,
+      "status": "Completed",
+      "createddate": "2026-11-10T09:10:07.920827",
+      "requestcode": "LSX00004",
+      "assignedto": 1
+    },
+    {
+      "requestid": 23,
+      "managerid": 1,
+      "productid": 7,
+      "quantityrequired": 500,
+      "status": "In Production",
+      "createddate": "2026-11-10T09:39:11.882834",
+      "requestcode": null,
+      "assignedto": 1
+    }
+  ],
+  "productreceipt": [
+    {
+      "productreceiptid": 34,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:04:37.471587",
+      "status": "Completed",
+      "requestid": 19,
+      "receiptcode": null
+    },
+    {
+      "productreceiptid": 35,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:05:22.625101",
+      "status": "Rejected",
+      "requestid": 19,
+      "receiptcode": "BG-DPH-0035"
+    },
+    {
+      "productreceiptid": 36,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:05:50.711372",
+      "status": "Approved",
+      "requestid": 19,
+      "receiptcode": "BG-DPH-0036"
+    },
+    {
+      "productreceiptid": 37,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:06:48.179205",
+      "status": "Completed",
+      "requestid": 18,
+      "receiptcode": null
+    },
+    {
+      "productreceiptid": 38,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:06:57.701036",
+      "status": "Approved",
+      "requestid": 18,
+      "receiptcode": "BG-DPH-0038"
+    },
+    {
+      "productreceiptid": 39,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:08:55.206679",
+      "status": "Completed",
+      "requestid": 20,
+      "receiptcode": null
+    },
+    {
+      "productreceiptid": 40,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:09:02.097656",
+      "status": "Approved",
+      "requestid": 20,
+      "receiptcode": "BG-DPH-0040"
+    },
+    {
+      "productreceiptid": 41,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:14:29.793662",
+      "status": "Completed",
+      "requestid": 22,
+      "receiptcode": null
+    },
+    {
+      "productreceiptid": 42,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:14:34.720764",
+      "status": "Completed",
+      "requestid": 21,
+      "receiptcode": null
+    },
+    {
+      "productreceiptid": 43,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:14:41.165440",
+      "status": "Approved",
+      "requestid": 22,
+      "receiptcode": "BG-DPH-0043"
+    },
+    {
+      "productreceiptid": 44,
+      "requestedby": 1,
+      "approvedby": null,
+      "createddate": "2026-11-10T09:14:50.175889",
+      "status": "Approved",
+      "requestid": 21,
+      "receiptcode": "BG-DPH-0044"
+    }
+  ],
+  "productreceiptdetail": [
+    {
+      "productreceiptid": 34,
+      "productid": 8,
+      "quantity": 20,
+      "status": "Completed",
+      "note": "Ghi nhận sản xuất 20 Hộp cho YCSX-00001",
+      "createddate": "2026-11-10T09:04:37.471742",
+      "expireddate": null,
+      "cost": null,
+      "productionlogid": null
+    },
+    {
+      "productreceiptid": 35,
+      "productid": 8,
+      "quantity": 20,
+      "status": "Rejected",
+      "note": "Quy cách bao bì hoặc tiêu chuẩn chất lượng chưa đạt",
+      "createddate": "2026-11-10T09:05:22.852627",
+      "expireddate": "2028-11-10T00:00:00",
+      "cost": null,
+      "productionlogid": 19
+    },
+    {
+      "productreceiptid": 36,
+      "productid": 8,
+      "quantity": 20,
+      "status": "Approved",
+      "note": "[IK:d7f57d71-e663-4d71-a3a3-38be439a5a5b]",
+      "createddate": "2026-11-10T09:05:50.938718",
+      "expireddate": "2028-11-10T09:05:36.287875",
+      "cost": null,
+      "productionlogid": 19
+    },
+    {
+      "productreceiptid": 37,
+      "productid": 7,
+      "quantity": 20,
+      "status": "Completed",
+      "note": "Ghi nhận sản xuất 20 Hộp cho YCSX-00001",
+      "createddate": "2026-11-10T09:06:48.179241",
+      "expireddate": null,
+      "cost": null,
+      "productionlogid": null
+    },
+    {
+      "productreceiptid": 39,
+      "productid": 8,
+      "quantity": 10,
+      "status": "Completed",
+      "note": "Ghi nhận sản xuất 10 Hộp cho YCSX-00003",
+      "createddate": "2026-11-10T09:08:55.206701",
+      "expireddate": null,
+      "cost": null,
+      "productionlogid": null
+    },
+    {
+      "productreceiptid": 40,
+      "productid": 8,
+      "quantity": 10,
+      "status": "Approved",
+      "note": "[IK:69a7caef-a9e6-4389-b2b5-5ab9367a50ad]",
+      "createddate": "2026-11-10T09:09:02.320450",
+      "expireddate": "2028-11-10T09:08:44.845319",
+      "cost": null,
+      "productionlogid": 21
+    },
+    {
+      "productreceiptid": 41,
+      "productid": 8,
+      "quantity": 50,
+      "status": "Completed",
+      "note": "Ghi nhận sản xuất 50 Hộp cho YCSX-00004",
+      "createddate": "2026-11-10T09:14:29.793682",
+      "expireddate": null,
+      "cost": null,
+      "productionlogid": null
+    },
+    {
+      "productreceiptid": 42,
+      "productid": 7,
+      "quantity": 50,
+      "status": "Completed",
+      "note": "Ghi nhận sản xuất 50 Hộp cho YCSX-00004",
+      "createddate": "2026-11-10T09:14:34.720775",
+      "expireddate": null,
+      "cost": null,
+      "productionlogid": null
+    },
+    {
+      "productreceiptid": 43,
+      "productid": 8,
+      "quantity": 50,
+      "status": "Approved",
+      "note": "[IK:285789d0-9477-4cb5-97c7-273f6ac5b676]",
+      "createddate": "2026-11-10T09:14:41.390112",
+      "expireddate": "2028-11-10T09:14:21.101081",
+      "cost": null,
+      "productionlogid": 22
+    },
+    {
+      "productreceiptid": 38,
+      "productid": 7,
+      "quantity": 20,
+      "status": "Approved",
+      "note": "[IK:2d1c60c4-3800-42c6-ac92-0460f71cf297]",
+      "createddate": "2026-11-10T09:06:57.927111",
+      "expireddate": "2028-11-10T09:06:54.588740",
+      "cost": null,
+      "productionlogid": 20
+    },
+    {
+      "productreceiptid": 44,
+      "productid": 7,
+      "quantity": 50,
+      "status": "Approved",
+      "note": "[IK:395eab4b-4fe7-4bd1-ba7a-b975be7c2eee]",
+      "createddate": "2026-11-10T09:14:50.397219",
+      "expireddate": "2025-11-10T09:14:28.881839",
+      "cost": null,
+      "productionlogid": 23
+    }
+  ],
+  "saleorder": [
+    {
+      "orderid": 64,
+      "createdby": null,
+      "customername": "NHÀ THUỐC AN KHANG PHÚ NHUẬN",
+      "customerphone": "0977889900",
+      "shippingaddress": "125 Phan Xích Long, Phú Nhuận, HCM",
+      "totalamount": 6000000.0,
+      "orderdate": "2026-11-11T10:42:44.510314",
+      "status": "PendingApproval",
+      "ordercode": "HD3SEL2D42CC"
+    }
+  ],
+  "saleorderdetail": [
+    {
+      "orderid": 64,
+      "productid": 7,
+      "quantity": 12,
+      "unitprice": 500000.0
+    }
+  ],
+  "supplier": [
+    {
+      "supplierid": 7,
+      "suppliername": "NCC_1",
+      "phone": "024 8888 9998",
+      "address": "abc",
+      "mail": "ncc1@contact.com",
+      "import_cost": 10.0
+    },
+    {
+      "supplierid": 8,
+      "suppliername": "NCC_2",
+      "phone": "024 8888 9997",
+      "address": "abc",
+      "mail": "ncc2@contact.com",
+      "import_cost": 20.0
+    },
+    {
+      "supplierid": 9,
+      "suppliername": "NCC_3",
+      "phone": "024 8888 9996",
+      "address": "abc",
+      "mail": "ncc3@contact.com",
+      "import_cost": 30.0
+    }
+  ],
+  "useraccount": [
+    {
+      "userid": 1,
+      "username": "tonquyen",
+      "password": "AQAAAAIAAYagAAAAEEe+cuiGZjZbQrplzNvToHxnUY+jdcltjMMLrNQOgUGUza+Pos0KIag1lcdoWgJr3w==",
+      "fullname": "Tôn Quyền",
+      "phone": null,
+      "role": "Production",
+      "status": "Active"
+    },
+    {
+      "userid": 6,
+      "username": "sales_nhanvien",
+      "password": "$2a$11$0jNl735x0q0W3v7cW6L5ceh8a4cW1JbF6eE8qP8Z6VwR9P0S2T3u6",
+      "fullname": "Hoàng Bán Lẻ",
+      "phone": "0902000002",
+      "role": "Sales",
+      "status": "Active"
+    },
+    {
+      "userid": 7,
+      "username": "sales_disabled",
+      "password": "$2a$11$0jNl735x0q0W3v7cW6L5ceh8a4cW1JbF6eE8qP8Z6VwR9P0S2T3u6",
+      "fullname": "Đặng Tạm Dừng",
+      "phone": "0902000003",
+      "role": "Sales",
+      "status": "Disabled"
+    },
+    {
+      "userid": 9,
+      "username": "wh_nhanvien",
+      "password": "$2a$11$0jNl735x0q0W3v7cW6L5ceh8a4cW1JbF6eE8qP8Z6VwR9P0S2T3u6",
+      "fullname": "Bùi Thủ Kho",
+      "phone": "0903000002",
+      "role": "Warehouse",
+      "status": "Active"
+    },
+    {
+      "userid": 11,
+      "username": "prod_operator",
+      "password": "$2a$11$0jNl735x0q0W3v7cW6L5ceh8a4cW1JbF6eE8qP8Z6VwR9P0S2T3u6",
+      "fullname": "Vũ Vận Hành",
+      "phone": "0904000002",
+      "role": "Production",
+      "status": "Active"
+    },
+    {
+      "userid": 13,
+      "username": "employee_test",
+      "password": "$2a$11$0jNl735x0q0W3v7cW6L5ceh8a4cW1JbF6eE8qP8Z6VwR9P0S2T3u6",
+      "fullname": "Phạm Nhân Viên",
+      "phone": "0906000001",
+      "role": "Employee",
+      "status": "Active"
+    },
+    {
+      "userid": 3,
+      "username": "admin_sub",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Trần Phụ Tá",
+      "phone": "0901000002",
+      "role": "Admin",
+      "status": "Active"
+    },
+    {
+      "userid": 4,
+      "username": "admin_blocked",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lê Cấm Quyền",
+      "phone": "0901000003",
+      "role": "Admin",
+      "status": "Blocked"
+    },
+    {
+      "userid": 5,
+      "username": "sales_lead",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Trần Ngọc Phương Nhi",
+      "phone": "0902000001",
+      "role": "Sales",
+      "status": "Active"
+    },
+    {
+      "userid": 8,
+      "username": "wh_lead",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Tôn Quyền",
+      "phone": "0903000001",
+      "role": "Warehouse",
+      "status": "Active"
+    },
+    {
+      "userid": 17,
+      "username": "bao.le",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lê Gia Bảo",
+      "phone": "0903123459",
+      "role": "Admin",
+      "status": "Blocked"
+    },
+    {
+      "userid": 18,
+      "username": "ngoc.trinh",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Trịnh Như Ngọc",
+      "phone": "0903123460",
+      "role": "Admin",
+      "status": "Disabled"
+    },
+    {
+      "userid": 19,
+      "username": "dung.dang",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Đặng Tiến Dũng",
+      "phone": "0908234561",
+      "role": "Manager",
+      "status": "Active"
+    },
+    {
+      "userid": 20,
+      "username": "mai.vu",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Vũ Tuyết Mai",
+      "phone": "0908234562",
+      "role": "Manager",
+      "status": "Active"
+    },
+    {
+      "userid": 10,
+      "username": "prod_lead",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lý Minh Huy",
+      "phone": "0904000001",
+      "role": "Production",
+      "status": "Active"
+    },
+    {
+      "userid": 12,
+      "username": "manager_all",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Nguyễn Minh Tài",
+      "phone": "0905000001",
+      "role": "Manager",
+      "status": "Active"
+    },
+    {
+      "userid": 21,
+      "username": "nam.phan",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Phan Hoài Nam",
+      "phone": "0908234563",
+      "role": "Manager",
+      "status": "Active"
+    },
+    {
+      "userid": 2,
+      "username": "admin_master",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Nguyễn Văn Quản Trị",
+      "phone": "0901000001",
+      "role": "Admin",
+      "status": "Active"
+    },
+    {
+      "userid": 14,
+      "username": "tai.nguyen",
+      "password": "$2a$12$JjtivMX.WRDTr33kG.sEgOPUFykrss9dBCQXkiofIwchwJvhg4U5G",
+      "fullname": "Nguyễn Minh Tài",
+      "phone": "0903123456",
+      "role": "Admin",
+      "status": "Active"
+    },
+    {
+      "userid": 15,
+      "username": "quyen.ton",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Tôn Quyền",
+      "phone": "0903123457",
+      "role": "Admin",
+      "status": "Active"
+    },
+    {
+      "userid": 16,
+      "username": "huy.ly",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lý Minh Huy",
+      "phone": "0903123458",
+      "role": "Admin",
+      "status": "Active"
+    },
+    {
+      "userid": 22,
+      "username": "hung.dinh",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Đinh Trọng Hưng",
+      "phone": "0908234564",
+      "role": "Manager",
+      "status": "Blocked"
+    },
+    {
+      "userid": 23,
+      "username": "van.doan",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Đoàn Cẩm Vân",
+      "phone": "0908234565",
+      "role": "Manager",
+      "status": "Disabled"
+    },
+    {
+      "userid": 24,
+      "username": "nhi.tran",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Trần Ngọc Phương Nhi",
+      "phone": "0912345671",
+      "role": "Sales",
+      "status": "Active"
+    },
+    {
+      "userid": 25,
+      "username": "my.bui",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Bùi Thảo My",
+      "phone": "0912345672",
+      "role": "Sales",
+      "status": "Active"
+    },
+    {
+      "userid": 26,
+      "username": "dung.lam",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lâm Chí Dũng",
+      "phone": "0912345673",
+      "role": "Sales",
+      "status": "Active"
+    },
+    {
+      "userid": 27,
+      "username": "linh.cao",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Cao Thùy Linh",
+      "phone": "0912345674",
+      "role": "Sales",
+      "status": "Active"
+    },
+    {
+      "userid": 28,
+      "username": "long.ha",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Hà Quốc Long",
+      "phone": "0912345675",
+      "role": "Sales",
+      "status": "Blocked"
+    },
+    {
+      "userid": 29,
+      "username": "phat.vo",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Võ Tấn Phát",
+      "phone": "0913456781",
+      "role": "BanHang",
+      "status": "Active"
+    },
+    {
+      "userid": 30,
+      "username": "ngan.kim",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Nguyễn Kim Ngân",
+      "phone": "0913456782",
+      "role": "BanHang",
+      "status": "Active"
+    },
+    {
+      "userid": 31,
+      "username": "tung.ho",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Hồ Thanh Tùng",
+      "phone": "0913456783",
+      "role": "BanHang",
+      "status": "Disabled"
+    },
+    {
+      "userid": 32,
+      "username": "khai.ta",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Tạ Quang Khải",
+      "phone": "0934567891",
+      "role": "Warehouse",
+      "status": "Active"
+    },
+    {
+      "userid": 33,
+      "username": "mai.huynh",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Huỳnh Ngọc Mai",
+      "phone": "0934567892",
+      "role": "Warehouse",
+      "status": "Active"
+    },
+    {
+      "userid": 34,
+      "username": "toan.duong",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Dương Văn Toàn",
+      "phone": "0934567893",
+      "role": "Warehouse",
+      "status": "Active"
+    },
+    {
+      "userid": 35,
+      "username": "bich.ngo",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Ngô Thị Ngọc Bích",
+      "phone": "0934567894",
+      "role": "Warehouse",
+      "status": "Blocked"
+    },
+    {
+      "userid": 36,
+      "username": "thang.chu",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Chu Đức Thắng",
+      "phone": "0935678901",
+      "role": "Kho",
+      "status": "Active"
+    },
+    {
+      "userid": 37,
+      "username": "hang.le",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lê Thúy Hằng",
+      "phone": "0935678902",
+      "role": "Kho",
+      "status": "Active"
+    },
+    {
+      "userid": 38,
+      "username": "anh.tuan",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Nguyễn Tuấn Anh",
+      "phone": "0935678903",
+      "role": "Kho",
+      "status": "Disabled"
+    },
+    {
+      "userid": 39,
+      "username": "khanh.bach",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Bạch Công Khanh",
+      "phone": "0945678911",
+      "role": "Production",
+      "status": "Active"
+    },
+    {
+      "userid": 40,
+      "username": "thao.mai",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Mai Phương Thảo",
+      "phone": "0945678912",
+      "role": "Production",
+      "status": "Active"
+    },
+    {
+      "userid": 41,
+      "username": "thanh.luong",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Lương Thế Thành",
+      "phone": "0945678913",
+      "role": "Production",
+      "status": "Active"
+    },
+    {
+      "userid": 42,
+      "username": "chau.do",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Đỗ Minh Châu",
+      "phone": "0945678914",
+      "role": "Production",
+      "status": "Blocked"
+    },
+    {
+      "userid": 43,
+      "username": "hoa.trieu",
+      "password": "$2a$12$LsP273iQDRoYwD/TwmoRPOSuG0vfJPgnNoQqHY3kPLY0Mk8RsppJS",
+      "fullname": "Triệu Thị Hoa",
+      "phone": "0978901231",
+      "role": "Employee",
+      "status": "Active"
+    }
+  ],
+  "wip_inventory": [
+    {
+      "wipid": 38,
+      "requestid": 19,
+      "ingrid": 13,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:04:37.468518"
+    },
+    {
+      "wipid": 39,
+      "requestid": 19,
+      "ingrid": 14,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:04:37.468544"
+    },
+    {
+      "wipid": 40,
+      "requestid": 19,
+      "ingrid": null,
+      "productid": 8,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:05:36.287875"
+    },
+    {
+      "wipid": 41,
+      "requestid": 18,
+      "ingrid": 11,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:06:48.178748"
+    },
+    {
+      "wipid": 42,
+      "requestid": 18,
+      "ingrid": 12,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:06:48.178753"
+    },
+    {
+      "wipid": 43,
+      "requestid": 18,
+      "ingrid": null,
+      "productid": 7,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:06:54.588740"
+    },
+    {
+      "wipid": 44,
+      "requestid": 20,
+      "ingrid": 13,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:08:55.206479"
+    },
+    {
+      "wipid": 45,
+      "requestid": 20,
+      "ingrid": 14,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:08:55.206480"
+    },
+    {
+      "wipid": 46,
+      "requestid": 20,
+      "ingrid": null,
+      "productid": 8,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:08:44.845319"
+    },
+    {
+      "wipid": 49,
+      "requestid": 22,
+      "ingrid": 13,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:14:29.793394"
+    },
+    {
+      "wipid": 50,
+      "requestid": 22,
+      "ingrid": 14,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:14:29.793396"
+    },
+    {
+      "wipid": 47,
+      "requestid": 21,
+      "ingrid": 11,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:14:34.720637"
+    },
+    {
+      "wipid": 48,
+      "requestid": 21,
+      "ingrid": 12,
+      "productid": null,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:14:34.720637"
+    },
+    {
+      "wipid": 51,
+      "requestid": 22,
+      "ingrid": null,
+      "productid": 8,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:14:21.101081"
+    },
+    {
+      "wipid": 52,
+      "requestid": 21,
+      "ingrid": null,
+      "productid": 7,
+      "quantity": 0.0,
+      "lastupdated": "2026-11-10T09:14:28.881839"
+    },
+    {
+      "wipid": 53,
+      "requestid": 23,
+      "ingrid": 11,
+      "productid": null,
+      "quantity": 500.0,
+      "lastupdated": "2026-11-10T16:06:15.720479"
+    },
+    {
+      "wipid": 54,
+      "requestid": 23,
+      "ingrid": 12,
+      "productid": null,
+      "quantity": 1000.0,
+      "lastupdated": "2026-11-10T16:06:15.720479"
+    }
+  ]
+}

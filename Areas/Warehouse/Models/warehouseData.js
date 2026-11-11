@@ -174,8 +174,8 @@ const WarehouseModel = (function () {
             statusText: '',
             employeeName: '',
             description: '',
-            reqQtyColLabel: 'SL Yêu cầu',
-            actualQtyColLabel: 'SL thực nhập',
+            reqQtyColLabel: 'SL nhập',
+            actualQtyColLabel: 'Thực nhập',
             items: []
         },
         outboundCommand: {
@@ -310,6 +310,8 @@ const WarehouseModel = (function () {
                 quantityFormatted: (Number(p.quantity) || 0).toLocaleString('vi-VN'),
                 cost: Number(p.cost) || 0,
                 costFormatted: (Number(p.cost) || 0).toLocaleString('vi-VN'),
+                materialCost: Number(p.materialCost) || 0,
+                materialCostFormatted: (Number(p.materialCost) || 0).toLocaleString('vi-VN'),
                 expiredDate: p.expiredDate || '31/12/2028',
                 description: p.description || '',
                 shelfLifeMonths: p.shelfLifeMonths || 0
@@ -340,6 +342,8 @@ const WarehouseModel = (function () {
                 quantityFormatted: (Number(i.quantity) || 0).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
                 price: Number(i.price) || 0,
                 priceFormatted: (Number(i.price) || 0).toLocaleString('vi-VN'),
+                cost: Number(i.cost) || 0,
+                costFormatted: (Number(i.cost) || 0).toLocaleString('vi-VN'),
                 imageUrl: i.imageUrl || '',
                 expiredDate: i.expiredDate || '31/12/2028',
                 description: i.description || '',
@@ -371,6 +375,8 @@ const WarehouseModel = (function () {
                 quantityFormatted: (Number(data.quantity) || 0).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
                 price: Number(data.price) || 0,
                 priceFormatted: (Number(data.price) || 0).toLocaleString('vi-VN'),
+                cost: Number(data.cost) || 0,
+                costFormatted: (Number(data.cost) || 0).toLocaleString('vi-VN'),
                 imageUrl: data.imageUrl || '',
                 description: data.description || '',
                 shelfLifeMonths: data.shelfLifeMonths || 0,
@@ -390,6 +396,8 @@ const WarehouseModel = (function () {
                     amount: Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0)),
                     amountFormatted: (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))).toLocaleString('vi-VN'),
                     expiredDate: r.expiredDate || '31/12/2028',
+                    isExpired: !!r.isExpired,
+                    isDisposed: !!r.isDisposed,
                     status: r.status || 'Approve',
                     statusType: r.statusType || 'success'
                 }))
@@ -411,6 +419,34 @@ const WarehouseModel = (function () {
         }
     }
 
+    async function disposeExpiredBatchApi(ingrId, receiptId) {
+        const numIngrId = parseInt(String(ingrId).replace(/\D/g, ''), 10) || ingrId;
+        const numReceiptId = parseInt(String(receiptId).replace(/\D/g, ''), 10) || receiptId;
+        const res = await fetch(`/api/warehouse/ingredients/${numIngrId}/dispose-expired-batch/${numReceiptId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Không thể hủy nguyên vật liệu hết hạn.');
+        }
+        return data;
+    }
+
+    async function disposeExpiredProductBatchApi(productId, receiptId) {
+        const numProdId = parseInt(String(productId).replace(/\D/g, ''), 10) || productId;
+        const numReceiptId = parseInt(String(receiptId).replace(/\D/g, ''), 10) || receiptId;
+        const res = await fetch(`/api/warehouse/products/${numProdId}/dispose-expired-batch/${numReceiptId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Không thể hủy thành phẩm hết hạn.');
+        }
+        return data;
+    }
+
     async function fetchProductDetailApi(id) {
         try {
             const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
@@ -418,28 +454,41 @@ const WarehouseModel = (function () {
             if (!res.ok) return null;
             const data = await res.json();
 
-            let receipts = (data.importReceipts || data.productReceipts || []).map(r => ({
-                productReceiptId: r.productReceiptId,
-                voucherNo: r.voucherNo,
-                orderNo: r.orderNo || r.voucherNo,
-                importDate: r.importDate || '',
-                creatorName: r.creatorName || 'Nguyễn Tiến Huy',
-                employeeCode: r.employeeCode || 'NV0005',
-                source: r.source || 'Phân xưởng sản xuất',
-                quantity: Number(r.quantity) || 0,
-                quantityFormatted: (Number(r.quantity) || 0).toLocaleString('vi-VN'),
-                unit: r.unit || data.unit || 'Hộp',
-                cost: Number(r.cost) || 0,
-                costFormatted: (Number(r.cost) || 0).toLocaleString('vi-VN'),
-                amount: Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0)),
-                amountFormatted: (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))).toLocaleString('vi-VN'),
-                expiredDate: r.expiredDate || '31/12/2028',
-                status: r.status || 'Approve',
-                statusType: r.statusType || 'success',
-                note: r.note || ''
-            }));
+            let receipts = (data.importReceipts || data.productReceipts || [])
+                .filter(r => {
+                    if (r && r.isDisposed) return true;
+                    const st = String(r && (r.rawStatus || r.status) || '').trim().toLowerCase();
+                    return st === 'approved' || st === 'approve' || st === 'đã nhập kho' || st === 'đã hủy';
+                })
+                .map(r => ({
+                    productReceiptId: r.productReceiptId,
+                    voucherNo: r.voucherNo,
+                    orderNo: r.orderNo || r.voucherNo,
+                    importDate: r.importDate || '',
+                    creatorName: r.creatorName || 'Nguyễn Tiến Huy',
+                    employeeCode: r.employeeCode || 'NV0005',
+                    source: r.source || 'Phân xưởng sản xuất',
+                    quantity: Number(r.quantity) || 0,
+                    quantityFormatted: (Number(r.quantity) || 0).toLocaleString('vi-VN'),
+                    unit: r.unit || data.unit || 'Hộp',
+                    cost: Number(r.cost) || 0,
+                    costFormatted: (Number(r.cost) || 0).toLocaleString('vi-VN'),
+                    amount: Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0)),
+                    amountFormatted: (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))).toLocaleString('vi-VN'),
+                    expiredDate: r.expiredDate || '31/12/2028',
+                    isExpired: Boolean(r.isExpired),
+                    isDisposed: Boolean(r.isDisposed),
+                    status: r.status || (r.isDisposed ? 'Đã hủy' : 'Approved'),
+                    statusType: r.statusType || (r.isDisposed ? 'danger' : 'success'),
+                    note: r.note || ''
+                }));
 
-                        const formatted = {
+                        // Giá vốn của sản phẩm: lấy theo materialCost hoặc giá cao nhất từ các phiếu nhập thành phẩm
+            const maxReceiptCost = receipts.length > 0 ? Math.max(...receipts.map(r => Number(r.cost) || 0)) : 0;
+            const finalMaterialCost = (Number(data.materialCost) > 0) ? Number(data.materialCost) : (maxReceiptCost > 0 ? maxReceiptCost : 0);
+            const finalCost = Number(data.cost) || 0;
+
+            const formatted = {
                 id: data.id || data.productId,
                 productId: data.productId || data.id,
                 productCode: data.productCode || `SP${String(data.productId || data.id).padStart(3, '0')}`,
@@ -447,8 +496,10 @@ const WarehouseModel = (function () {
                 unit: data.unit || 'Hộp',
                 quantity: Number(data.quantity) || 0,
                 quantityFormatted: (Number(data.quantity) || 0).toLocaleString('vi-VN'),
-                cost: Number(data.cost) || 0,
-                costFormatted: (Number(data.cost) || 0).toLocaleString('vi-VN'),
+                cost: finalCost,
+                costFormatted: finalCost.toLocaleString('vi-VN'),
+                materialCost: finalMaterialCost,
+                materialCostFormatted: finalMaterialCost.toLocaleString('vi-VN'),
                 imageUrl: data.imageUrl || '',
                 description: data.description || '',
                 shelfLifeMonths: data.shelfLifeMonths || 0,
@@ -478,16 +529,21 @@ const WarehouseModel = (function () {
             const res = await fetch('/api/warehouse/suppliers');
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const data = await res.json();
-            supplierList = data.map(s => ({
-                id: s.id || s.supplierId,
-                supplierId: s.supplierId || s.id,
-                code: s.code || `NCC${String(s.supplierId || s.id).padStart(4, '0')}`,
-                name: s.name || s.supplierName,
-                supplierName: s.name || s.supplierName,
-                phone: s.phone || '',
-                address: s.address || '',
-                mail: s.mail || ''
-            }));
+            supplierList = data.map(s => {
+                const cost = (s.importCost !== undefined && s.importCost !== null) ? Number(s.importCost) : 0;
+                return {
+                    id: s.id || s.supplierId,
+                    supplierId: s.supplierId || s.id,
+                    code: s.code || `NCC${String(s.supplierId || s.id).padStart(4, '0')}`,
+                    name: s.name || s.supplierName,
+                    supplierName: s.name || s.supplierName,
+                    phone: s.phone || '',
+                    address: s.address || '',
+                    mail: s.mail || '',
+                    importCost: cost,
+                    importCostFormatted: `${cost}%`
+                };
+            });
             state.suppliers = supplierList;
             return supplierList;
         } catch (err) {
@@ -581,8 +637,10 @@ const WarehouseModel = (function () {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const data = await res.json();
-            outboundDatasets.outboundCommands = data;
-            return data;
+            outboundDatasets.outboundCommands = Array.isArray(data)
+                ? data.filter(r => !String(r.orderNo || r.expReceiptCode || '').trim().toUpperCase().startsWith('HMY-'))
+                : data;
+            return outboundDatasets.outboundCommands;
         } catch (err) {
             console.error('Lỗi khi tải danh sách lệnh xuất NVL:', err);
             return outboundDatasets.outboundCommands;
@@ -595,8 +653,16 @@ const WarehouseModel = (function () {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
-                inboundDatasets.inboundCommands = data;
+            if (Array.isArray(data)) {
+                // Điều kiện: status = ['Approve', 'Pending', 'Rejected'] và receiptcode khác NULL
+                inboundDatasets.inboundCommands = data.filter(r => {
+                    const st = (r.status || r.rawStatus || r.orderStatus || '').toLowerCase();
+                    const hasValidCode = r.receiptCode && String(r.receiptCode).trim() !== '';
+                    const isAllowedStatus = st === 'pending' || st === 'chờ nhập kho' ||
+                                            st === 'approve' || st === 'approved' || st === 'đã nhập kho' ||
+                                            st === 'reject' || st === 'rejected' || st === 'từ chối';
+                    return hasValidCode && isAllowedStatus;
+                });
             }
             return inboundDatasets.inboundCommands;
         } catch (err) {
@@ -626,7 +692,10 @@ const WarehouseModel = (function () {
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const data = await res.json();
             if (Array.isArray(data)) {
-                outboundDatasets.outboundReceipts = data;
+                outboundDatasets.outboundReceipts = data.filter(r => {
+                    const code = String(r.voucherNo || r.orderNo || r.expReceiptCode || '').trim().toUpperCase();
+                    return !code.startsWith('HSP-');
+                });
             }
             return outboundDatasets.outboundReceipts;
         } catch (err) {
@@ -810,6 +879,10 @@ const WarehouseModel = (function () {
             return fetchIngredientsApi(keyword);
         },
 
+        async fetchIngredientsApi(keyword = '') {
+            return fetchIngredientsApi(keyword);
+        },
+
         async loadSuppliers() {
             return fetchSuppliersApi();
         },
@@ -826,7 +899,8 @@ const WarehouseModel = (function () {
                     productName: (newItem.productName || '').trim(),
                     quantity: 0,
                     unit: (newItem.unit || '').trim(),
-                    cost: 0,
+                    cost: parseFloat(newItem.cost) || 0,
+                    materialCost: 0, // Giá vốn được khóa khi thêm mới, cập nhật từ phiếu nhập kho thành phẩm
                     imageUrl: (newItem.imageUrl || '').trim(),
                     description: (newItem.description || '').trim(),
                     shelfLifeMonths: 24
@@ -850,19 +924,28 @@ const WarehouseModel = (function () {
                     unit: saved.unit || payload.unit || '',
                     quantity: 0,
                     quantityFormatted: '0',
-                    cost: 0,
-                    costFormatted: '0',
+                    cost: Number(saved.cost ?? payload.cost) || 0,
+                    costFormatted: (Number(saved.cost ?? payload.cost) || 0).toLocaleString('vi-VN'),
+                    materialCost: Number(saved.materialCost ?? payload.materialCost) || 0,
+                    materialCostFormatted: (Number(saved.materialCost ?? payload.materialCost) || 0).toLocaleString('vi-VN'),
                     expiredDate: '',
                     description: saved.description || payload.description || '',
                     shelfLifeMonths: saved.shelfLifeMonths || 24
                 };
                 vthhDatasets.products.unshift(newProd);
             } else {
+                const cleanPrice = typeof newItem.price === 'string' ? (parseFloat(newItem.price.replace(/[^\d.]/g, '')) || 0) : (Number(newItem.price) || 0);
+                if (cleanPrice <= 0) {
+                    throw new Error('Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0.');
+                }
+                const cleanCost = typeof newItem.cost === 'string' ? (parseFloat(newItem.cost.replace(/[^\d.]/g, '')) || 0) : (Number(newItem.cost) || 0);
+
                 const payload = {
                     ingrName: (newItem.ingrName || '').trim(),
                     quantity: 0,
                     unit: (newItem.unit || '').trim(),
-                    price: 0,
+                    price: cleanPrice,
+                    cost: cleanCost,
                     imageUrl: (newItem.imageUrl || '').trim(),
                     description: (newItem.description || '').trim(),
                     shelfLifeMonths: 24
@@ -887,6 +970,8 @@ const WarehouseModel = (function () {
                     quantityFormatted: (Number(saved.quantity ?? payload.quantity) || 0).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                     price: Number(saved.price ?? payload.price) || 0,
                     priceFormatted: (Number(saved.price ?? payload.price) || 0).toLocaleString('vi-VN'),
+                    cost: Number(saved.cost ?? payload.cost) || 0,
+                    costFormatted: (Number(saved.cost ?? payload.cost) || 0).toLocaleString('vi-VN'),
                     imageUrl: saved.imageUrl || '',
                     description: saved.description || payload.description || '',
                     expiredDate: saved.expiredDate || '31/12/2028',
@@ -900,11 +985,13 @@ const WarehouseModel = (function () {
             const isProd = itemType === 'product';
             const numId = parseInt(String(itemId).replace(/\D/g, ''), 10) || itemId;
             if (isProd) {
+                const cleanCost = typeof updatedData.cost === 'string' ? (parseFloat(updatedData.cost.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.cost) || 0);
+
                 const payload = {
                     productName: (updatedData.productName || '').trim(),
                     quantity: parseInt(updatedData.quantity, 10) || 0,
                     unit: (updatedData.unit || 'Hộp').trim(),
-                    cost: parseFloat(updatedData.cost) || 0,
+                    cost: cleanCost,
                     imageUrl: (updatedData.imageUrl || '').trim(),
                     description: (updatedData.description || '').trim()
                 };
@@ -917,29 +1004,33 @@ const WarehouseModel = (function () {
                     const err = await res.json().catch(() => ({ message: 'Cập nhật sản phẩm thất bại.' }));
                     throw new Error(err.message || 'Cập nhật sản phẩm thất bại.');
                 }
+                const saved = await res.json().catch(() => ({}));
                 // Đồng bộ ngay trong bộ nhớ để giao diện cập nhật tức thì
                 const existing = vthhDatasets.products.find(p => p.id === numId || p.productId === numId || p.productCode === String(itemId));
                 if (existing) {
                     if (payload.productName) existing.productName = payload.productName;
                     if (updatedData.unit !== undefined) existing.unit = payload.unit;
-                    if (payload.quantity !== undefined) {
-                        existing.quantity = payload.quantity;
-                        existing.quantityFormatted = payload.quantity.toLocaleString('vi-VN');
-                    }
-                    if (payload.cost !== undefined) {
-                        existing.cost = payload.cost;
-                        existing.costFormatted = payload.cost.toLocaleString('vi-VN');
-                    }
                     if (payload.imageUrl !== undefined) existing.imageUrl = payload.imageUrl || '';
                     if (payload.description !== undefined) existing.description = payload.description;
-                    if (updatedData.expiredDate !== undefined) existing.expiredDate = (updatedData.expiredDate || '').trim();
+                    if (saved && saved.cost !== undefined) {
+                        existing.cost = Number(saved.cost) || 0;
+                        existing.costFormatted = (Number(saved.cost) || 0).toLocaleString('vi-VN');
+                    }
+                    if (saved && saved.materialCost !== undefined) {
+                        existing.materialCost = Number(saved.materialCost) || 0;
+                        existing.materialCostFormatted = (Number(saved.materialCost) || 0).toLocaleString('vi-VN');
+                    }
                 }
             } else {
+                const cleanPrice = typeof updatedData.price === 'string' ? (parseFloat(updatedData.price.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.price) || 0);
+                const cleanCost = typeof updatedData.cost === 'string' ? (parseFloat(updatedData.cost.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.cost) || 0);
+
                 const payload = {
                     ingrName: (updatedData.ingrName || '').trim(),
                     quantity: parseFloat(updatedData.quantity) || 0,
                     unit: (updatedData.unit || '').trim(),
-                    price: parseFloat(updatedData.price) || 0,
+                    price: cleanPrice,
+                    cost: cleanCost,
                     imageUrl: (updatedData.imageUrl || '').trim(),
                     description: (updatedData.description || '').trim()
                 };
@@ -952,6 +1043,7 @@ const WarehouseModel = (function () {
                     const err = await res.json().catch(() => ({ message: 'Cập nhật nguyên vật liệu thất bại.' }));
                     throw new Error(err.message || 'Cập nhật nguyên vật liệu thất bại.');
                 }
+                const saved = await res.json().catch(() => ({}));
                 // Đồng bộ ngay trong bộ nhớ để giao diện cập nhật tức thì
                 const existing = vthhDatasets.ingredients.find(i => i.id === numId || i.ingrId === numId || i.ingrCode === String(itemId));
                 if (existing) {
@@ -964,6 +1056,10 @@ const WarehouseModel = (function () {
                     if (payload.price !== undefined) {
                         existing.price = payload.price;
                         existing.priceFormatted = payload.price.toLocaleString('vi-VN');
+                    }
+                    if (payload.cost !== undefined) {
+                        existing.cost = payload.cost;
+                        existing.costFormatted = payload.cost.toLocaleString('vi-VN');
                     }
                     if (payload.imageUrl !== undefined) existing.imageUrl = payload.imageUrl || '';
                     if (payload.description !== undefined) existing.description = payload.description;
@@ -1039,7 +1135,7 @@ const WarehouseModel = (function () {
                 unit: '',
                 quantity: 0,
                 cost: 0,
-                expiredDate: '',
+                materialCost: 0,
                 description: ''
             } : {
                 id: null,
@@ -1049,6 +1145,7 @@ const WarehouseModel = (function () {
                 unit: '',
                 quantity: 0,
                 price: 0,
+                cost: 0,
                 expiredDate: '',
                 description: ''
             };
@@ -1145,13 +1242,14 @@ const WarehouseModel = (function () {
                 columns = [
                     { key: 'productCode', label: 'Mã sản phẩm', isLink: true, width: '120px' },
                     { key: 'imageUrl', label: 'Hình ảnh', isImage: true, width: '75px', align: 'center' },
-                    { key: 'productName', label: 'Tên sản phẩm', width: '230px' },
-                    { key: 'unit', label: 'ĐVT', width: '80px' },
-                    { key: 'quantityFormatted', label: 'SL tồn', width: '100px' },
-                    { key: 'costFormatted', label: 'Giá vốn (VNĐ)', width: '130px' },
-                    { key: 'expiredDate', label: 'Hạn sử dụng', width: '120px' },
+                    { key: 'productName', label: 'Tên sản phẩm', width: '220px' },
+                    { key: 'unit', label: 'ĐVT', width: '75px' },
+                    { key: 'quantityFormatted', label: 'SL tồn', width: '90px' },
+                    { key: 'costFormatted', label: 'Giá bán (VNĐ)', width: '125px', align: 'right' },
+                    { key: 'materialCostFormatted', label: 'Giá vốn (VNĐ)', width: '125px', align: 'right' },
+                    { key: 'expiredDate', label: 'Hạn sử dụng', width: '115px' },
                     { key: 'description', label: 'Mô tả / Tiêu chuẩn' },
-                    { key: 'action', label: 'Thao tác', isActionDelete: true, width: '95px', align: 'center' }
+                    { key: 'action', label: 'Thao tác', isActionDelete: true, width: '90px', align: 'center' }
                 ];
             } else {
                 // Bỏ đi cột Hạn sử dụng và Mô tả ở trang nguyên vật liệu theo yêu cầu
@@ -1160,7 +1258,8 @@ const WarehouseModel = (function () {
                     { key: 'ingrName', label: 'Tên nguyên vật liệu' },
                     { key: 'unit', label: 'ĐVT', width: '90px', align: 'center' },
                     { key: 'quantityFormatted', label: 'SL tồn', width: '120px', align: 'right' },
-                    { key: 'priceFormatted', label: 'Đơn giá (VNĐ)', width: '150px', align: 'right' },
+                    { key: 'priceFormatted', label: 'Đơn giá (VNĐ)', width: '140px', align: 'right' },
+                    { key: 'costFormatted', label: 'Giá nhập (VNĐ)', width: '140px', align: 'right' },
                     { key: 'action', label: 'Thao tác', isActionDelete: true, width: '105px', align: 'center' }
                 ];
             }
@@ -1224,8 +1323,8 @@ const WarehouseModel = (function () {
                             assignedTo: cmdRow.assignedTo,
                             assignedToName: cmdRow.assignedToName,
                             assignedToEmployeeCode: cmdRow.assignedToEmployeeCode,
-                            reqQtyColLabel: 'SL Yêu cầu',
-                            actualQtyColLabel: 'SL thực nhập',
+                            reqQtyColLabel: 'SL nhập',
+                            actualQtyColLabel: 'Thực nhập',
                             items: (cmdRow.items && cmdRow.items.length > 0) ? cmdRow.items : []
                         };
                     }
@@ -1257,6 +1356,10 @@ const WarehouseModel = (function () {
                             assignedTo: cmdRow.assignedTo,
                             assignedToName: cmdRow.assignedToName,
                             assignedToEmployeeCode: cmdRow.assignedToEmployeeCode,
+                            canApprove: cmdRow.canApprove,
+                            hasStockIssue: cmdRow.hasStockIssue,
+                            hasExpiryIssue: cmdRow.hasExpiryIssue,
+                            approvalBlockReason: cmdRow.approvalBlockReason,
                             reqQtyColLabel: 'SL Yêu cầu',
                             actualQtyColLabel: 'SL thực xuất',
                             items: (cmdRow.items && cmdRow.items.length > 0) ? cmdRow.items : []
@@ -1298,7 +1401,8 @@ const WarehouseModel = (function () {
                             approverName: receiptRow.approverName || '',
                             canApprove: receiptRow.canApprove !== false,
                             hasStockIssue: receiptRow.hasStockIssue === true,
-                            approvalBlockReason: receiptRow.approvalBlockReason || (receiptRow.hasStockIssue ? 'Có sản phẩm không đủ tồn kho để xuất' : ''),
+                            hasExpiryIssue: receiptRow.hasExpiryIssue === true,
+                            approvalBlockReason: receiptRow.approvalBlockReason || (receiptRow.hasStockIssue ? 'Có sản phẩm không đủ điều kiện tồn kho để xuất' : ''),
                             quantityColumnLabel: 'SL xuất',
                             selectedSubType: 'Xuất kho thành phẩm',
                             partnerCodeOptions: [receiptRow.orderCode || 'DH00001', 'KH001', 'KH002'],
@@ -1315,6 +1419,12 @@ const WarehouseModel = (function () {
                                 quantity: Number(item.quantity) || 0,
                                 stockQty: item.stockQty !== undefined ? Number(item.stockQty) : null,
                                 isOutOfStock: item.isOutOfStock === true,
+                                expiredStockQty: item.expiredStockQty !== undefined ? Number(item.expiredStockQty) : 0,
+                                validStockQty: item.validStockQty !== undefined ? Number(item.validStockQty) : null,
+                                conditionStatus: item.conditionStatus || '',
+                                conditionType: item.conditionType || '',
+                                isItemEligible: item.isItemEligible !== false,
+                                blockReason: item.blockReason || '',
                                 price: Number(item.price) || 0,
                                 amount: (item.amount !== undefined && item.amount !== null) ? Number(item.amount) : (Number(item.quantity) || 0) * (Number(item.price) || 0),
                                 batchNo: item.batchNo || 'LOT-2026-TP',
@@ -1487,30 +1597,64 @@ const WarehouseModel = (function () {
                 state.inboundNewDraft.supplierId = null;
                 state.inboundNewDraft.supplierCode = '';
                 state.inboundNewDraft.supplierName = '';
-                return;
+                state.inboundNewDraft.importCost = 0;
+            } else {
+                const suppliers = this.getSuppliersList();
+                const sup = suppliers.find(s => s.code === supplierVal || s.name === supplierVal);
+                if (sup) {
+                    state.inboundNewDraft.supplierId = sup.id || sup.supplierId;
+                    state.inboundNewDraft.supplierCode = sup.code;
+                    state.inboundNewDraft.supplierName = sup.name;
+                    state.inboundNewDraft.importCost = (sup.importCost !== undefined && sup.importCost !== null) ? Number(sup.importCost) : 0;
+                }
             }
-            const suppliers = this.getSuppliersList();
-            const sup = suppliers.find(s => s.code === supplierVal || s.name === supplierVal);
-            if (sup) {
-                state.inboundNewDraft.supplierId = sup.id || sup.supplierId;
-                state.inboundNewDraft.supplierCode = sup.code;
-                state.inboundNewDraft.supplierName = sup.name;
+
+            // Tính lại đơn giá và thành tiền cho tất cả các dòng NVL theo tỷ lệ chi phí nhập mới
+            const importCostPct = Number(state.inboundNewDraft.importCost) || 0;
+            const ingrList = this.getIngredientsList();
+            if (Array.isArray(state.inboundNewDraft.items)) {
+                state.inboundNewDraft.items.forEach(row => {
+                    if (row.itemCode) {
+                        const ingr = ingrList.find(i => i.ingrCode === row.itemCode);
+                        const basePrice = (row.rawPrice !== undefined && row.rawPrice !== null)
+                            ? Number(row.rawPrice)
+                            : (ingr ? Number(ingr.price || 0) : 0);
+                        row.rawPrice = basePrice;
+                        // Công thức: Đơn giá NVL + (Đơn giá NVL * import_cost / 100)
+                        row.price = Math.round(basePrice + (basePrice * importCostPct / 100));
+                        const qty = parseFloat(row.quantity) || 0;
+                        row.amount = Math.round(qty * row.price);
+                    }
+                });
             }
         },
 
         addInboundNewItemRow() {
-            if (!state.inboundNewDraft) return;
-            const nextId = (state.inboundNewDraft.items.length > 0 ? Math.max(...state.inboundNewDraft.items.map(i => i.id)) : 0) + 1;
+            if (!state.inboundNewDraft) return { success: false };
+            const ingrList = this.getIngredientsList();
+            const currentItems = state.inboundNewDraft.items || [];
+            if (ingrList.length > 0 && currentItems.length >= ingrList.length) {
+                const selectedCount = new Set(currentItems.filter(i => i.itemCode).map(i => i.itemCode)).size;
+                return {
+                    success: false,
+                    message: selectedCount >= ingrList.length
+                        ? 'Tất cả nguyên vật liệu trong danh mục đã được thêm vào phiếu này. Không được thêm nguyên vật liệu trùng lặp!'
+                        : `Chỉ có tối đa ${ingrList.length} nguyên vật liệu khác nhau trong danh mục. Vui lòng chọn nguyên vật liệu cho các dòng hiện có!`
+                };
+            }
+            const nextId = (currentItems.length > 0 ? Math.max(...currentItems.map(i => i.id)) : 0) + 1;
             state.inboundNewDraft.items.push({
                 id: nextId,
                 itemCode: '',
                 itemName: '',
                 unit: '-',
                 quantity: '',
+                rawPrice: 0,
                 price: 0,
                 amount: 0,
                 expiryDate: '-'
             });
+            return { success: true };
         },
 
         clearInboundNewItemRows() {
@@ -1525,45 +1669,77 @@ const WarehouseModel = (function () {
         },
 
         changeInboundNewItem(rowId, ingrCode) {
-            if (!state.inboundNewDraft) return;
+            if (!state.inboundNewDraft) return { success: false };
             const row = state.inboundNewDraft.items.find(i => i.id === Number(rowId));
-            if (!row) return;
+            if (!row) return { success: false };
             if (!ingrCode) {
                 row.itemCode = '';
                 row.itemName = '';
                 row.unit = '-';
+                row.rawPrice = 0;
                 row.price = 0;
                 row.expiryDate = '-';
                 row.amount = 0;
-                return;
+                return { success: true };
             }
             const ingrList = this.getIngredientsList();
             const ingr = ingrList.find(i => i.ingrCode === ingrCode);
+            const isDuplicate = state.inboundNewDraft.items.some(i => i.id !== Number(rowId) && i.itemCode === ingrCode);
+            if (isDuplicate) {
+                const label = ingr ? `${ingr.ingrName} (${ingr.ingrCode})` : ingrCode;
+                return {
+                    success: false,
+                    duplicate: true,
+                    message: `Nguyên vật liệu '${label}' đã được thêm trước đó trong phiếu này. Không được thêm nguyên liệu mới trùng với nguyên liệu đã thêm trước đó!`
+                };
+            }
             if (ingr) {
                 row.itemCode = ingr.ingrCode;
                 row.itemName = ingr.ingrName;
                 row.unit = ingr.unit || 'kg';
-                row.price = ingr.price || 0;
+                row.rawPrice = Number(ingr.price || 0);
+                const importCostPct = Number(state.inboundNewDraft.importCost) || 0;
+                // Công thức: Đơn giá NVL + (Đơn giá NVL * import_cost / 100)
+                row.price = Math.round(row.rawPrice + (row.rawPrice * importCostPct / 100));
                 row.expiryDate = ingr.expiredDate || '31/12/2026';
                 row.ingrId = ingr.id || ingr.ingrId;
                 const qty = parseFloat(row.quantity) || 0;
-                row.amount = qty * (row.price || 0);
+                row.amount = Math.round(qty * (row.price || 0));
             }
+            return { success: true };
         },
 
         changeInboundNewItemQty(rowId, newQty) {
             if (!state.inboundNewDraft) return null;
             const row = state.inboundNewDraft.items.find(i => i.id === Number(rowId));
             if (!row) return null;
-            const qty = parseFloat(newQty) || 0;
+            let strVal = String(newQty || '').trim();
+            if (strVal.length > 6) {
+                strVal = strVal.slice(0, 6);
+            }
+            let qty = parseFloat(strVal) || 0;
+            if (qty > 999999) qty = 999999;
             row.quantity = qty;
-            row.amount = qty * (row.price || 0);
+            row.amount = Math.round(qty * (row.price || 0));
             return row;
         },
 
         async saveInboundReceipt(isDraft = false) {
             if (!state.inboundNewDraft) return { success: false, message: 'Không có dữ liệu phiếu!' };
             const draft = state.inboundNewDraft;
+
+            // Kiểm tra không có dòng nguyên vật liệu trùng nhau
+            const selectedItems = (draft.items || []).filter(it => it.itemCode);
+            const seenCodes = new Set();
+            for (const it of selectedItems) {
+                if (seenCodes.has(it.itemCode)) {
+                    return {
+                        success: false,
+                        message: `Nguyên vật liệu '${it.itemName || it.itemCode} (${it.itemCode})' bị trùng lặp. Không được thêm nguyên liệu mới trùng với nguyên liệu đã thêm trước đó!`
+                    };
+                }
+                seenCodes.add(it.itemCode);
+            }
 
             if (isDraft) {
                 // Lưu nháp: CHƯA LƯU VÀO DATABASE mà chỉ nằm trên giao diện (local state)
@@ -1748,8 +1924,10 @@ const WarehouseModel = (function () {
         setOperationTab(pageType, tabId) {
             if (pageType === 'nhap-kho') {
                 state.inbound.activeTab = tabId;
+                state.inbound.statusFilter = 'Tất cả';
             } else if (pageType === 'xuat-kho') {
                 state.outbound.activeTab = tabId;
+                state.outbound.orderStatusFilter = 'Tất cả';
             } else if (pageType === 'danh-muc-vthh') {
                 state.vthh.activeTab = tabId;
             } else if (pageType === 'yeu-cau-san-xuat') {
@@ -1917,7 +2095,17 @@ const WarehouseModel = (function () {
 
             const filteredByStatus = (state.inbound.statusFilter === 'Tất cả' || !state.inbound.statusFilter)
                 ? sourceRows
-                : sourceRows.filter(r => (r.orderStatus === state.inbound.statusFilter || r.status === state.inbound.statusFilter));
+                : sourceRows.filter(r => {
+                    const filter = state.inbound.statusFilter;
+                    if (r.orderStatus === filter || r.status === filter) return true;
+                    if ((filter === 'Approve' || filter === 'Approved' || filter === 'Đã nhập kho') &&
+                        (r.status === 'Approved' || r.status === 'Approve' || r.orderStatus === 'Đã nhập kho')) return true;
+                    if ((filter === 'Pending' || filter === 'Chờ nhập kho') &&
+                        (r.status === 'Pending' || r.orderStatus === 'Chờ nhập kho')) return true;
+                    if ((filter === 'Rejected' || filter === 'Reject' || filter === 'Từ chối') &&
+                        (r.status === 'Rejected' || r.status === 'Reject' || r.orderStatus === 'Từ chối')) return true;
+                    return false;
+                });
 
             const filtered = filterByKeyword(
                 filteredByStatus,
@@ -1981,7 +2169,7 @@ const WarehouseModel = (function () {
                         value: state.inbound.statusFilter || 'Tất cả',
                         options: isVoucherTab
                             ? ['Tất cả', 'Lưu nháp', 'Approve', 'Reject']
-                            : ['Tất cả', 'Chờ nhập kho', 'Đã nhập kho', 'Từ chối']
+                            : ['Tất cả', 'Pending', 'Approve', 'Rejected']
                     }
                 ],
                 showAddButton: isVoucherTab,
@@ -2009,7 +2197,14 @@ const WarehouseModel = (function () {
 
             const filteredByStatus = state.outbound.orderStatusFilter === 'Tất cả'
                 ? sourceRows
-                : sourceRows.filter(r => (r.orderStatus || r.status) === state.outbound.orderStatusFilter);
+                : sourceRows.filter(r => {
+                    const rowStatus = String(r.orderStatus || r.status || r.rawStatus || '').trim();
+                    if (state.outbound.orderStatusFilter === 'Cancel') {
+                        const lower = rowStatus.toLowerCase();
+                        return lower === 'cancel' || lower === 'cancelled' || lower === 'canceled' || rowStatus === 'Đã hủy';
+                    }
+                    return rowStatus === state.outbound.orderStatusFilter;
+                });
 
             const filtered = filterByKeyword(
                 filteredByStatus,
@@ -2066,7 +2261,7 @@ const WarehouseModel = (function () {
                 ],
                 searchValue: state.outbound.searchKeyword,
                 filters: [
-                    { id: 'outbound-status-filter', prefix: 'Trạng thái:', value: state.outbound.orderStatusFilter, options: ['Tất cả', 'Chờ xuất kho', 'Đã xuất kho', 'Từ chối'] }
+                    { id: 'outbound-status-filter', prefix: 'Trạng thái:', value: state.outbound.orderStatusFilter, options: ['Tất cả', 'Chờ xuất kho', 'Đã xuất kho', 'Từ chối', 'Cancel'] }
                 ],
                 columns,
                 rows: filtered,
@@ -2445,6 +2640,14 @@ const WarehouseModel = (function () {
             return fetchIngredientDetailApi(id);
         },
 
+        async disposeExpiredBatchApi(ingrId, receiptId) {
+            return disposeExpiredBatchApi(ingrId, receiptId);
+        },
+
+        async disposeExpiredProductBatchApi(productId, receiptId) {
+            return disposeExpiredProductBatchApi(productId, receiptId);
+        },
+
         async fetchProductDetailApi(id) {
             return fetchProductDetailApi(id);
         },
@@ -2578,7 +2781,33 @@ const WarehouseModel = (function () {
         setPrAssignmentFilter(val) {
             if (state.productionRequest) {
                 state.productionRequest.assignmentFilter = val;
+                state.productionRequest.receiveFilter = val;
             }
+        },
+
+        setPrReceiveFilter(val) {
+            if (state.productionRequest) {
+                state.productionRequest.receiveFilter = val;
+                state.productionRequest.assignmentFilter = val;
+            }
+        },
+
+        async receiveProductionRequest(requestId) {
+            const currentUsr = state.currentUser || { userId: 9 };
+            const numId = parseInt(String(requestId).replace(/\D/g, ''), 10) || requestId;
+            const res = await fetch(`/api/warehouse/production-requests/${numId}/receive`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receiverId: currentUsr.userId })
+            });
+            const resText = await res.text();
+            let data = {};
+            try { data = JSON.parse(resText); } catch (_) { data = { message: resText }; }
+            if (!res.ok) {
+                throw new Error(data.message || 'Tiếp nhận yêu cầu sản xuất thất bại.');
+            }
+            await this.fetchProductionRequestsApi();
+            return data;
         },
 
         setPrSearchKeyword(kw) {
@@ -2611,10 +2840,11 @@ const WarehouseModel = (function () {
                 rows = rows.filter(r => r.status === prState.statusFilter);
             }
 
-            // Lọc theo Assignment dropdown
-            if (prState.assignmentFilter === 'Đã phân công') {
+            // Lọc theo Tiếp nhận dropdown
+            const recFilter = prState.receiveFilter || prState.assignmentFilter;
+            if (recFilter === 'Đã tiếp nhận' || recFilter === 'Đã phân công') {
                 rows = rows.filter(r => r.assignedTo != null);
-            } else if (prState.assignmentFilter === 'Chưa phân công') {
+            } else if (recFilter === 'Chưa tiếp nhận' || recFilter === 'Chưa phân công') {
                 rows = rows.filter(r => r.assignedTo == null);
             }
 
@@ -2639,6 +2869,7 @@ const WarehouseModel = (function () {
                 pending: allRows.filter(r => r.status === 'Pending' || r.status === 'Chờ xử lý').length,
                 inProduction: allRows.filter(r => r.status === 'In Production' || r.status === 'In Progress' || r.status === 'Đang sản xuất').length,
                 completed: allRows.filter(r => r.status === 'Completed' || r.status === 'Đã hoàn thành').length,
+                unreceived: allRows.filter(r => r.assignedTo == null).length,
                 unassigned: allRows.filter(r => r.assignedTo == null).length
             };
 
@@ -2650,9 +2881,9 @@ const WarehouseModel = (function () {
                 { key: 'unit', label: 'ĐVT', width: '70px', align: 'center' },
                 { key: 'quantityRequired', label: 'Số lượng SX', width: '110px', align: 'right', isNumber: true },
                 { key: 'managerName', label: 'Người lập', width: '150px' },
-                { key: 'assignedToName', label: 'Người được phân công', width: '190px', isPrAssigned: true },
+                { key: 'assignedToName', label: 'Nhân viên tiếp nhận', width: '190px', isPrAssigned: true },
                 { key: 'status', label: 'Trạng thái', width: '130px', align: 'center', isPrStatus: true },
-                { key: 'actions', label: 'Thao tác', width: '130px', align: 'center', isPrActions: true }
+                { key: 'actions', label: 'Thao tác', width: '110px', align: 'center', isPrActions: true }
             ];
 
             return {
@@ -2672,10 +2903,10 @@ const WarehouseModel = (function () {
                         options: ['Tất cả', 'Pending', 'In Production', 'Completed', 'Cancelled']
                     },
                     {
-                        id: 'pr-assign-filter',
-                        prefix: 'Phân công:',
-                        value: prState.assignmentFilter,
-                        options: ['Tất cả', 'Đã phân công', 'Chưa phân công']
+                        id: 'pr-receive-filter',
+                        prefix: 'Tiếp nhận:',
+                        value: prState.receiveFilter || prState.assignmentFilter || 'Tất cả',
+                        options: ['Tất cả', 'Đã tiếp nhận', 'Chưa tiếp nhận']
                     }
                 ],
                 searchValue: prState.searchKeyword || '',
@@ -2693,24 +2924,69 @@ const WarehouseModel = (function () {
         openCreatePrModal() {
             const nextIdx = (state.productionRequests?.length || 0) + 1;
             const code = 'LSX' + String(nextIdx).padStart(5, '0');
-            const defaultProd = vthhDatasets.products[0] || { id: 1, productCode: 'SP001', productName: 'Sản phẩm', unit: 'Hộp' };
 
             state.productionRequestModal = {
                 mode: 'create',
                 item: {
                     requestId: 0,
                     requestCode: code,
-                    productId: defaultProd.id || defaultProd.productId || 1,
-                    productCode: defaultProd.productCode || 'SP001',
-                    productName: defaultProd.productName,
-                    unit: defaultProd.unit || 'Hộp',
-                    quantityRequired: 500,
                     status: 'Pending',
-                    managerId: 24,
-                    managerName: 'Tôn Quyền',
-                    assignedTo: null
+                    items: [] // Danh sách thành phẩm yêu cầu bắt đầu TRỐNG
                 }
             };
+        },
+
+        addPrItemRow() {
+            if (!state.productionRequestModal || !state.productionRequestModal.item) return;
+            const item = state.productionRequestModal.item;
+            if (!Array.isArray(item.items)) item.items = [];
+            const nextId = (item.items.length > 0 ? Math.max(...item.items.map(i => i.id || 0)) : 0) + 1;
+
+            // Thêm 1 dòng trống vào bảng (chưa chọn sản phẩm, mã & tên & ĐVT trống)
+            item.items.push({
+                id: nextId,
+                productId: null,
+                productCode: '',
+                productName: '',
+                unit: '',
+                quantityRequired: 100
+            });
+        },
+
+        removePrItemRow(rowId) {
+            if (!state.productionRequestModal || !state.productionRequestModal.item) return;
+            const item = state.productionRequestModal.item;
+            if (!Array.isArray(item.items)) return;
+            item.items = item.items.filter(i => i.id !== Number(rowId));
+        },
+
+        changePrItemProduct(rowId, productId) {
+            if (!state.productionRequestModal || !state.productionRequestModal.item) return;
+            const item = state.productionRequestModal.item;
+            if (!Array.isArray(item.items)) return;
+            const row = item.items.find(i => i.id === Number(rowId));
+            if (!row) return;
+            const prod = (vthhDatasets.products || []).find(p => (p.id || p.productId) == productId);
+            if (prod) {
+                row.productId = prod.id || prod.productId;
+                row.productCode = prod.productCode || '';
+                row.productName = prod.productName || '';
+                row.unit = prod.unit || 'Hộp';
+            } else {
+                row.productId = null;
+                row.productCode = '';
+                row.productName = '';
+                row.unit = '';
+            }
+        },
+
+        changePrItemQty(rowId, qty) {
+            if (!state.productionRequestModal || !state.productionRequestModal.item) return;
+            const item = state.productionRequestModal.item;
+            if (!Array.isArray(item.items)) return;
+            const row = item.items.find(i => i.id === Number(rowId));
+            if (!row) return;
+            row.quantityRequired = Math.max(1, parseInt(qty, 10) || 1);
         },
 
         openEditPrModal(item) {
@@ -2856,11 +3132,12 @@ const WarehouseModel = (function () {
             const paginatedRows = items.slice(startIndex, startIndex + pageSize);
 
             const columns = [
-                { key: 'code', label: 'Mã nhà cung cấp', width: '150px', isSupplierCode: true },
-                { key: 'supplierName', label: 'Tên nhà cung cấp', minWidth: '260px' },
-                { key: 'phone', label: 'Số điện thoại', width: '150px' },
-                { key: 'mail', label: 'Email', width: '220px' },
-                { key: 'address', label: 'Địa chỉ', minWidth: '260px' },
+                { key: 'code', label: 'Mã nhà cung cấp', width: '140px', isSupplierCode: true },
+                { key: 'supplierName', label: 'Tên nhà cung cấp', minWidth: '240px' },
+                { key: 'importCostFormatted', label: 'Tỷ lệ phí nhập (%)', width: '150px', align: 'center' },
+                { key: 'phone', label: 'Số điện thoại', width: '140px' },
+                { key: 'mail', label: 'Email', width: '200px' },
+                { key: 'address', label: 'Địa chỉ', minWidth: '240px' },
                 { key: 'actions', label: 'Thao tác', width: '130px', align: 'center', isSupplierActions: true }
             ];
 

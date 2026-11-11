@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using httt.Data;
 using httt.Models;
 using httt.Areas.Warehouse.Models;
+using httt.Areas.Warehouse.Services;
 
 namespace httt.Areas.Warehouse.Controllers;
 
@@ -19,24 +20,138 @@ public class ProductExportApiController : ControllerBase
         _context = context;
     }
 
+    private sealed record ProductEligibility(
+        int StockQty,
+        int ExpiredStockQty,
+        int ValidStockQty,
+        bool IsOutOfStock,
+        bool IsEligible,
+        string ConditionStatus,
+        string ConditionType,
+        string BlockMessage);
+
+    private async Task<Dictionary<int, int>> GetActiveExpiredStockByProductAsync(IEnumerable<int> productIds)
+    {
+        var ids = productIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, int>();
+
+        var disposedBatches = await (
+            from pe in _context.ProductExportReceipts.AsNoTracking()
+            join ped in _context.ProductExportReceiptDetails.AsNoTracking() on pe.ExportReceiptId equals ped.ExportReceiptId
+            where pe.ExpReceiptCode != null && pe.ExpReceiptCode.StartsWith("HSP-") && ids.Contains(ped.ProductId)
+            select new { pe.ExpReceiptCode, ped.ProductId }
+        ).ToListAsync();
+
+        var approvedReceiptsMap = await _context.ProductReceipts.AsNoTracking()
+            .Where(r => r.Status == "Approved" || r.Status == "Approve")
+            .ToDictionaryAsync(r => r.ProductReceiptId, r => r.ReceiptCode);
+
+        var approvedReceiptIds = approvedReceiptsMap.Keys.ToList();
+        if (approvedReceiptIds.Count == 0) return new Dictionary<int, int>();
+
+        var now = DateTime.UtcNow;
+        var rawExpiredBatches = await _context.ProductReceiptDetails
+            .AsNoTracking()
+            .Where(b => ids.Contains(b.ProductId)
+                        && b.ExpiredDate != null
+                        && b.ExpiredDate <= now
+                        && approvedReceiptIds.Contains(b.ProductReceiptId))
+            .ToListAsync();
+
+        return rawExpiredBatches
+            .Where(b =>
+            {
+                var code = approvedReceiptsMap.TryGetValue(b.ProductReceiptId, out var c) && !string.IsNullOrWhiteSpace(c)
+                    ? c
+                    : $"LNK{b.ProductReceiptId:D5}";
+                bool isDisposed = disposedBatches.Any(d =>
+                    d.ProductId == b.ProductId
+                    && (string.Equals(d.ExpReceiptCode, $"HSP-{code}", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(d.ExpReceiptCode, $"HSP-LNK{b.ProductReceiptId:D5}", StringComparison.OrdinalIgnoreCase)));
+                return !isDisposed;
+            })
+            .GroupBy(b => b.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+    }
+
+    private static ProductEligibility EvaluateProductEligibility(Product? prod, int reqQty, Dictionary<int, int> expiredBatchesByProduct)
+    {
+        int stockQty = prod?.Quantity ?? 0;
+        int expiredBatchSum = prod != null && expiredBatchesByProduct.TryGetValue(prod.ProductId, out var sum) ? sum : 0;
+        int expiredStock = Math.Min(stockQty, expiredBatchSum);
+        int validStock = Math.Max(0, stockQty - expiredStock);
+        string name = prod?.ProductName ?? "N/A";
+        string code = prod != null ? $"SP{prod.ProductId:D3}" : "";
+        string unit = !string.IsNullOrWhiteSpace(prod?.Unit) ? prod!.Unit : "Hộp";
+
+        if (stockQty <= 0 && expiredStock == 0)
+        {
+            return new ProductEligibility(
+                stockQty, expiredStock, validStock, true, false,
+                "Thiếu tồn kho", "danger",
+                $"Không đủ tồn kho: '{name}' ({code}) chỉ còn {stockQty:N0} {unit} (yêu cầu xuất {reqQty:N0} {unit}).");
+        }
+        if (expiredStock > 0 && validStock <= 0)
+        {
+            return new ProductEligibility(
+                stockQty, expiredStock, validStock, false, false,
+                "Tồn kho hết hạn", "danger",
+                $"Toàn bộ hàng tồn kho ({stockQty:N0} {unit}) của '{name}' ({code}) đã hết hạn sử dụng (Tồn kho hết hạn).");
+        }
+        if (expiredStock > 0 && validStock < reqQty)
+        {
+            return new ProductEligibility(
+                stockQty, expiredStock, validStock, false, false,
+                "Thiếu số lượng đạt chuẩn", "warning",
+                $"'{name}' ({code}) thiếu số lượng đạt chuẩn (tồn đạt chuẩn: {validStock:N0} {unit}, đã hết hạn: {expiredStock:N0} {unit}, yêu cầu xuất: {reqQty:N0} {unit}).");
+        }
+        if (validStock < reqQty)
+        {
+            return new ProductEligibility(
+                stockQty, expiredStock, validStock, true, false,
+                $"Thiếu {reqQty - stockQty:N0}", "danger",
+                $"Không đủ tồn kho: '{name}' ({code}) chỉ còn {stockQty:N0} {unit} (yêu cầu xuất {reqQty:N0} {unit}).");
+        }
+        return new ProductEligibility(
+            stockQty, expiredStock, validStock, false, true,
+            "Đủ điều kiện", "success", "");
+    }
+
     /// <summary>
     /// GET /api/warehouse/product-exports : Danh sách tất cả lệnh/phiếu xuất kho thành phẩm
     /// </summary>
+    /// <summary>
+    /// Chuẩn hóa trạng thái phiếu xuất kho thành phẩm sang nhãn hiển thị và loại badge UI.
+    /// </summary>
+    private static (string DisplayStatus, string StatusType, bool IsPending) MapExportStatus(string? status)
+    {
+        if (SaleOrderCancellationSync.IsCancelStatus(status))
+            return ("Cancel", "danger", false);
+        if (SaleOrderCancellationSync.IsApprovedStatus(status))
+            return ("Đã xuất kho", "success", false);
+        if (SaleOrderCancellationSync.IsRejectedStatus(status))
+            return ("Từ chối", "danger", false);
+        return ("Chờ xuất kho", "warning", true);
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetProductExports([FromQuery] string? status = null, [FromQuery] string? keyword = null)
     {
-        await SeedSampleDataIfEmptyAsync();
+        await SaleOrderCancellationSync.SyncAsync(_context);
 
-        var query = _context.ProductExportReceipts.AsNoTracking();
+        var query = _context.ProductExportReceipts.AsNoTracking()
+            .Where(e => e.ExpReceiptCode == null || !e.ExpReceiptCode.StartsWith("HSP-"));
 
         if (!string.IsNullOrWhiteSpace(status) && status != "Tất cả")
         {
             if (status == "Chờ xuất kho" || status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
                 query = query.Where(e => e.Status == "Pending" || e.Status == "Chờ xuất kho");
             else if (status == "Đã xuất kho" || status.Equals("Approved", StringComparison.OrdinalIgnoreCase) || status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
-                query = query.Where(e => e.Status == "Approved" || e.Status == "Đã xuất kho" || e.Status == "Completed");
+                query = query.Where(e => e.Status == "Approved" || e.Status == "Approve" || e.Status == "Đã xuất kho" || e.Status == "Completed");
             else if (status == "Từ chối" || status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
-                query = query.Where(e => e.Status == "Rejected" || e.Status == "Từ chối");
+                query = query.Where(e => e.Status == "Rejected" || e.Status == "Reject" || e.Status == "Từ chối");
+            else if (SaleOrderCancellationSync.IsCancelStatus(status))
+                query = query.Where(e => e.Status != null && (e.Status.ToLower() == "cancel" || e.Status.ToLower() == "cancelled" || e.Status.ToLower() == "canceled" || e.Status == "Đã hủy"));
         }
 
         var list = await query.OrderByDescending(e => e.CreatedDate).ToListAsync();
@@ -52,6 +167,8 @@ public class ProductExportApiController : ControllerBase
             .AsNoTracking()
             .Where(p => prodIds.Contains(p.ProductId))
             .ToDictionaryAsync(p => p.ProductId);
+
+        var expiredBatchesByProduct = await GetActiveExpiredStockByProductAsync(prodIds);
 
         var orderIds = list.Select(e => e.OrderId).Where(o => o.HasValue).Select(o => o!.Value).Distinct().ToList();
         var saleOrders = await _context.SaleOrders
@@ -75,25 +192,13 @@ public class ProductExportApiController : ControllerBase
             string customerName = so?.CustomerName ?? "Công ty Dược phẩm / Đại lý";
             string orderCode = so?.OrderCode ?? (e.OrderId.HasValue ? $"DH{e.OrderId:D5}" : "");
 
-            string displayStatus = "Chờ xuất kho";
-            string statusType = "warning";
-            if (e.Status == "Approved" || e.Status == "Đã xuất kho" || e.Status == "Completed")
-            {
-                displayStatus = "Đã xuất kho";
-                statusType = "success";
-            }
-            else if (e.Status == "Rejected" || e.Status == "Từ chối")
-            {
-                displayStatus = "Từ chối";
-                statusType = "danger";
-            }
+            var (displayStatus, statusType, isPending) = MapExportStatus(e.Status);
 
             var items = eDetails.Select((d, idx) =>
             {
                 prods.TryGetValue(d.ProductId, out var prod);
                 var cost = d.Price ?? prod?.Cost ?? 0;
-                var stockQty = prod?.Quantity ?? 0;
-                var isOutOfStock = stockQty < d.Quantity;
+                var elig = EvaluateProductEligibility(prod, d.Quantity, expiredBatchesByProduct);
 
                 return new
                 {
@@ -109,17 +214,24 @@ public class ProductExportApiController : ControllerBase
                     amount = d.Quantity * cost,
                     status = d.Status,
                     note = d.Note ?? "",
-                    stockQty,
-                    isOutOfStock
+                    stockQty = elig.StockQty,
+                    isOutOfStock = elig.IsOutOfStock,
+                    expiredStockQty = elig.ExpiredStockQty,
+                    validStockQty = elig.ValidStockQty,
+                    conditionStatus = elig.ConditionStatus,
+                    conditionType = elig.ConditionType,
+                    isItemEligible = elig.IsEligible,
+                    blockReason = elig.BlockMessage
                 };
             }).ToList();
 
             string desc = eDetails.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Note))?.Note
                 ?? (so != null ? $"Xuất kho bán hàng cho {so.CustomerName} (Đơn #{orderCode})" : $"Xuất kho thành phẩm theo lệnh {e.ExpReceiptCode}");
 
-            var hasStockIssue = items.Any(it => it.isOutOfStock);
-            var isPending = e.Status == "Pending" || e.Status == "Chờ xuất kho";
-            var canApprove = isPending && !hasStockIssue;
+            var hasStockIssue = items.Any(it => !it.isItemEligible);
+            var hasExpiryIssue = items.Any(it => it.expiredStockQty > 0 && !it.isItemEligible);
+            var canApprove = isPending && items.All(it => it.isItemEligible);
+            var approvalBlockReason = items.FirstOrDefault(it => !it.isItemEligible)?.blockReason ?? "";
 
             return new
             {
@@ -149,7 +261,9 @@ public class ProductExportApiController : ControllerBase
                 totalQuantity = items.Sum(i => i.quantity),
                 totalAmount = items.Sum(i => i.amount),
                 hasStockIssue,
+                hasExpiryIssue,
                 canApprove,
+                approvalBlockReason,
                 items
             };
         }).ToList();
@@ -175,6 +289,8 @@ public class ProductExportApiController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetProductExportById(int id)
     {
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
         var receipt = await _context.ProductExportReceipts.FindAsync(id);
         if (receipt == null)
         {
@@ -184,6 +300,7 @@ public class ProductExportApiController : ControllerBase
         var details = await _context.ProductExportReceiptDetails.Where(d => d.ExportReceiptId == id).ToListAsync();
         var prodIds = details.Select(d => d.ProductId).Distinct().ToList();
         var prods = await _context.Products.Where(p => prodIds.Contains(p.ProductId)).ToDictionaryAsync(p => p.ProductId);
+        var expiredBatchesByProduct = await GetActiveExpiredStockByProductAsync(prodIds);
 
         SaleOrder? so = null;
         if (receipt.OrderId.HasValue)
@@ -208,25 +325,13 @@ public class ProductExportApiController : ControllerBase
         string customerName = so?.CustomerName ?? "Công ty Dược phẩm / Đại lý";
         string orderCode = so?.OrderCode ?? (receipt.OrderId.HasValue ? $"DH{receipt.OrderId:D5}" : "");
 
-        string displayStatus = "Chờ xuất kho";
-        string statusType = "warning";
-        if (receipt.Status == "Approved" || receipt.Status == "Đã xuất kho" || receipt.Status == "Completed")
-        {
-            displayStatus = "Đã xuất kho";
-            statusType = "success";
-        }
-        else if (receipt.Status == "Rejected" || receipt.Status == "Từ chối")
-        {
-            displayStatus = "Từ chối";
-            statusType = "danger";
-        }
+        var (displayStatus, statusType, isPending) = MapExportStatus(receipt.Status);
 
         var items = details.Select((d, idx) =>
         {
             prods.TryGetValue(d.ProductId, out var prod);
             var cost = d.Price ?? prod?.Cost ?? 0;
-            var stockQty = prod?.Quantity ?? 0;
-            var isOutOfStock = stockQty < d.Quantity;
+            var elig = EvaluateProductEligibility(prod, d.Quantity, expiredBatchesByProduct);
 
             return new
             {
@@ -244,21 +349,22 @@ public class ProductExportApiController : ControllerBase
                 amount = d.Quantity * cost,
                 status = d.Status,
                 note = d.Note ?? "",
-                stockQty,
-                isOutOfStock
+                stockQty = elig.StockQty,
+                isOutOfStock = elig.IsOutOfStock,
+                expiredStockQty = elig.ExpiredStockQty,
+                validStockQty = elig.ValidStockQty,
+                conditionStatus = elig.ConditionStatus,
+                conditionType = elig.ConditionType,
+                isItemEligible = elig.IsEligible,
+                blockReason = elig.BlockMessage
             };
         }).ToList();
 
-        var hasStockIssue = items.Any(it => it.isOutOfStock);
-        var isPending = receipt.Status == "Pending" || receipt.Status == "Chờ xuất kho";
-        var canApprove = isPending && !hasStockIssue;
+        var hasStockIssue = items.Any(it => !it.isItemEligible);
+        var hasExpiryIssue = items.Any(it => it.expiredStockQty > 0 && !it.isItemEligible);
+        var canApprove = isPending && items.All(it => it.isItemEligible);
 
-        string approvalBlockReason = "";
-        if (hasStockIssue)
-        {
-            var firstOut = items.First(it => it.isOutOfStock);
-            approvalBlockReason = $"Không đủ tồn kho: '{firstOut.itemName}' chỉ còn {firstOut.stockQty} {firstOut.unit} (yêu cầu xuất {firstOut.quantity} {firstOut.unit}).";
-        }
+        string approvalBlockReason = items.FirstOrDefault(it => !it.isItemEligible)?.blockReason ?? "";
 
         string desc = details.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Note))?.Note
             ?? (so != null ? $"Xuất kho bán hàng cho {so.CustomerName} (Đơn #{orderCode})" : $"Xuất kho thành phẩm theo lệnh {receipt.ExpReceiptCode}");
@@ -292,6 +398,7 @@ public class ProductExportApiController : ControllerBase
             approverName,
             canApprove,
             hasStockIssue,
+            hasExpiryIssue,
             approvalBlockReason,
             totalItems = items.Count,
             totalQuantity = items.Sum(i => i.quantity),
@@ -306,20 +413,33 @@ public class ProductExportApiController : ControllerBase
     [HttpPut("{id:int}/approve")]
     public async Task<IActionResult> ApproveProductExport(int id)
     {
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
         var receipt = await _context.ProductExportReceipts.FindAsync(id);
         if (receipt == null)
         {
             return NotFound(new { message = $"Không tìm thấy lệnh xuất hàng ID {id}." });
         }
 
-        if (receipt.Status == "Approved" || receipt.Status == "Đã xuất kho" || receipt.Status == "Completed")
+        if (SaleOrderCancellationSync.IsCancelStatus(receipt.Status))
+        {
+            return BadRequest(new { success = false, message = "Đơn hàng liên kết đã ở trạng thái Cancel nên phiếu xuất kho này đã bị hủy, không thể duyệt xuất kho." });
+        }
+
+        if (SaleOrderCancellationSync.IsRejectedStatus(receipt.Status))
+        {
+            return BadRequest(new { success = false, message = "Phiếu xuất kho này đang ở trạng thái từ chối (Rejected), không thể duyệt xuất kho." });
+        }
+
+        if (SaleOrderCancellationSync.IsApprovedStatus(receipt.Status))
         {
             return BadRequest(new { message = "Lệnh xuất hàng này đã được duyệt xuất kho trước đó." });
         }
 
         var details = await _context.ProductExportReceiptDetails.Where(d => d.ExportReceiptId == id).ToListAsync();
+        var expiredBatchesByProduct = await GetActiveExpiredStockByProductAsync(details.Select(d => d.ProductId));
 
-        // 1. Kiểm tra tồn kho thành phẩm
+        // 1. Kiểm tra tồn kho & hạn sử dụng thành phẩm
         foreach (var d in details)
         {
             var prod = await _context.Products.FindAsync(d.ProductId);
@@ -327,9 +447,10 @@ public class ProductExportApiController : ControllerBase
             {
                 return BadRequest(new { message = $"Không tìm thấy sản phẩm có ID {d.ProductId} trong kho." });
             }
-            if ((prod.Quantity ?? 0) < d.Quantity)
+            var elig = EvaluateProductEligibility(prod, d.Quantity, expiredBatchesByProduct);
+            if (!elig.IsEligible)
             {
-                return BadRequest(new { message = $"Không đủ tồn kho để xuất: '{prod.ProductName}' chỉ còn {prod.Quantity ?? 0} {prod.Unit} (yêu cầu xuất {d.Quantity} {prod.Unit})." });
+                return BadRequest(new { success = false, message = $"Không thể duyệt phiếu: {elig.BlockMessage}" });
             }
         }
 
@@ -366,10 +487,22 @@ public class ProductExportApiController : ControllerBase
     [HttpPut("{id:int}/reject")]
     public async Task<IActionResult> RejectProductExport(int id, [FromBody] RejectDto? dto)
     {
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
         var receipt = await _context.ProductExportReceipts.FindAsync(id);
         if (receipt == null)
         {
             return NotFound(new { message = $"Không tìm thấy lệnh xuất hàng ID {id}." });
+        }
+
+        if (SaleOrderCancellationSync.IsCancelStatus(receipt.Status))
+        {
+            return BadRequest(new { success = false, message = "Đơn hàng liên kết đã ở trạng thái Cancel nên phiếu xuất kho này đã bị hủy." });
+        }
+
+        if (SaleOrderCancellationSync.IsApprovedStatus(receipt.Status))
+        {
+            return BadRequest(new { success = false, message = "Phiếu xuất hàng này đã được duyệt xuất kho, không thể chuyển sang từ chối." });
         }
 
         receipt.Status = "Rejected";
@@ -388,6 +521,22 @@ public class ProductExportApiController : ControllerBase
             exportReceiptId = receipt.ExportReceiptId,
             status = "Rejected",
             orderStatus = "Từ chối"
+        });
+    }
+
+    /// <summary>
+    /// POST /api/warehouse/product-exports/sync-cancelled-orders : Đồng bộ thủ công các đơn hàng đã chuyển sang trạng thái Cancel
+    /// </summary>
+    [HttpPost("sync-cancelled-orders")]
+    public async Task<IActionResult> SyncCancelledOrders()
+    {
+        var (pendingCancelled, approvedRefunded) = await SaleOrderCancellationSync.SyncAsync(_context);
+        return Ok(new
+        {
+            success = true,
+            pendingCancelled,
+            approvedRefunded,
+            message = $"Đã đồng bộ đơn hàng hủy: {pendingCancelled} phiếu Pending -> Cancel, {approvedRefunded} phiếu Approved hoàn tồn & Cancel."
         });
     }
 
@@ -475,151 +624,33 @@ public class ProductExportApiController : ControllerBase
     }
 
     /// <summary>
-    /// Tự động khởi tạo dữ liệu mẫu thực tế nếu bảng ProductExportReceipts trong DB đang trống
+    /// DELETE /api/warehouse/product-exports/{id} : Xóa phiếu xuất kho thành phẩm
     /// </summary>
-    private async Task SeedSampleDataIfEmptyAsync()
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteProductExport(int id)
     {
-        if (await _context.ProductExportReceipts.AnyAsync()) return;
-
-        var prods = await _context.Products.Take(4).ToListAsync();
-        if (prods.Count == 0) return;
-
-        var user = await _context.UserAccounts.FirstOrDefaultAsync();
-        var now = DateTime.UtcNow;
-
-        // 1. Tạo Đơn bán hàng 1
-        var so1 = new SaleOrder
+        var receipt = await _context.ProductExportReceipts.FindAsync(id);
+        if (receipt == null)
         {
-            CustomerName = "CÔNG TY DƯỢC PHẨM TRUNG ƯƠNG 1 (CPC1)",
-            CustomerPhone = "024.3845.6789",
-            ShippingAddress = "160 Tôn Đức Thắng, Hàng Bột, Đống Đa, Hà Nội",
-            OrderDate = now.AddHours(-4),
-            Status = "Approved",
-            OrderCode = "DH00001",
-            TotalAmount = 25000000
-        };
-        _context.SaleOrders.Add(so1);
-
-        // 2. Tạo Đơn bán hàng 2
-        var so2 = new SaleOrder
-        {
-            CustomerName = "HỆ THỐNG NHÀ THUỐC FPT LONG CHÂU",
-            CustomerPhone = "1800.6928",
-            ShippingAddress = "379-381 Hai Bà Trưng, P. Võ Thị Sáu, Quận 3, TP. Hồ Chí Minh",
-            OrderDate = now.AddDays(-1),
-            Status = "Approved",
-            OrderCode = "DH00002",
-            TotalAmount = 45000000
-        };
-        _context.SaleOrders.Add(so2);
-
-        // 3. Tạo Đơn bán hàng 3
-        var so3 = new SaleOrder
-        {
-            CustomerName = "CÔNG TY CỔ PHẦN DƯỢC PHẨM PHARMACITY",
-            CustomerPhone = "1800.6821",
-            ShippingAddress = "248A Nơ Trang Long, P. 12, Q. Bình Thạnh, TP. Hồ Chí Minh",
-            OrderDate = now.AddDays(-3),
-            Status = "Approved",
-            OrderCode = "DH00003",
-            TotalAmount = 32000000
-        };
-        _context.SaleOrders.Add(so3);
-
-        await _context.SaveChangesAsync();
-
-        // 4. Tạo Phiếu xuất 1 (Chờ xuất kho)
-        var pxk1 = new ProductExportReceipt
-        {
-            ExportReceiptId = 1,
-            ExpReceiptCode = "PXK_BH0001",
-            OrderId = so1.OrderId,
-            RequestedBy = user?.UserID,
-            CreatedDate = now.AddHours(-3),
-            Status = "Chờ xuất kho"
-        };
-        _context.ProductExportReceipts.Add(pxk1);
-
-        // 5. Tạo Phiếu xuất 2 (Đã xuất kho)
-        var pxk2 = new ProductExportReceipt
-        {
-            ExportReceiptId = 2,
-            ExpReceiptCode = "PXK_BH0002",
-            OrderId = so2.OrderId,
-            RequestedBy = user?.UserID,
-            ApprovedBy = user?.UserID,
-            CreatedDate = now.AddDays(-1),
-            Status = "Đã xuất kho"
-        };
-        _context.ProductExportReceipts.Add(pxk2);
-
-        // 6. Tạo Phiếu xuất 3 (Chờ xuất kho)
-        var pxk3 = new ProductExportReceipt
-        {
-            ExportReceiptId = 3,
-            ExpReceiptCode = "PXK_BH0003",
-            OrderId = so3.OrderId,
-            RequestedBy = user?.UserID,
-            CreatedDate = now.AddHours(-1),
-            Status = "Chờ xuất kho"
-        };
-        _context.ProductExportReceipts.Add(pxk3);
-
-        await _context.SaveChangesAsync();
-
-        // Chi tiết cho PXK1
-        _context.ProductExportReceiptDetails.Add(new ProductExportReceiptDetail
-        {
-            ExportReceiptId = pxk1.ExportReceiptId,
-            ProductId = prods[0].ProductId,
-            Quantity = 50,
-            Price = prods[0].Cost ?? 120000,
-            Status = "Chờ xuất kho",
-            Note = "Xuất kho bán hàng theo đơn #DH00001 cho CPC1",
-            CreatedDate = now.AddHours(-3)
-        });
-        if (prods.Count > 1)
-        {
-            _context.ProductExportReceiptDetails.Add(new ProductExportReceiptDetail
-            {
-                ExportReceiptId = pxk1.ExportReceiptId,
-                ProductId = prods[1].ProductId,
-                Quantity = 30,
-                Price = prods[1].Cost ?? 180000,
-                Status = "Chờ xuất kho",
-                Note = "Xuất kho bán hàng theo đơn #DH00001 cho CPC1",
-                CreatedDate = now.AddHours(-3)
-            });
+            return NotFound(new { message = $"Không tìm thấy phiếu xuất kho có ID {id}." });
         }
 
-        // Chi tiết cho PXK2
-        _context.ProductExportReceiptDetails.Add(new ProductExportReceiptDetail
-        {
-            ExportReceiptId = pxk2.ExportReceiptId,
-            ProductId = prods[0].ProductId,
-            Quantity = 100,
-            Price = prods[0].Cost ?? 120000,
-            Status = "Đã xuất kho",
-            Note = "Đã giao hàng và hóa đơn cho Long Châu",
-            CreatedDate = now.AddDays(-1)
-        });
+        var details = await _context.ProductExportReceiptDetails.Where(d => d.ExportReceiptId == id).ToListAsync();
+        _context.ProductExportReceiptDetails.RemoveRange(details);
+        _context.ProductExportReceipts.Remove(receipt);
 
-        // Chi tiết cho PXK3
-        if (prods.Count > 2)
+        if (receipt.OrderId.HasValue)
         {
-            _context.ProductExportReceiptDetails.Add(new ProductExportReceiptDetail
+            var otherUsingOrder = await _context.ProductExportReceipts.AnyAsync(e => e.OrderId == receipt.OrderId && e.ExportReceiptId != id);
+            if (!otherUsingOrder)
             {
-                ExportReceiptId = pxk3.ExportReceiptId,
-                ProductId = prods[2].ProductId,
-                Quantity = 40,
-                Price = prods[2].Cost ?? 250000,
-                Status = "Chờ xuất kho",
-                Note = "Xuất đơn hàng cho Pharmacity",
-                CreatedDate = now.AddHours(-1)
-            });
+                var order = await _context.SaleOrders.FindAsync(receipt.OrderId.Value);
+                if (order != null) _context.SaleOrders.Remove(order);
+            }
         }
 
         await _context.SaveChangesAsync();
+        return Ok(new { success = true, message = $"Đã xóa phiếu xuất kho {receipt.ExpReceiptCode} thành công." });
     }
 }
 

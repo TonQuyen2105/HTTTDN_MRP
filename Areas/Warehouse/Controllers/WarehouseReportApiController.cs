@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using httt.Data;
 using httt.Areas.Warehouse.Models;
+using httt.Areas.Warehouse.Services;
 
 namespace httt.Areas.Warehouse.Controllers;
 
@@ -24,6 +25,8 @@ public class WarehouseReportApiController : ControllerBase
     [HttpGet("stock-card")]
     public async Task<IActionResult> GetStockCard([FromQuery] int itemId, [FromQuery] string itemType = "ingredient")
     {
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
         if (itemType.ToLower() == "ingredient")
         {
             var ingr = await _context.Ingredients.FindAsync(itemId);
@@ -56,16 +59,17 @@ public class WarehouseReportApiController : ControllerBase
             var exportHistories = exportDetails.Select(d =>
             {
                 exportReceipts.TryGetValue(d.ExpReceiptId, out var r);
+                bool isDisposal = r != null && (r.ExpReceiptCode?.StartsWith("HMY-") == true || d.Note?.Contains("Hủy") == true);
                 return new
                 {
                     transDate = r?.CreatedDate,
                     voucherNo = r?.ExpReceiptCode ?? $"PXK{d.ExpReceiptId:D5}",
-                    transType = "Xuất kho sản xuất",
+                    transType = isDisposal ? "Hủy nguyên vật liệu hết hạn" : "Xuất kho sản xuất",
                     inQty = 0m,
                     outQty = d.Quantity,
                     unit = ingr.Unit,
                     cost = d.UnitCost ?? 0,
-                    status = r?.Status
+                    status = isDisposal ? "Đã hủy" : (r?.Status ?? "Approved")
                 };
             }).ToList();
 
@@ -89,41 +93,58 @@ public class WarehouseReportApiController : ControllerBase
 
             var receiptDetails = await _context.ProductReceiptDetails.Where(d => d.ProductId == itemId).ToListAsync();
             var receiptIds = receiptDetails.Select(d => d.ProductReceiptId).Distinct().ToList();
-            var productReceipts = await _context.ProductReceipts.Where(r => receiptIds.Contains(r.ProductReceiptId)).ToDictionaryAsync(r => r.ProductReceiptId);
+            var productReceipts = await _context.ProductReceipts
+                .Where(r => receiptIds.Contains(r.ProductReceiptId))
+                .Where(r => (r.Status == "Approved" || r.Status == "Approve") && r.ReceiptCode != null && r.ReceiptCode != "")
+                .ToDictionaryAsync(r => r.ProductReceiptId);
 
-            var receiptHistories = receiptDetails.Select(d =>
-            {
-                productReceipts.TryGetValue(d.ProductReceiptId, out var r);
-                return new
+            var receiptHistories = receiptDetails
+                .Where(d => productReceipts.ContainsKey(d.ProductReceiptId))
+                .Select(d =>
                 {
-                    transDate = r?.CreatedDate,
-                    voucherNo = r?.ReceiptCode ?? $"PNK_TP{d.ProductReceiptId:D4}",
-                    transType = "Nhập thành phẩm từ xưởng",
-                    inQty = (decimal)d.Quantity,
-                    outQty = 0m,
-                    unit = prod.Unit,
-                    status = r?.Status
-                };
-            }).ToList();
+                    var r = productReceipts[d.ProductReceiptId];
+                    bool isReturnRefund = (r.ReceiptCode?.StartsWith("HOAN-", StringComparison.OrdinalIgnoreCase) == true)
+                                          || (d.Note?.Contains("Hoàn lại số lượng đã xuất", StringComparison.OrdinalIgnoreCase) == true);
+                    return new
+                    {
+                        transDate = r.CreatedDate,
+                        voucherNo = r.ReceiptCode ?? $"PNK_TP{d.ProductReceiptId:D4}",
+                        transType = isReturnRefund ? "Hoàn lại số lượng đã xuất" : "Nhập thành phẩm từ xưởng",
+                        inQty = (decimal)d.Quantity,
+                        outQty = 0m,
+                        unit = prod.Unit,
+                        cost = (d.Cost.HasValue && d.Cost.Value > 0) ? d.Cost.Value : (prod.MaterialCost ?? prod.Cost ?? 0),
+                        status = r.Status ?? "Approved"
+                    };
+                }).ToList();
 
             var exportDetails = await _context.ProductExportReceiptDetails.Where(d => d.ProductId == itemId).ToListAsync();
             var exportIds = exportDetails.Select(d => d.ExportReceiptId).Distinct().ToList();
-            var exportReceipts = await _context.ProductExportReceipts.Where(r => exportIds.Contains(r.ExportReceiptId)).ToDictionaryAsync(r => r.ExportReceiptId);
+            var exportReceipts = await _context.ProductExportReceipts
+                .Where(r => exportIds.Contains(r.ExportReceiptId))
+                .Where(r => r.Status == "Approved" || r.Status == "Approve")
+                .ToDictionaryAsync(r => r.ExportReceiptId);
 
-            var exportHistories = exportDetails.Select(d =>
-            {
-                exportReceipts.TryGetValue(d.ExportReceiptId, out var r);
-                return new
+            var exportHistories = exportDetails
+                .Where(d => exportReceipts.ContainsKey(d.ExportReceiptId))
+                .Select(d =>
                 {
-                    transDate = r?.CreatedDate,
-                    voucherNo = r?.ExpReceiptCode ?? $"PXK_BH{d.ExportReceiptId:D4}",
-                    transType = "Xuất bán hàng",
-                    inQty = 0m,
-                    outQty = (decimal)d.Quantity,
-                    unit = prod.Unit,
-                    status = r?.Status
-                };
-            }).ToList();
+                    var r = exportReceipts[d.ExportReceiptId];
+                    bool isDisposal = r.ExpReceiptCode?.StartsWith("HSP-") == true
+                                      || (d.Note?.Contains("Hủy") == true)
+                                      || string.Equals(d.Status, "Đã hủy", StringComparison.OrdinalIgnoreCase);
+                    return new
+                    {
+                        transDate = r.CreatedDate,
+                        voucherNo = r.ExpReceiptCode ?? $"PXK_BH{d.ExportReceiptId:D4}",
+                        transType = isDisposal ? "Hủy sản phẩm hết hạn" : "Xuất bán hàng",
+                        inQty = 0m,
+                        outQty = (decimal)d.Quantity,
+                        unit = prod.Unit,
+                        cost = d.Price ?? prod.MaterialCost ?? prod.Cost ?? 0,
+                        status = isDisposal ? "Đã hủy" : (r.Status ?? "Approved")
+                    };
+                }).ToList();
 
             var merged = receiptHistories.Concat(exportHistories)
                 .OrderBy(t => t.transDate)
@@ -151,6 +172,8 @@ public class WarehouseReportApiController : ControllerBase
         [FromQuery] string itemType = "all",
         [FromQuery] string? search = null)
     {
+        await SaleOrderCancellationSync.SyncAsync(_context);
+
         var currentYear = year ?? DateTime.Now.Year;
         DateTime startDate;
         DateTime endDate;
@@ -190,6 +213,23 @@ public class WarehouseReportApiController : ControllerBase
         var prods = await _context.Products.AsNoTracking().ToListAsync();
         var wips = await _context.WipInventories.AsNoTracking().ToListAsync();
 
+        // Chỉ thống kê những NVL và Sản phẩm được xuất kho và nhập kho bởi phiếu nhập,
+        // không thống kê các nguyên vật liệu hoặc sản phẩm chỉ được tạo từ nút chức năng thêm (chưa có phiếu nhập/xuất)
+        var validIngrIds = await _context.ImportReceiptDetails.AsNoTracking()
+            .Select(d => d.IngrId)
+            .Union(_context.MaterialReceiptDetails.AsNoTracking().Select(d => d.IngrId))
+            .Distinct()
+            .ToListAsync();
+
+        var validProdIds = await _context.ProductReceiptDetails.AsNoTracking()
+            .Where(d => _context.ProductReceipts.Any(r => r.ProductReceiptId == d.ProductReceiptId && (r.Status == "Approved" || r.Status == "Approve") && r.ReceiptCode != null && r.ReceiptCode != ""))
+            .Select(d => d.ProductId)
+            .Union(_context.ProductExportReceiptDetails.AsNoTracking()
+                .Where(d => _context.ProductExportReceipts.Any(e => e.ExportReceiptId == d.ExportReceiptId && (e.Status == "Approved" || e.Status == "Approve")))
+                .Select(d => d.ProductId))
+            .Distinct()
+            .ToListAsync();
+
         // 1. Giao dịch Nhập kho NVL
         var importReceipts = await _context.ImportReceipts.AsNoTracking()
             .Where(r => r.CreatedDate >= startDate && r.CreatedDate <= endDate)
@@ -208,18 +248,20 @@ public class WarehouseReportApiController : ControllerBase
             .Where(d => materialReceiptIds.Contains(d.ExpReceiptId))
             .ToListAsync();
 
-        // 3. Giao dịch Nhập kho Thành phẩm (Lưu kho từ sản xuất)
+        // 3. Giao dịch Nhập kho Thành phẩm (Lưu kho từ sản xuất) - Chỉ các phiếu có status là Approved và receiptcode khác NULL
         var productReceipts = await _context.ProductReceipts.AsNoTracking()
             .Where(r => r.CreatedDate >= startDate && r.CreatedDate <= endDate)
+            .Where(r => (r.Status == "Approved" || r.Status == "Approve") && r.ReceiptCode != null && r.ReceiptCode != "")
             .ToListAsync();
         var productReceiptIds = productReceipts.Select(r => r.ProductReceiptId).ToList();
         var productReceiptDetails = await _context.ProductReceiptDetails.AsNoTracking()
             .Where(d => productReceiptIds.Contains(d.ProductReceiptId))
             .ToListAsync();
 
-        // 4. Giao dịch Xuất kho Thành phẩm (Xuất bán)
+        // 4. Giao dịch Xuất kho Thành phẩm (Xuất bán) - Chỉ các phiếu có status là Approved
         var exportReceipts = await _context.ProductExportReceipts.AsNoTracking()
             .Where(r => r.CreatedDate >= startDate && r.CreatedDate <= endDate)
+            .Where(r => r.Status == "Approved" || r.Status == "Approve")
             .ToListAsync();
         var exportReceiptIds = exportReceipts.Select(r => r.ExportReceiptId).ToList();
         var exportDetails = await _context.ProductExportReceiptDetails.AsNoTracking()
@@ -243,6 +285,8 @@ public class WarehouseReportApiController : ControllerBase
         {
             foreach (var ingr in ingrs)
             {
+                if (!validIngrIds.Contains(ingr.IngrId)) continue;
+
                 decimal curStock = ingr.Quantity ?? 0;
                 decimal inQ = ingrInGroup.GetValueOrDefault(ingr.IngrId, 0);
                 decimal outQ = ingrOutGroup.GetValueOrDefault(ingr.IngrId, 0);
@@ -279,6 +323,8 @@ public class WarehouseReportApiController : ControllerBase
         {
             foreach (var prod in prods)
             {
+                if (!validProdIds.Contains(prod.ProductId)) continue;
+
                 decimal curStock = (decimal)(prod.Quantity ?? 0);
                 decimal inQ = prodInGroup.GetValueOrDefault(prod.ProductId, 0);
                 decimal outQ = prodOutGroup.GetValueOrDefault(prod.ProductId, 0);

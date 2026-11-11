@@ -381,3 +381,6 @@ c:\Users\MSI\Desktop\HTTTDN_MRP\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger
 c:\Users\MSI\Desktop\HTTTDN_MRP\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 c:\Users\MSI\Desktop\HTTTDN_MRP\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 c:\Users\MSI\Desktop\HTTTDN_MRP\obj\Debug\net10.0\httt.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\MSI\Desktop\HTTTDN_MRP\bin\Debug\net10.0\DatabaseBackup_Before_Wipe\database_backup_all_tables.json
+C:\Users\MSI\Desktop\HTTTDN_MRP\bin\Debug\net10.0\DatabaseBackup_Before_Wipe\database_schema_architecture.json
+c:\Users\MSI\Desktop\HTTTDN_MRP\bin\Debug\net10.0\DatabaseBackup_Before_Wipe\database_backup_before_wipe_20261111.json

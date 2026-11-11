@@ -226,36 +226,35 @@ public class ProductionRequestApiController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/production-requests : Tạo mới một lệnh sản xuất (hỗ trợ phân công assignedTo ngay hoặc để null)
+    /// POST /api/production-requests : Tạo mới lệnh sản xuất (hỗ trợ yêu cầu nhiều sản phẩm cùng lúc)
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> CreateProductionRequest([FromBody] CreateProductionRequestDto dto)
     {
-        if (dto.ProductId <= 0)
+        var items = new List<CreateProductionRequestItemDto>();
+        if (dto.Items != null && dto.Items.Count > 0)
+        {
+            items.AddRange(dto.Items.Where(it => it.ProductId > 0 && it.QuantityRequired > 0));
+            if (items.Count == 0)
+            {
+                return BadRequest(new { message = "Vui lòng chọn ít nhất một sản phẩm với số lượng hợp lệ (> 0)." });
+            }
+        }
+        else if (dto.ProductId.HasValue && dto.ProductId.Value > 0)
+        {
+            if (!dto.QuantityRequired.HasValue || dto.QuantityRequired.Value <= 0)
+            {
+                return BadRequest(new { message = "Số lượng sản xuất phải lớn hơn 0." });
+            }
+            items.Add(new CreateProductionRequestItemDto
+            {
+                ProductId = dto.ProductId.Value,
+                QuantityRequired = dto.QuantityRequired.Value
+            });
+        }
+        else
         {
             return BadRequest(new { message = "Vui lòng chọn sản phẩm cần sản xuất." });
-        }
-
-        if (dto.QuantityRequired <= 0)
-        {
-            return BadRequest(new { message = "Số lượng sản xuất phải lớn hơn 0." });
-        }
-
-        var product = await _context.Products.FindAsync(dto.ProductId);
-        if (product == null)
-        {
-            return BadRequest(new { message = $"Sản phẩm có ID {dto.ProductId} không tồn tại." });
-        }
-
-        // Kiểm tra người phân công (assignedTo) nếu có
-        UserAccount? assignedUser = null;
-        if (dto.AssignedTo.HasValue && dto.AssignedTo.Value > 0)
-        {
-            assignedUser = await _context.UserAccounts.FindAsync(dto.AssignedTo.Value);
-            if (assignedUser == null)
-            {
-                return BadRequest(new { message = $"Người được phân công có ID {dto.AssignedTo.Value} không tồn tại." });
-            }
         }
 
         // Lấy ManagerId mặc định nếu chưa truyền
@@ -268,33 +267,42 @@ public class ProductionRequestApiController : ControllerBase
         }
 
         var now = DateTime.UtcNow;
-        var newReq = new ProductionRequest
-        {
-            ProductId = dto.ProductId,
-            QuantityRequired = dto.QuantityRequired,
-            ManagerId = managerId,
-            Status = "Pending", // Luôn luôn mặc định là Pending khi tạo mới
-            CreatedDate = now,
-            RequestCode = !string.IsNullOrWhiteSpace(dto.RequestCode) ? dto.RequestCode : $"LSX{now:yyyyMMddHHmmss}",
-            AssignedTo = (dto.AssignedTo.HasValue && dto.AssignedTo.Value > 0) ? dto.AssignedTo.Value : null
-        };
+        string baseCode = !string.IsNullOrWhiteSpace(dto.RequestCode)
+            ? dto.RequestCode.Trim()
+            : $"LSX{now:yyyyMMddHHmmss}";
 
-        _context.ProductionRequests.Add(newReq);
+        var createdRequests = new List<ProductionRequest>();
+        foreach (var it in items)
+        {
+            var product = await _context.Products.FindAsync(it.ProductId);
+            if (product == null) continue;
+
+            var newReq = new ProductionRequest
+            {
+                ProductId = it.ProductId,
+                QuantityRequired = it.QuantityRequired,
+                ManagerId = managerId,
+                Status = "Pending", // Luôn luôn mặc định là Pending khi tạo mới
+                CreatedDate = now,
+                RequestCode = baseCode,
+                AssignedTo = null // Không phân công trước, chờ nhân viên tiếp nhận
+            };
+
+            _context.ProductionRequests.Add(newReq);
+            createdRequests.Add(newReq);
+        }
+
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetProductionRequestById), new { id = newReq.RequestId }, new
+        var firstCreated = createdRequests.FirstOrDefault();
+        return Ok(new
         {
-            message = "Tạo lệnh sản xuất thành công.",
-            requestId = newReq.RequestId,
-            requestCode = newReq.RequestCode,
-            productId = newReq.ProductId,
-            productName = product.ProductName,
-            quantityRequired = newReq.QuantityRequired,
-            status = newReq.Status,
-            createdDate = newReq.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm:ss"),
-            managerId = newReq.ManagerId,
-            assignedTo = newReq.AssignedTo,
-            assignedToName = assignedUser?.FullName ?? assignedUser?.Username
+            success = true,
+            message = $"Tạo yêu cầu sản xuất {baseCode} cho {createdRequests.Count} sản phẩm thành công.",
+            requestCode = baseCode,
+            count = createdRequests.Count,
+            requestId = firstCreated?.RequestId ?? 0,
+            requestIds = createdRequests.Select(r => r.RequestId).ToList()
         });
     }
 
@@ -419,6 +427,59 @@ public class ProductionRequestApiController : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/warehouse/production-requests/{id}/receive : Nhân viên tiếp nhận yêu cầu sản xuất
+    /// </summary>
+    [HttpPost("{id:int}/receive")]
+    [HttpPatch("{id:int}/receive")]
+    public async Task<IActionResult> ReceiveProductionRequest(int id, [FromBody] ReceiveProductionRequestDto? dto = null)
+    {
+        var req = await _context.ProductionRequests.FindAsync(id);
+        if (req == null)
+        {
+            return NotFound(new { message = $"Không tìm thấy lệnh sản xuất có ID {id}." });
+        }
+
+        // Người tiếp nhận: lấy từ dto.ReceiverId, nếu không có lấy mặc định 9 (DS. Phan Thanh Hà) hoặc user đầu tiên
+        int receiverId = dto?.ReceiverId ?? 9;
+        var user = await _context.UserAccounts.FindAsync(receiverId);
+        if (user == null)
+        {
+            user = await _context.UserAccounts.FirstOrDefaultAsync();
+            if (user != null) receiverId = user.UserID;
+        }
+
+        req.AssignedTo = receiverId;
+        req.Status = "In Production";
+
+        // Đồng thời tiếp nhận các sản phẩm cùng chung mã lệnh RequestCode (nếu có)
+        if (!string.IsNullOrWhiteSpace(req.RequestCode))
+        {
+            var related = await _context.ProductionRequests
+                .Where(r => r.RequestCode == req.RequestCode && r.RequestId != id && r.Status == "Pending")
+                .ToListAsync();
+            foreach (var r in related)
+            {
+                r.AssignedTo = receiverId;
+                r.Status = "In Production";
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = $"Nhân viên {user?.FullName ?? user?.Username} đã tiếp nhận yêu cầu sản xuất '{req.RequestCode}' thành công!",
+            requestId = req.RequestId,
+            requestCode = req.RequestCode,
+            status = req.Status,
+            assignedTo = req.AssignedTo,
+            assignedToName = user?.FullName ?? user?.Username,
+            assignedToEmployeeCode = user != null ? $"NV{user.UserID:D4}" : null
+        });
+    }
+
+    /// <summary>
     /// PATCH /api/production-requests/{id}/status : Nhân viên tiếp nhận yêu cầu hoặc cập nhật trạng thái tiến độ
     /// </summary>
     [HttpPatch("{id:int}/status")]
@@ -435,10 +496,16 @@ public class ProductionRequestApiController : ControllerBase
             return BadRequest(new { message = "Vui lòng cung cấp trạng thái mới." });
         }
 
-        // Nếu chuyển sang 'In Production' (nhân viên tiếp nhận yêu cầu): kiểm tra đã có người phân công chưa
-        if (dto.Status == "In Production" && !req.AssignedTo.HasValue)
+        if (dto.Status == "In Production")
         {
-            return BadRequest(new { message = "Lệnh sản xuất chưa được phân công nhân sự. Vui lòng phân công nhân sự trước khi tiếp nhận sản xuất." });
+            if (dto.ReceiverId.HasValue && dto.ReceiverId.Value > 0)
+            {
+                req.AssignedTo = dto.ReceiverId.Value;
+            }
+            else if (!req.AssignedTo.HasValue)
+            {
+                req.AssignedTo = 9; // Mặc định người tiếp nhận
+            }
         }
 
         req.Status = dto.Status;
@@ -447,7 +514,7 @@ public class ProductionRequestApiController : ControllerBase
         return Ok(new
         {
             message = req.Status == "In Production"
-                ? $"Nhân viên đã tiếp nhận yêu cầu sản xuất '{req.RequestCode}'. Trạng thái đã chuyển sang 'In Production' và các thông tin đã được khóa cố định."
+                ? $"Nhân viên đã tiếp nhận yêu cầu sản xuất '{req.RequestCode}'. Trạng thái đã chuyển sang 'In Production'."
                 : $"Đã cập nhật trạng thái lệnh sản xuất '{req.RequestCode}' thành '{req.Status}'.",
             requestId = req.RequestId,
             requestCode = req.RequestCode,
@@ -513,16 +580,29 @@ public class ProductionRequestApiController : ControllerBase
 public class UpdateProductionRequestStatusDto
 {
     public string Status { get; set; } = string.Empty;
+    public int? ReceiverId { get; set; }
+}
+
+public class ReceiveProductionRequestDto
+{
+    public int? ReceiverId { get; set; }
+}
+
+public class CreateProductionRequestItemDto
+{
+    public int ProductId { get; set; }
+    public int QuantityRequired { get; set; }
 }
 
 public class CreateProductionRequestDto
 {
-    public int ProductId { get; set; }
-    public int QuantityRequired { get; set; }
+    public int? ProductId { get; set; }
+    public int? QuantityRequired { get; set; }
     public int? ManagerId { get; set; }
     public string? RequestCode { get; set; }
     public string? Status { get; set; }
     public int? AssignedTo { get; set; }
+    public List<CreateProductionRequestItemDto>? Items { get; set; }
 }
 
 public class UpdateProductionRequestDto

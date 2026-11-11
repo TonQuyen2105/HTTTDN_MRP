@@ -24,7 +24,9 @@ public class MaterialReceiptApiController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetMaterialReceipts([FromQuery] string? status = null, [FromQuery] string? keyword = null)
     {
-        var query = _context.MaterialReceipts.AsNoTracking();
+        // Chỉ hiển thị các phiếu xuất kho nguyên vật liệu, không hiển thị phiếu hủy NVL hết hạn (mã HMY-...)
+        var query = _context.MaterialReceipts.AsNoTracking()
+            .Where(m => m.ExpReceiptCode == null || !m.ExpReceiptCode.StartsWith("HMY-"));
 
         if (!string.IsNullOrWhiteSpace(status) && status != "Tất cả")
         {
@@ -44,18 +46,46 @@ public class MaterialReceiptApiController : ControllerBase
             .Where(d => receiptIds.Contains(d.ExpReceiptId))
             .ToListAsync();
 
+        // Loại bỏ thêm các phiếu có toàn bộ chi tiết mang trạng thái/ghi chú hủy NVL hết hạn
+        var disposedReceiptIds = details
+            .GroupBy(d => d.ExpReceiptId)
+            .Where(g => g.All(d => d.Status == "Đã hủy" || (d.Note != null && d.Note.StartsWith("Hủy nguyên vật liệu hết hạn", StringComparison.OrdinalIgnoreCase))))
+            .Select(g => g.Key)
+            .ToHashSet();
+
+        if (disposedReceiptIds.Count > 0)
+        {
+            list = list.Where(m => !disposedReceiptIds.Contains(m.ExpReceiptId)).ToList();
+            details = details.Where(d => !disposedReceiptIds.Contains(d.ExpReceiptId)).ToList();
+        }
+
         var ingrIds = details.Select(d => d.IngrId).Distinct().ToList();
         var ingrs = await _context.Ingredients
             .AsNoTracking()
             .Where(i => ingrIds.Contains(i.IngrId))
             .ToDictionaryAsync(i => i.IngrId);
 
-        var batchExpiries = await _context.ImportReceiptDetails
+        var disposedBatches = await (
+            from mr in _context.MaterialReceipts.AsNoTracking()
+            join mrd in _context.MaterialReceiptDetails.AsNoTracking() on mr.ExpReceiptId equals mrd.ExpReceiptId
+            where mr.ExpReceiptCode != null && mr.ExpReceiptCode.StartsWith("HMY-")
+            select new { mr.ExpReceiptCode, mrd.IngrId }
+        ).ToListAsync();
+
+        var importReceiptsMap = await _context.ImportReceipts.AsNoTracking()
+            .ToDictionaryAsync(r => r.IpReceiptId, r => r.IpReceiptCode);
+
+        var rawImportBatches = await _context.ImportReceiptDetails
             .AsNoTracking()
             .Where(b => ingrIds.Contains(b.IngrId) && b.ExpiredDate != null)
-            .OrderBy(b => b.ExpiredDate)
-            .GroupBy(b => b.IngrId)
-            .ToDictionaryAsync(g => g.Key, g => g.First().ExpiredDate);
+            .ToListAsync();
+
+        var importBatches = rawImportBatches.Where(b =>
+        {
+            var code = importReceiptsMap.TryGetValue(b.IpReceiptId, out var c) ? c : $"PNK{b.IpReceiptId:D5}";
+            bool isDisposed = disposedBatches.Any(d => d.IngrId == b.IngrId && (d.ExpReceiptCode == $"HMY-{code}" || d.ExpReceiptCode == $"HMY-PNK{b.IpReceiptId:D5}"));
+            return !isDisposed;
+        }).ToList();
 
         var reqIds = list.Select(m => m.RequestId).Where(r => r.HasValue).Select(r => r!.Value).Distinct().ToList();
         var prodRequests = await _context.ProductionRequests
@@ -125,10 +155,45 @@ public class MaterialReceiptApiController : ControllerBase
             {
                 ingrs.TryGetValue(d.IngrId, out var ingr);
                 var cost = d.UnitCost ?? ingr?.Price ?? 0;
-                var stockQty = ingr?.Quantity ?? 0;
+                var stockQty = ingr?.Quantity ?? 0m;
                 var reqQty = d.Quantity;
                 var isOutOfStock = stockQty < reqQty;
-                var stockShortage = isOutOfStock ? (reqQty - stockQty) : 0;
+                var stockShortage = isOutOfStock ? (reqQty - stockQty) : 0m;
+
+                // Lô hàng của nguyên vật liệu
+                var ingrBatches = importBatches.Where(b => b.IngrId == d.IngrId).ToList();
+                var expiredBatchSum = ingrBatches
+                    .Where(b => b.ExpiredDate != null && b.ExpiredDate.Value <= now)
+                    .Sum(b => b.Quantity);
+
+                var expiredStock = Math.Min(stockQty, expiredBatchSum);
+                var validStock = Math.Max(0m, stockQty - expiredStock);
+
+                string conditionStatus;
+                string conditionType;
+                bool isItemEligible = false;
+
+                if (stockQty <= 0 && expiredStock == 0)
+                {
+                    conditionStatus = "Thiếu tồn kho";
+                    conditionType = "danger";
+                }
+                else if (validStock <= 0)
+                {
+                    conditionStatus = "Tồn kho hết hạn";
+                    conditionType = "danger";
+                }
+                else if (validStock < reqQty)
+                {
+                    conditionStatus = "Thiếu số lượng đạt chuẩn";
+                    conditionType = "warning";
+                }
+                else
+                {
+                    conditionStatus = "Đủ điều kiện";
+                    conditionType = "success";
+                    isItemEligible = true;
+                }
 
                 DateTime? expDate = null;
                 if (!string.IsNullOrWhiteSpace(d.Note))
@@ -139,13 +204,18 @@ public class MaterialReceiptApiController : ControllerBase
                         expDate = DateTime.SpecifyKind(parsedHsd, DateTimeKind.Utc);
                     }
                 }
-                if (!expDate.HasValue && batchExpiries.TryGetValue(d.IngrId, out var bExp))
-                {
-                    expDate = bExp;
-                }
                 if (!expDate.HasValue)
                 {
-                    if (ingr?.ShelfLifeMonths != null && ingr.ShelfLifeMonths > 0)
+                    var validBatches = ingrBatches.Where(b => b.ExpiredDate != null && b.ExpiredDate.Value > now).OrderBy(b => b.ExpiredDate).ToList();
+                    if (validBatches.Any())
+                    {
+                        expDate = validBatches.First().ExpiredDate;
+                    }
+                    else if (ingrBatches.Any(b => b.ExpiredDate != null))
+                    {
+                        expDate = ingrBatches.OrderBy(b => b.ExpiredDate).First().ExpiredDate;
+                    }
+                    else if (ingr?.ShelfLifeMonths != null && ingr.ShelfLifeMonths > 0)
                     {
                         expDate = now.AddMonths(ingr.ShelfLifeMonths.Value);
                     }
@@ -182,6 +252,11 @@ public class MaterialReceiptApiController : ControllerBase
                     stockQtyFormatted = stockQty.ToString("N2"),
                     isOutOfStock = isOutOfStock,
                     stockShortage = stockShortage,
+                    expiredStockQty = expiredStock,
+                    validStockQty = validStock,
+                    conditionStatus = conditionStatus,
+                    conditionType = conditionType,
+                    isItemEligible = isItemEligible,
                     expiryDate = expDate.Value.ToString("dd/MM/yyyy"),
                     daysRemaining = daysRemaining,
                     isExpiringSoon = isExpiringSoon,
@@ -190,21 +265,27 @@ public class MaterialReceiptApiController : ControllerBase
                 };
             }).ToList();
 
-            var hasStockIssue = items.Any(it => it.isOutOfStock);
-            var hasExpiryIssue = items.Any(it => it.isExpiringSoon);
+            var hasStockIssue = items.Any(it => it.conditionStatus == "Thiếu tồn kho");
+            var hasExpiryIssue = items.Any(it => it.conditionStatus == "Tồn kho hết hạn" || it.conditionStatus == "Hàng tồn đã hết hạn" || it.conditionStatus == "Thiếu số lượng đạt chuẩn");
             var isPending = m.Status == "Pending" || m.Status == "Chờ xuất kho";
-            var canApprove = isPending && !hasStockIssue && !hasExpiryIssue;
+            var canApprove = isPending && items.All(it => it.isItemEligible);
 
             string approvalBlockReason = "";
-            if (hasStockIssue)
+            var expiredItem = items.FirstOrDefault(it => it.conditionStatus == "Tồn kho hết hạn" || it.conditionStatus == "Hàng tồn đã hết hạn");
+            var partialExpiredItem = items.FirstOrDefault(it => it.conditionStatus == "Thiếu số lượng đạt chuẩn");
+            var outOfStockItem = items.FirstOrDefault(it => it.conditionStatus == "Thiếu tồn kho");
+
+            if (expiredItem != null)
             {
-                var firstStockIssue = items.First(it => it.isOutOfStock);
-                approvalBlockReason = $"Không đủ tồn kho: '{firstStockIssue.itemName}' chỉ còn {firstStockIssue.stockQty:N2} {firstStockIssue.unit} (yêu cầu {firstStockIssue.reqQty:N2} {firstStockIssue.unit}).";
+                approvalBlockReason = $"Hàng tồn kho của '{expiredItem.itemName}' đã hết hạn sử dụng (Tồn kho hết hạn).";
             }
-            else if (hasExpiryIssue)
+            else if (partialExpiredItem != null)
             {
-                var firstExpIssue = items.First(it => it.isExpiringSoon);
-                approvalBlockReason = $"Hạn sử dụng không hợp lệ: '{firstExpIssue.itemName}' {firstExpIssue.expiryWarning} (HSD: {firstExpIssue.expiryDate}).";
+                approvalBlockReason = $"Nguyên vật liệu '{partialExpiredItem.itemName}' thiếu số lượng đạt chuẩn (tồn đạt chuẩn: {partialExpiredItem.validStockQty:N2} {partialExpiredItem.unit}, hết hạn: {partialExpiredItem.expiredStockQty:N2} {partialExpiredItem.unit}, yêu cầu: {partialExpiredItem.reqQty:N2} {partialExpiredItem.unit}).";
+            }
+            else if (outOfStockItem != null)
+            {
+                approvalBlockReason = $"Không đủ tồn kho: '{outOfStockItem.itemName}' chỉ còn {outOfStockItem.stockQty:N2} {outOfStockItem.unit} (yêu cầu {outOfStockItem.reqQty:N2} {outOfStockItem.unit}).";
             }
 
             return new
@@ -270,12 +351,27 @@ public class MaterialReceiptApiController : ControllerBase
         var ingrIds = details.Select(d => d.IngrId).Distinct().ToList();
         var ingrs = await _context.Ingredients.Where(i => ingrIds.Contains(i.IngrId)).ToDictionaryAsync(i => i.IngrId);
 
-        var batchExpiries = await _context.ImportReceiptDetails
+        var disposedBatches = await (
+            from mr in _context.MaterialReceipts.AsNoTracking()
+            join mrd in _context.MaterialReceiptDetails.AsNoTracking() on mr.ExpReceiptId equals mrd.ExpReceiptId
+            where mr.ExpReceiptCode != null && mr.ExpReceiptCode.StartsWith("HMY-")
+            select new { mr.ExpReceiptCode, mrd.IngrId }
+        ).ToListAsync();
+
+        var importReceiptsMap = await _context.ImportReceipts.AsNoTracking()
+            .ToDictionaryAsync(r => r.IpReceiptId, r => r.IpReceiptCode);
+
+        var rawImportBatches = await _context.ImportReceiptDetails
             .AsNoTracking()
             .Where(b => ingrIds.Contains(b.IngrId) && b.ExpiredDate != null)
-            .OrderBy(b => b.ExpiredDate)
-            .GroupBy(b => b.IngrId)
-            .ToDictionaryAsync(g => g.Key, g => g.First().ExpiredDate);
+            .ToListAsync();
+
+        var importBatches = rawImportBatches.Where(b =>
+        {
+            var code = importReceiptsMap.TryGetValue(b.IpReceiptId, out var c) ? c : $"PNK{b.IpReceiptId:D5}";
+            bool isDisposed = disposedBatches.Any(d => d.IngrId == b.IngrId && (d.ExpReceiptCode == $"HMY-{code}" || d.ExpReceiptCode == $"HMY-PNK{b.IpReceiptId:D5}"));
+            return !isDisposed;
+        }).ToList();
 
         int? assignedTo = null;
         string? assignedToName = null;
@@ -306,10 +402,44 @@ public class MaterialReceiptApiController : ControllerBase
         {
             ingrs.TryGetValue(d.IngrId, out var ingr);
             var cost = d.UnitCost ?? ingr?.Price ?? 0;
-            var stockQty = ingr?.Quantity ?? 0;
+            var stockQty = ingr?.Quantity ?? 0m;
             var reqQty = d.Quantity;
             var isOutOfStock = stockQty < reqQty;
-            var stockShortage = isOutOfStock ? (reqQty - stockQty) : 0;
+            var stockShortage = isOutOfStock ? (reqQty - stockQty) : 0m;
+
+            var ingrBatches = importBatches.Where(b => b.IngrId == d.IngrId).ToList();
+            var expiredBatchSum = ingrBatches
+                .Where(b => b.ExpiredDate != null && b.ExpiredDate.Value <= now)
+                .Sum(b => b.Quantity);
+
+            var expiredStock = Math.Min(stockQty, expiredBatchSum);
+            var validStock = Math.Max(0m, stockQty - expiredStock);
+
+            string conditionStatus;
+            string conditionType;
+            bool isItemEligible = false;
+
+            if (stockQty <= 0 && expiredStock == 0)
+            {
+                conditionStatus = "Thiếu tồn kho";
+                conditionType = "danger";
+            }
+            else if (validStock <= 0)
+            {
+                conditionStatus = "Tồn kho hết hạn";
+                conditionType = "danger";
+            }
+            else if (validStock < reqQty)
+            {
+                conditionStatus = "Thiếu số lượng đạt chuẩn";
+                conditionType = "warning";
+            }
+            else
+            {
+                conditionStatus = "Đủ điều kiện";
+                conditionType = "success";
+                isItemEligible = true;
+            }
 
             DateTime? expDate = null;
             if (!string.IsNullOrWhiteSpace(d.Note))
@@ -320,13 +450,18 @@ public class MaterialReceiptApiController : ControllerBase
                     expDate = DateTime.SpecifyKind(parsedHsd, DateTimeKind.Utc);
                 }
             }
-            if (!expDate.HasValue && batchExpiries.TryGetValue(d.IngrId, out var bExp))
-            {
-                expDate = bExp;
-            }
             if (!expDate.HasValue)
             {
-                if (ingr?.ShelfLifeMonths != null && ingr.ShelfLifeMonths > 0)
+                var validBatches = ingrBatches.Where(b => b.ExpiredDate != null && b.ExpiredDate.Value > now).OrderBy(b => b.ExpiredDate).ToList();
+                if (validBatches.Any())
+                {
+                    expDate = validBatches.First().ExpiredDate;
+                }
+                else if (ingrBatches.Any(b => b.ExpiredDate != null))
+                {
+                    expDate = ingrBatches.OrderBy(b => b.ExpiredDate).First().ExpiredDate;
+                }
+                else if (ingr?.ShelfLifeMonths != null && ingr.ShelfLifeMonths > 0)
                 {
                     expDate = now.AddMonths(ingr.ShelfLifeMonths.Value);
                 }
@@ -363,6 +498,11 @@ public class MaterialReceiptApiController : ControllerBase
                 stockQtyFormatted = stockQty.ToString("N2"),
                 isOutOfStock = isOutOfStock,
                 stockShortage = stockShortage,
+                expiredStockQty = expiredStock,
+                validStockQty = validStock,
+                conditionStatus = conditionStatus,
+                conditionType = conditionType,
+                isItemEligible = isItemEligible,
                 expiryDate = expDate.Value.ToString("dd/MM/yyyy"),
                 daysRemaining = daysRemaining,
                 isExpiringSoon = isExpiringSoon,
@@ -370,21 +510,27 @@ public class MaterialReceiptApiController : ControllerBase
             };
         }).ToList();
 
-        var hasStockIssue = items.Any(it => it.isOutOfStock);
-        var hasExpiryIssue = items.Any(it => it.isExpiringSoon);
+        var hasStockIssue = items.Any(it => it.conditionStatus == "Thiếu tồn kho");
+        var hasExpiryIssue = items.Any(it => it.conditionStatus == "Tồn kho hết hạn" || it.conditionStatus == "Hàng tồn đã hết hạn" || it.conditionStatus == "Thiếu số lượng đạt chuẩn");
         var isPending = receipt.Status == "Pending" || receipt.Status == "Chờ xuất kho";
-        var canApprove = isPending && !hasStockIssue && !hasExpiryIssue;
+        var canApprove = isPending && items.All(it => it.isItemEligible);
 
         string approvalBlockReason = "";
-        if (hasStockIssue)
+        var expiredItem = items.FirstOrDefault(it => it.conditionStatus == "Tồn kho hết hạn" || it.conditionStatus == "Hàng tồn đã hết hạn");
+        var partialExpiredItem = items.FirstOrDefault(it => it.conditionStatus == "Thiếu số lượng đạt chuẩn");
+        var outOfStockItem = items.FirstOrDefault(it => it.conditionStatus == "Thiếu tồn kho");
+
+        if (expiredItem != null)
         {
-            var firstStockIssue = items.First(it => it.isOutOfStock);
-            approvalBlockReason = $"Không đủ tồn kho: '{firstStockIssue.itemName}' chỉ còn {firstStockIssue.stockQty:N2} {firstStockIssue.unit} (yêu cầu {firstStockIssue.reqQty:N2} {firstStockIssue.unit}).";
+            approvalBlockReason = $"Hàng tồn kho của '{expiredItem.itemName}' đã hết hạn sử dụng (Tồn kho hết hạn).";
         }
-        else if (hasExpiryIssue)
+        else if (partialExpiredItem != null)
         {
-            var firstExpIssue = items.First(it => it.isExpiringSoon);
-            approvalBlockReason = $"Hạn sử dụng không hợp lệ: '{firstExpIssue.itemName}' {firstExpIssue.expiryWarning} (HSD: {firstExpIssue.expiryDate}).";
+            approvalBlockReason = $"Nguyên vật liệu '{partialExpiredItem.itemName}' thiếu số lượng đạt chuẩn (tồn đạt chuẩn: {partialExpiredItem.validStockQty:N2} {partialExpiredItem.unit}, hết hạn: {partialExpiredItem.expiredStockQty:N2} {partialExpiredItem.unit}, yêu cầu: {partialExpiredItem.reqQty:N2} {partialExpiredItem.unit}).";
+        }
+        else if (outOfStockItem != null)
+        {
+            approvalBlockReason = $"Không đủ tồn kho: '{outOfStockItem.itemName}' chỉ còn {outOfStockItem.stockQty:N2} {outOfStockItem.unit} (yêu cầu {outOfStockItem.reqQty:N2} {outOfStockItem.unit}).";
         }
 
         return Ok(new
@@ -429,6 +575,16 @@ public class MaterialReceiptApiController : ControllerBase
         var details = await _context.MaterialReceiptDetails.Where(d => d.ExpReceiptId == id).ToListAsync();
         var now = DateTime.UtcNow;
 
+        var disposedBatches = await (
+            from mr in _context.MaterialReceipts.AsNoTracking()
+            join mrd in _context.MaterialReceiptDetails.AsNoTracking() on mr.ExpReceiptId equals mrd.ExpReceiptId
+            where mr.ExpReceiptCode != null && mr.ExpReceiptCode.StartsWith("HMY-")
+            select new { mr.ExpReceiptCode, mrd.IngrId }
+        ).ToListAsync();
+
+        var importReceiptsMap = await _context.ImportReceipts.AsNoTracking()
+            .ToDictionaryAsync(r => r.IpReceiptId, r => r.IpReceiptCode);
+
         // --- 1. KIỂM TRA ĐIỀU KIỆN TỒN KHO & HẠN SỬ DỤNG ---
         foreach (var d in details)
         {
@@ -438,19 +594,61 @@ public class MaterialReceiptApiController : ControllerBase
                 return BadRequest(new { success = false, message = $"Không tìm thấy nguyên vật liệu có ID {d.IngrId}." });
             }
 
-            // Điều kiện 1: Tồn kho < Số lượng yêu cầu xuất
-            var currentStock = ingr.Quantity ?? 0;
-            if (currentStock < d.Quantity)
+            var currentStock = ingr.Quantity ?? 0m;
+            var reqQty = d.Quantity;
+
+            // Lấy tất cả các lô nhập còn hiệu lực (chưa bị hủy)
+            var rawBatches = await _context.ImportReceiptDetails
+                .AsNoTracking()
+                .Where(b => b.IngrId == d.IngrId && b.ExpiredDate != null)
+                .ToListAsync();
+
+            var activeBatches = rawBatches.Where(b =>
             {
-                var shortage = d.Quantity - currentStock;
+                var code = importReceiptsMap.TryGetValue(b.IpReceiptId, out var c) ? c : $"PNK{b.IpReceiptId:D5}";
+                bool isDisposed = disposedBatches.Any(db => db.IngrId == b.IngrId && (db.ExpReceiptCode == $"HMY-{code}" || db.ExpReceiptCode == $"HMY-PNK{b.IpReceiptId:D5}"));
+                return !isDisposed;
+            }).ToList();
+
+            // Tính tổng số lượng từ các lô đã hết hạn
+            var expiredBatchSum = activeBatches
+                .Where(b => b.ExpiredDate != null && b.ExpiredDate.Value <= now)
+                .Sum(b => b.Quantity);
+
+            var expiredStock = Math.Min(currentStock, expiredBatchSum);
+            var validStock = Math.Max(0m, currentStock - expiredStock);
+
+            // Điều kiện 1: Tồn kho <= 0 và không có lô hết hạn -> thiếu tồn kho
+            if (currentStock <= 0 && expiredStock == 0)
+            {
                 return BadRequest(new
                 {
                     success = false,
-                    message = $"Không thể duyệt phiếu: Nguyên vật liệu '{ingr.IngrName}' (NVL{ingr.IngrId:D3}) chỉ còn tồn kho {currentStock:N2} {ingr.Unit}, không đủ số lượng yêu cầu xuất ({d.Quantity:N2} {ingr.Unit}). Thiếu {shortage:N2} {ingr.Unit}."
+                    message = $"Không thể duyệt phiếu: Nguyên vật liệu '{ingr.IngrName}' (NVL{ingr.IngrId:D3}) đã hết tồn kho."
                 });
             }
 
-            // Điều kiện 2: Hạn sử dụng của nguyên vật liệu nếu chỉ còn <= 1 ngày thì không duyệt được
+            // Điều kiện 2: Tồn kho hết hạn (tổng tồn - hết hạn <= 0)
+            if (validStock <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"Không thể duyệt phiếu: Toàn bộ hàng tồn kho ({currentStock:N2} {ingr.Unit}) của nguyên vật liệu '{ingr.IngrName}' (NVL{ingr.IngrId:D3}) đã hết hạn sử dụng (Tồn kho hết hạn)."
+                });
+            }
+
+            // Điều kiện 3: Thiếu số lượng đạt chuẩn (tổng tồn - hết hạn < yêu cầu)
+            if (validStock < reqQty)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"Không thể duyệt phiếu: Nguyên vật liệu '{ingr.IngrName}' (NVL{ingr.IngrId:D3}) thiếu số lượng đạt chuẩn (tồn đạt chuẩn: {validStock:N2} {ingr.Unit}, đã hết hạn: {expiredStock:N2} {ingr.Unit}, yêu cầu xuất: {reqQty:N2} {ingr.Unit})."
+                });
+            }
+
+            // Điều kiện 4: Hạn sử dụng của nguyên vật liệu nếu chỉ còn <= 1 ngày thì không duyệt được
             DateTime? expDate = null;
             if (!string.IsNullOrWhiteSpace(d.Note))
             {
@@ -463,11 +661,11 @@ public class MaterialReceiptApiController : ControllerBase
 
             if (!expDate.HasValue)
             {
-                var batchExpiry = await _context.ImportReceiptDetails
-                    .Where(b => b.IngrId == d.IngrId && b.ExpiredDate != null)
+                var batchExpiry = activeBatches
+                    .Where(b => b.ExpiredDate != null && b.ExpiredDate.Value > now)
                     .OrderBy(b => b.ExpiredDate)
                     .Select(b => b.ExpiredDate)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefault();
 
                 if (batchExpiry.HasValue)
                 {

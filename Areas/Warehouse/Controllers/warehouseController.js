@@ -17,6 +17,15 @@ const WarehouseController = (function (Model, View) {
     let sidebarMount = null;
     let mainMount = null;
 
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     async function init() {
         headerMount = document.getElementById('wh-header-mount');
         sidebarMount = document.getElementById('wh-sidebar-mount');
@@ -125,6 +134,10 @@ const WarehouseController = (function (Model, View) {
         const tableScrollTop = tableScrollEl ? tableScrollEl.scrollTop : 0;
         const tableScrollLeft = tableScrollEl ? tableScrollEl.scrollLeft : 0;
 
+        const reportScrollEl = mainMount ? mainMount.querySelector('.wh-report-table-wrapper') : null;
+        const reportScrollTop = reportScrollEl ? reportScrollEl.scrollTop : 0;
+        const reportScrollLeft = reportScrollEl ? reportScrollEl.scrollLeft : 0;
+
         const modalBodyEl = mainMount ? mainMount.querySelector('.wh-voucher-body') : null;
         const modalScrollTop = modalBodyEl ? modalBodyEl.scrollTop : 0;
 
@@ -139,6 +152,11 @@ const WarehouseController = (function (Model, View) {
         if (newTableScrollEl) {
             newTableScrollEl.scrollTop = tableScrollTop;
             newTableScrollEl.scrollLeft = tableScrollLeft;
+        }
+        const newReportScrollEl = mainMount ? mainMount.querySelector('.wh-report-table-wrapper') : null;
+        if (newReportScrollEl) {
+            newReportScrollEl.scrollTop = reportScrollTop;
+            newReportScrollEl.scrollLeft = reportScrollLeft;
         }
         const newModalBodyEl = mainMount ? mainMount.querySelector('.wh-voucher-body') : null;
         if (newModalBodyEl) {
@@ -185,11 +203,13 @@ const WarehouseController = (function (Model, View) {
     function bindEvents() {
         document.addEventListener('click', async function (e) {
             // Tự động đóng dropdown chọn thành phẩm nếu click ra ngoài picker
-            if (!e.target.closest('#pr-product-picker-dropdown') && !e.target.closest('#pr-product-picker-trigger')) {
+            if (!e.target.closest('#pr-product-picker-dropdown') && !e.target.closest('#pr-product-picker-trigger') && !e.target.closest('.wh-pr-searchable-select')) {
                 const prDropdown = document.getElementById('pr-product-picker-dropdown');
                 if (prDropdown && prDropdown.style.display !== 'none') {
                     prDropdown.style.display = 'none';
                 }
+                document.querySelectorAll('.wh-pr-dropdown-menu').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.wh-pr-select-trigger').forEach(el => el.classList.remove('is-open'));
             }
 
             // Tự động đóng user dropdown nếu click ra ngoài container
@@ -402,7 +422,11 @@ const WarehouseController = (function (Model, View) {
                 // Thao tác trên bảng tạo mới Phiếu nhập NVL
                 case 'add-inbound-item-row': {
                     e.preventDefault();
-                    Model.addInboundNewItemRow();
+                    const addRes = Model.addInboundNewItemRow();
+                    if (addRes && addRes.success === false && addRes.message) {
+                        WhNotification.alert(addRes.message, { type: 'warning', title: 'Không thể thêm dòng' });
+                        return;
+                    }
                     updateVoucherModalDom();
                     break;
                 }
@@ -981,6 +1005,13 @@ const WarehouseController = (function (Model, View) {
                             WhNotification.alert('Vui lòng nhập tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'), { type: 'warning' });
                             return;
                         }
+                        if (itemType === 'ingredient') {
+                            const priceVal = parseFloat(String(newItem.price || '').replace(/,/g, ''));
+                            if (isNaN(priceVal) || priceVal <= 0) {
+                                WhNotification.alert('Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0!', { type: 'warning' });
+                                return;
+                            }
+                        }
                         const origHtml = actionEl.innerHTML;
                         try {
                             actionEl.disabled = true;
@@ -1032,6 +1063,17 @@ const WarehouseController = (function (Model, View) {
                     if (itemType && itemId && Model.openVthhModal) {
                         Model.openVthhModal(itemType, itemId, 'edit');
                         renderMainOnly();
+                        if (itemType === 'ingredient' && Model.fetchIngredientDetailApi) {
+                            try {
+                                await Model.fetchIngredientDetailApi(itemId);
+                                renderMainOnly();
+                            } catch (_) {}
+                        } else if (itemType === 'product' && Model.fetchProductDetailApi) {
+                            try {
+                                await Model.fetchProductDetailApi(itemId);
+                                renderMainOnly();
+                            } catch (_) {}
+                        }
                     }
                     break;
                 }
@@ -1105,6 +1147,103 @@ const WarehouseController = (function (Model, View) {
                             } catch (err) {
                                 WhNotification.alert(err.message || `Không thể xóa ${typeLabel}!`, { type: 'error' });
                             }
+                        }
+                    }
+                    break;
+                }
+
+                // Xử lý hủy lô nguyên vật liệu đã hết hạn sử dụng
+                case 'dispose-expired-batch': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const ingrId = actionEl.getAttribute('data-ingr-id');
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const voucherNo = actionEl.getAttribute('data-voucher-no') || '';
+                    const qty = actionEl.getAttribute('data-qty') || '';
+                    const unit = actionEl.getAttribute('data-unit') || 'kg';
+
+                    const confirmed = await WhNotification.confirm(
+                        `Bạn có chắc chắn muốn hủy <strong>${Number(qty).toLocaleString('vi-VN')} ${unit}</strong> nguyên vật liệu hết hạn từ phiếu <strong>${voucherNo}</strong> không?<br><small style="color:#64748b;">Hệ thống sẽ trừ số lượng này khỏi tồn kho và ghi nhận giao dịch 'Hủy nguyên vật liệu hết hạn' vào thẻ kho và báo cáo thống kê.</small>`,
+                        {
+                            title: 'Xác nhận hủy NVL hết hạn',
+                            confirmText: 'Xác nhận hủy',
+                            cancelText: 'Hủy bỏ',
+                            type: 'error'
+                        }
+                    );
+
+                    if (confirmed) {
+                        const origHtml = actionEl.innerHTML;
+                        try {
+                            actionEl.disabled = true;
+                            actionEl.innerHTML = '<span>Đang hủy...</span>';
+                            const res = await Model.disposeExpiredBatchApi(ingrId, receiptId);
+                            WhNotification.toast(res.message || 'Đã hủy nguyên vật liệu hết hạn thành công!', 'success');
+                            // Làm mới danh sách và chi tiết NVL
+                            if (Model.fetchIngredientsApi) {
+                                await Model.fetchIngredientsApi();
+                            } else if (Model.loadIngredients) {
+                                await Model.loadIngredients();
+                            }
+                            await Model.fetchIngredientDetailApi(ingrId);
+                            // Làm mới báo cáo nếu đang mở
+                            if (Model.fetchPeriodStatsApi) {
+                                try { await Model.fetchPeriodStatsApi(); } catch (_) {}
+                            }
+                            renderMainOnly();
+                        } catch (err) {
+                            WhNotification.alert(err.message || 'Có lỗi xảy ra khi hủy nguyên vật liệu hết hạn!', { type: 'error' });
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
+                        }
+                    }
+                    break;
+                }
+
+                // Xử lý hủy lô thành phẩm đã hết hạn sử dụng
+                case 'dispose-expired-product-batch': {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const productId = actionEl.getAttribute('data-product-id');
+                    const receiptId = actionEl.getAttribute('data-receipt-id');
+                    const voucherNo = actionEl.getAttribute('data-voucher-no') || '';
+                    const qty = actionEl.getAttribute('data-qty') || '';
+                    const unit = actionEl.getAttribute('data-unit') || 'Hộp';
+
+                    const confirmed = await WhNotification.confirm(
+                        `Bạn có chắc chắn muốn hủy <strong>${Number(qty).toLocaleString('vi-VN')} ${unit}</strong> thành phẩm hết hạn từ lệnh <strong>${voucherNo}</strong> không?<br><small style="color:#64748b;">Hệ thống sẽ trừ số lượng này khỏi tồn kho và ghi nhận giao dịch 'Hủy sản phẩm hết hạn' vào thẻ kho và báo cáo thống kê.</small>`,
+                        {
+                            title: 'Xác nhận hủy sản phẩm hết hạn',
+                            confirmText: 'Xác nhận hủy',
+                            cancelText: 'Hủy bỏ',
+                            type: 'error'
+                        }
+                    );
+
+                    if (confirmed) {
+                        const origHtml = actionEl.innerHTML;
+                        try {
+                            actionEl.disabled = true;
+                            actionEl.innerHTML = '<span>Đang hủy...</span>';
+                            const res = await Model.disposeExpiredProductBatchApi(productId, receiptId);
+                            WhNotification.toast(res.message || 'Đã hủy thành phẩm hết hạn thành công!', 'success');
+                            if (Model.fetchProductsApi) {
+                                await Model.fetchProductsApi();
+                            } else if (Model.loadProducts) {
+                                await Model.loadProducts();
+                            }
+                            await Model.fetchProductDetailApi(productId);
+                            if (Model.fetchProductExportsApi) {
+                                try { await Model.fetchProductExportsApi(); } catch (_) {}
+                            }
+                            if (Model.fetchPeriodStatsApi) {
+                                try { await Model.fetchPeriodStatsApi(); } catch (_) {}
+                            }
+                            renderMainOnly();
+                        } catch (err) {
+                            WhNotification.alert(err.message || 'Có lỗi xảy ra khi hủy thành phẩm hết hạn!', { type: 'error' });
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
                         }
                     }
                     break;
@@ -1203,23 +1342,32 @@ const WarehouseController = (function (Model, View) {
                     break;
                 }
 
-                case 'toggle-pr-product-picker': {
+                case 'toggle-pr-product-dropdown': {
                     e.preventDefault();
                     e.stopPropagation();
-                    const dropdown = document.getElementById('pr-product-picker-dropdown');
-                    if (dropdown) {
-                        const isHidden = dropdown.style.display === 'none' || !dropdown.style.display;
-                        dropdown.style.display = isHidden ? 'flex' : 'none';
-                        if (isHidden) {
-                            const searchInput = document.getElementById('pr-product-search-input');
-                            if (searchInput) {
-                                searchInput.value = '';
-                                setTimeout(() => searchInput.focus(), 50);
-                                document.querySelectorAll('.wh-product-picker-item').forEach(el => el.style.display = 'flex');
-                                const noResult = document.getElementById('pr-product-no-result');
-                                if (noResult) noResult.style.display = 'none';
-                            }
+                    const rowId = actionEl.getAttribute('data-row-id');
+                    const dropdown = document.getElementById(`pr-prod-dropdown-${rowId}`);
+                    if (!dropdown) return;
+
+                    const isCurrentlyOpen = dropdown.style.display === 'block';
+
+                    // Đóng tất cả dropdown đang mở
+                    document.querySelectorAll('.wh-pr-dropdown-menu').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.wh-pr-select-trigger').forEach(el => el.classList.remove('is-open'));
+
+                    if (!isCurrentlyOpen) {
+                        dropdown.style.display = 'block';
+                        actionEl.classList.add('is-open');
+
+                        // Reset search input và focus
+                        const searchInput = dropdown.querySelector('.wh-pr-product-search-input');
+                        if (searchInput) {
+                            searchInput.value = '';
+                            setTimeout(() => searchInput.focus(), 60);
                         }
+                        dropdown.querySelectorAll('.wh-pr-dropdown-item').forEach(it => it.style.display = 'flex');
+                        const noRes = dropdown.querySelector('.wh-pr-dropdown-no-results');
+                        if (noRes) noRes.style.display = 'none';
                     }
                     break;
                 }
@@ -1227,43 +1375,30 @@ const WarehouseController = (function (Model, View) {
                 case 'select-pr-product-item': {
                     e.preventDefault();
                     e.stopPropagation();
-                    const pid = actionEl.getAttribute('data-id');
-                    const pcode = actionEl.getAttribute('data-code') || '';
-                    const pname = actionEl.getAttribute('data-name') || '';
-                    const punit = actionEl.getAttribute('data-unit') || 'Hộp';
+                    const rowId = actionEl.getAttribute('data-row-id');
+                    const pid = actionEl.getAttribute('data-pid') || actionEl.getAttribute('data-id');
+                    if (rowId && pid && Model.changePrItemProduct) {
+                        Model.changePrItemProduct(rowId, pid);
+                        renderMainOnly();
+                    }
+                    break;
+                }
 
-                    // Cập nhật select ẩn giữ giá trị productId
-                    const prodSelect = document.getElementById('pr-form-product');
-                    if (prodSelect) {
-                        prodSelect.value = pid;
+                case 'add-pr-item-row': {
+                    e.preventDefault();
+                    if (Model.addPrItemRow) {
+                        Model.addPrItemRow();
+                        renderMainOnly();
                     }
-                    // Cập nhật trường Mã thành phẩm (khóa)
-                    const codeInput = document.getElementById('pr-form-product-code');
-                    if (codeInput) {
-                        codeInput.value = pcode;
-                    }
-                    // Cập nhật Tên thành phẩm hiển thị
-                    const nameSpan = document.getElementById('pr-product-selected-name');
-                    if (nameSpan) {
-                        nameSpan.textContent = pname;
-                    }
-                    // Cập nhật Đơn vị tính
-                    const unitInput = document.getElementById('pr-form-unit');
-                    if (unitInput) {
-                        unitInput.value = punit;
-                    }
-                    // Đánh dấu dòng đang chọn
-                    document.querySelectorAll('.wh-product-picker-item').forEach(function (el) {
-                        const isCur = el.getAttribute('data-id') === pid;
-                        el.classList.toggle('is-selected', isCur);
-                        el.style.background = isCur ? '#eff6ff' : '';
-                        el.style.color = isCur ? '#1d4ed8' : '#1e293b';
-                        el.style.fontWeight = isCur ? '600' : 'normal';
-                    });
-                    // Đóng dropdown picker
-                    const dropdown = document.getElementById('pr-product-picker-dropdown');
-                    if (dropdown) {
-                        dropdown.style.display = 'none';
+                    break;
+                }
+
+                case 'remove-pr-item-row': {
+                    e.preventDefault();
+                    const rowId = actionEl.getAttribute('data-row-id');
+                    if (rowId && Model.removePrItemRow) {
+                        Model.removePrItemRow(rowId);
+                        renderMainOnly();
                     }
                     break;
                 }
@@ -1271,40 +1406,60 @@ const WarehouseController = (function (Model, View) {
                 case 'save-create-pr': {
                     e.preventDefault();
                     const codeInput = document.getElementById('pr-form-code');
-                    const prodSelect = document.getElementById('pr-form-product');
-                    const qtyInput = document.getElementById('pr-form-quantity');
-                    const assigneeSelect = document.getElementById('pr-form-assignee');
-
                     const requestCode = codeInput ? codeInput.value.trim() : '';
-                    const productId = prodSelect ? parseInt(prodSelect.value, 10) : 0;
-                    const quantityRequired = qtyInput ? parseInt(qtyInput.value, 10) : 0;
-                    const status = 'Pending'; // Trạng thái luôn luôn mặc định là Pending khi tạo mới
-                    const assignedTo = (assigneeSelect && assigneeSelect.value) ? parseInt(assigneeSelect.value, 10) : null;
 
-                    if (!productId || productId <= 0) {
-                        View.showNotification ? View.showNotification('Vui lòng chọn thành phẩm cần sản xuất.', 'warning') : alert('Vui lòng chọn thành phẩm.');
-                        return;
+                    const modalData = Model.getPrModalData ? Model.getPrModalData() : null;
+                    const rawItems = modalData && modalData.item && Array.isArray(modalData.item.items)
+                        ? modalData.item.items
+                        : [];
+
+                    // Chuẩn bị danh sách sản phẩm yêu cầu sản xuất
+                    let items = rawItems
+                        .map(it => ({
+                            productId: parseInt(it.productId, 10) || 0,
+                            quantityRequired: parseInt(it.quantityRequired, 10) || 0
+                        }))
+                        .filter(it => it.productId > 0 && it.quantityRequired > 0);
+
+                    // Fallback nếu người dùng dùng form cũ 1 sản phẩm
+                    if (items.length === 0) {
+                        const prodSelect = document.getElementById('pr-form-product');
+                        const qtyInput = document.getElementById('pr-form-quantity');
+                        const pid = prodSelect ? parseInt(prodSelect.value, 10) : 0;
+                        const qty = qtyInput ? parseInt(qtyInput.value, 10) : 0;
+                        if (pid > 0 && qty > 0) {
+                            items = [{ productId: pid, quantityRequired: qty }];
+                        }
                     }
-                    if (!quantityRequired || quantityRequired <= 0) {
-                        View.showNotification ? View.showNotification('Số lượng cần sản xuất phải lớn hơn 0.', 'warning') : alert('Số lượng phải lớn hơn 0.');
+
+                    if (items.length === 0) {
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert('Vui lòng chọn ít nhất một thành phẩm với số lượng hợp lệ (> 0).', { type: 'warning' });
+                        } else {
+                            alert('Vui lòng chọn ít nhất một thành phẩm với số lượng hợp lệ.');
+                        }
                         return;
                     }
 
                     actionEl.disabled = true;
                     try {
-                        await Model.createProductionRequestApi({
+                        const res = await Model.createProductionRequestApi({
                             requestCode,
-                            productId,
-                            quantityRequired,
-                            status,
-                            assignedTo,
+                            items,
+                            status: 'Pending',
                             managerId: 24
                         });
                         Model.closePrModal();
                         renderMainOnly();
-                        View.showNotification ? View.showNotification(`Đã tạo lệnh sản xuất '${requestCode}' thành công!`, 'success') : null;
+                        if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                            WhNotification.toast(res.message || `Đã tạo lệnh sản xuất '${requestCode}' thành công cho ${items.length} loại thành phẩm!`, 'success');
+                        }
                     } catch (err) {
-                        View.showNotification ? View.showNotification(err.message || 'Lỗi khi tạo lệnh sản xuất.', 'error') : alert(err.message);
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(err.message || 'Lỗi khi tạo lệnh sản xuất.', { type: 'error' });
+                        } else {
+                            alert(err.message);
+                        }
                     } finally {
                         actionEl.disabled = false;
                     }
@@ -1338,13 +1493,10 @@ const WarehouseController = (function (Model, View) {
                     const prId = actionEl.getAttribute('data-pr-id');
                     const prodSelect = document.getElementById('pr-form-product');
                     const qtyInput = document.getElementById('pr-form-quantity');
-                    const assigneeSelect = document.getElementById('pr-form-assignee');
 
                     const productId = prodSelect ? parseInt(prodSelect.value, 10) : 0;
                     const quantityRequired = qtyInput ? parseInt(qtyInput.value, 10) : 0;
                     const status = 'Pending'; // Trạng thái trong trang chỉnh sửa luôn là Pending
-                    const assignedVal = assigneeSelect ? assigneeSelect.value : '';
-                    const assignedTo = assignedVal ? parseInt(assignedVal, 10) : 0;
 
                     if (!productId || productId <= 0) {
                         View.showNotification ? View.showNotification('Vui lòng chọn thành phẩm sản xuất.', 'warning') : alert('Vui lòng chọn thành phẩm.');
@@ -1360,75 +1512,64 @@ const WarehouseController = (function (Model, View) {
                         await Model.updateProductionRequestApi(prId, {
                             productId,
                             quantityRequired,
-                            status,
-                            assignedTo
+                            status
                         });
                         Model.closePrModal();
                         renderMainOnly();
-                        View.showNotification ? View.showNotification('Cập nhật lệnh sản xuất thành công!', 'success') : null;
+                        if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                            WhNotification.toast('Cập nhật lệnh sản xuất thành công!', 'success');
+                        }
                     } catch (err) {
-                        View.showNotification ? View.showNotification(err.message || 'Lỗi cập nhật lệnh sản xuất.', 'error') : alert(err.message);
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(err.message || 'Lỗi cập nhật lệnh sản xuất.', { type: 'error' });
+                        } else {
+                            alert(err.message);
+                        }
                     } finally {
                         actionEl.disabled = false;
                     }
                     break;
                 }
 
-                case 'open-assign-pr-modal': {
+                // Tiếp nhận yêu cầu sản xuất (chức năng thay thế phân công nhân viên)
+                case 'receive-pr': {
                     e.preventDefault();
+                    e.stopPropagation();
                     const prId = actionEl.getAttribute('data-pr-id');
-                    const state = Model.getState();
-                    const item = (state.productionRequests || []).find(r => String(r.requestId) === String(prId));
-                    if (item) {
-                        if (item.status !== 'Pending') {
-                            View.showNotification
-                                ? View.showNotification(`Lệnh sản xuất '${item.requestCode}' đang ở trạng thái '${item.status}', không thể thay đổi phân công. Chỉ lệnh ở trạng thái 'Pending' mới được phân công.`, 'warning')
-                                : alert(`Lệnh đang ở trạng thái '${item.status}', không thể phân công.`);
-                            return;
+                    const prCode = actionEl.getAttribute('data-pr-code') || prId;
+                    if (!prId) return;
+
+                    const confirmed = await WhNotification.confirm(
+                        `Bạn có muốn tiếp nhận xử lý lệnh sản xuất <strong>"${prCode}"</strong> không?<br/><br/>Hệ thống sẽ ghi nhận bạn là <strong>Nhân viên tiếp nhận</strong> và chuyển trạng thái sang <strong>Đang sản xuất (In Production)</strong>.`,
+                        {
+                            title: 'Tiếp nhận yêu cầu sản xuất',
+                            confirmText: '📥 Tiếp nhận ngay',
+                            cancelText: 'Hủy bỏ',
+                            type: 'info'
                         }
+                    );
+
+                    if (confirmed) {
+                        const origHtml = actionEl.innerHTML;
+                        actionEl.disabled = true;
+                        actionEl.innerHTML = 'Đang tiếp nhận...';
                         try {
-                            Model.openAssignPrModal(item);
+                            const res = await Model.receiveProductionRequest(prId);
+                            Model.closePrModal();
                             renderMainOnly();
+                            if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                                WhNotification.toast(res.message || `Đã tiếp nhận lệnh sản xuất "${prCode}" thành công!`, 'success');
+                            }
                         } catch (err) {
-                            View.showNotification ? View.showNotification(err.message, 'warning') : alert(err.message);
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(err.message || 'Lỗi khi tiếp nhận yêu cầu sản xuất!', { type: 'error' });
+                            } else {
+                                alert(err.message);
+                            }
+                        } finally {
+                            actionEl.disabled = false;
+                            actionEl.innerHTML = origHtml;
                         }
-                    }
-                    break;
-                }
-
-                case 'save-assign-pr': {
-                    e.preventDefault();
-                    const prId = actionEl.getAttribute('data-pr-id');
-                    const selectEl = document.getElementById('pr-quick-assign-select');
-                    const assignedTo = selectEl && selectEl.value ? parseInt(selectEl.value, 10) : null;
-
-                    actionEl.disabled = true;
-                    try {
-                        const res = await Model.assignProductionRequest(prId, assignedTo);
-                        Model.closePrModal();
-                        renderMainOnly();
-                        View.showNotification ? View.showNotification(res.message || 'Đã phân công thành công!', 'success') : null;
-                    } catch (err) {
-                        View.showNotification ? View.showNotification(err.message || 'Lỗi phân công lệnh sản xuất.', 'error') : alert(err.message);
-                    } finally {
-                        actionEl.disabled = false;
-                    }
-                    break;
-                }
-
-                case 'unassign-pr': {
-                    e.preventDefault();
-                    const prId = actionEl.getAttribute('data-pr-id');
-                    actionEl.disabled = true;
-                    try {
-                        const res = await Model.assignProductionRequest(prId, null);
-                        Model.closePrModal();
-                        renderMainOnly();
-                        View.showNotification ? View.showNotification(res.message || 'Đã hủy phân công!', 'success') : null;
-                    } catch (err) {
-                        View.showNotification ? View.showNotification(err.message || 'Lỗi hủy phân công.', 'error') : alert(err.message);
-                    } finally {
-                        actionEl.disabled = false;
                     }
                     break;
                 }
@@ -1439,12 +1580,18 @@ const WarehouseController = (function (Model, View) {
                     if (!prId) return;
                     actionEl.disabled = true;
                     try {
-                        const res = await Model.updateProductionRequestStatusApi(prId, 'In Production');
+                        const res = await Model.receiveProductionRequest(prId);
                         Model.closePrModal();
                         renderMainOnly();
-                        View.showNotification ? View.showNotification(res.message || 'Nhân viên đã tiếp nhận yêu cầu sản xuất! Trạng thái đã chuyển sang In Production và dữ liệu đã được khóa cố định.', 'success') : null;
+                        if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                            WhNotification.toast(res.message || 'Nhân viên đã tiếp nhận yêu cầu sản xuất! Trạng thái đã chuyển sang In Production và dữ liệu đã được khóa cố định.', 'success');
+                        }
                     } catch (err) {
-                        View.showNotification ? View.showNotification(err.message || 'Lỗi khi tiếp nhận yêu cầu sản xuất.', 'error') : alert(err.message);
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(err.message || 'Lỗi khi tiếp nhận yêu cầu sản xuất.', { type: 'error' });
+                        } else {
+                            alert(err.message);
+                        }
                     } finally {
                         actionEl.disabled = false;
                     }
@@ -1510,9 +1657,14 @@ const WarehouseController = (function (Model, View) {
                     break;
                 }
 
+                case 'filter-pr-unreceived':
                 case 'filter-pr-unassigned': {
                     e.preventDefault();
-                    Model.setPrAssignmentFilter('Chưa phân công');
+                    if (Model.setPrReceiveFilter) {
+                        Model.setPrReceiveFilter('Chưa tiếp nhận');
+                    } else if (Model.setPrAssignmentFilter) {
+                        Model.setPrAssignmentFilter('Chưa tiếp nhận');
+                    }
                     Model.setPrTab('tat-ca');
                     renderMainOnly();
                     break;
@@ -1563,11 +1715,48 @@ const WarehouseController = (function (Model, View) {
                     const phoneInput = document.getElementById('supplier-form-phone');
                     const mailInput = document.getElementById('supplier-form-mail');
                     const addressInput = document.getElementById('supplier-form-address');
+                    const costInput = document.getElementById('supplier-form-import-cost');
 
                     const supplierName = nameInput ? nameInput.value.trim() : '';
                     const phone = phoneInput ? phoneInput.value.trim() : '';
                     const mail = mailInput ? mailInput.value.trim() : '';
                     const address = addressInput ? addressInput.value.trim() : '';
+                    
+                    const costRaw = costInput ? costInput.value.trim() : '';
+                    let importCost = 0;
+                    if (costRaw !== '') {
+                        const parsedCost = parseFloat(costRaw);
+                        if (isNaN(parsedCost) || parsedCost < 0 || parsedCost > 100) {
+                            const msg = 'Tỷ lệ chi phí nhập phải nằm trong khoảng từ 0% đến 100%.';
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(msg, { type: 'warning', title: 'Chi phí nhập không hợp lệ' });
+                            } else {
+                                alert(msg);
+                            }
+                            if (costInput) {
+                                costInput.focus();
+                                costInput.style.borderColor = '#ef4444';
+                            }
+                            return;
+                        }
+                        if (costRaw.includes('.')) {
+                            const decimals = costRaw.split('.')[1] || '';
+                            if (decimals.length > 1) {
+                                const msg = 'Tỷ lệ chi phí nhập chỉ được có tối đa 1 chữ số thập phân (Ví dụ: 8.5%).';
+                                if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                    WhNotification.alert(msg, { type: 'warning', title: 'Số chữ số thập phân không hợp lệ' });
+                                } else {
+                                    alert(msg);
+                                }
+                                if (costInput) {
+                                    costInput.focus();
+                                    costInput.style.borderColor = '#ef4444';
+                                }
+                                return;
+                            }
+                        }
+                        importCost = Math.round(parsedCost * 10) / 10;
+                    }
 
                     if (!supplierName) {
                         if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
@@ -1579,15 +1768,84 @@ const WarehouseController = (function (Model, View) {
                         return;
                     }
 
+                    // Ràng buộc kiểm tra nhà cung cấp đã tồn tại (phía Client trước khi gọi API)
+                    const existingSuppliers = (typeof Model.getSuppliersList === 'function' ? Model.getSuppliersList() : (Model.getState().suppliers || []));
+                    const cleanName = supplierName.trim().toLowerCase();
+                    const duplicate = existingSuppliers.find(s => (s.name || s.supplierName || '').trim().toLowerCase() === cleanName);
+                    if (duplicate) {
+                        const msg = `Nhà cung cấp "${supplierName}" đã tồn tại trong hệ thống (Mã: ${duplicate.code || 'NCC' + (duplicate.supplierId || duplicate.id)}). Không thể thêm mới!`;
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(msg, { type: 'warning', title: 'Nhà cung cấp đã tồn tại' });
+                        } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                            WhNotification.toast(msg, 'warning');
+                        } else {
+                            alert(msg);
+                        }
+                        if (nameInput) {
+                            nameInput.focus();
+                            nameInput.style.borderColor = '#ef4444';
+                        }
+                        const hintEl = document.getElementById('supplier-name-dup-hint');
+                        if (hintEl) {
+                            hintEl.style.display = 'block';
+                            hintEl.innerHTML = `⚠️ Nhà cung cấp "<strong>${escapeHtml(supplierName)}</strong>" đã tồn tại (Mã: <strong>${escapeHtml(duplicate.code || 'NCC' + (duplicate.supplierId || duplicate.id))}</strong>).`;
+                        }
+                        return;
+                    }
+
+                    // Kiểm tra trùng số điện thoại
+                    if (phone) {
+                        const cleanPhone = phone.trim();
+                        const dupPhone = existingSuppliers.find(s => s.phone && s.phone.trim() === cleanPhone);
+                        if (dupPhone) {
+                            const msg = `Số điện thoại "${cleanPhone}" đã được đăng ký cho nhà cung cấp "${dupPhone.name || dupPhone.supplierName}".`;
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(msg, { type: 'warning', title: 'Trùng số điện thoại' });
+                            } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                                WhNotification.toast(msg, 'warning');
+                            } else {
+                                alert(msg);
+                            }
+                            if (phoneInput) {
+                                phoneInput.focus();
+                                phoneInput.style.borderColor = '#ef4444';
+                            }
+                            return;
+                        }
+                    }
+
+                    // Kiểm tra trùng email
+                    if (mail) {
+                        const cleanMail = mail.trim().toLowerCase();
+                        const dupMail = existingSuppliers.find(s => s.mail && s.mail.trim().toLowerCase() === cleanMail);
+                        if (dupMail) {
+                            const msg = `Email "${mail}" đã được sử dụng bởi nhà cung cấp "${dupMail.name || dupMail.supplierName}".`;
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(msg, { type: 'warning', title: 'Trùng địa chỉ email' });
+                            } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                                WhNotification.toast(msg, 'warning');
+                            } else {
+                                alert(msg);
+                            }
+                            if (mailInput) {
+                                mailInput.focus();
+                                mailInput.style.borderColor = '#ef4444';
+                            }
+                            return;
+                        }
+                    }
+
                     try {
-                        await Model.createSupplierApi({ supplierName, phone, mail, address });
+                        await Model.createSupplierApi({ supplierName, phone, mail, address, importCost });
                         Model.closeSupplierModal();
                         renderMainOnly();
                         if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
                             WhNotification.toast(`Đã thêm mới nhà cung cấp "${supplierName}" thành công!`, 'success');
                         }
                     } catch (err) {
-                        if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(err.message || 'Không thể tạo nhà cung cấp.', { type: 'error', title: 'Không thể thêm nhà cung cấp' });
+                        } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
                             WhNotification.toast(err.message || 'Không thể tạo nhà cung cấp.', 'error');
                         } else {
                             alert(err.message);
@@ -1603,11 +1861,48 @@ const WarehouseController = (function (Model, View) {
                     const phoneInput = document.getElementById('supplier-form-phone');
                     const mailInput = document.getElementById('supplier-form-mail');
                     const addressInput = document.getElementById('supplier-form-address');
+                    const costInput = document.getElementById('supplier-form-import-cost');
 
                     const supplierName = nameInput ? nameInput.value.trim() : '';
                     const phone = phoneInput ? phoneInput.value.trim() : '';
                     const mail = mailInput ? mailInput.value.trim() : '';
                     const address = addressInput ? addressInput.value.trim() : '';
+                    
+                    const costRaw = costInput ? costInput.value.trim() : '';
+                    let importCost = 0;
+                    if (costRaw !== '') {
+                        const parsedCost = parseFloat(costRaw);
+                        if (isNaN(parsedCost) || parsedCost < 0 || parsedCost > 100) {
+                            const msg = 'Tỷ lệ chi phí nhập phải nằm trong khoảng từ 0% đến 100%.';
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(msg, { type: 'warning', title: 'Chi phí nhập không hợp lệ' });
+                            } else {
+                                alert(msg);
+                            }
+                            if (costInput) {
+                                costInput.focus();
+                                costInput.style.borderColor = '#ef4444';
+                            }
+                            return;
+                        }
+                        if (costRaw.includes('.')) {
+                            const decimals = costRaw.split('.')[1] || '';
+                            if (decimals.length > 1) {
+                                const msg = 'Tỷ lệ chi phí nhập chỉ được có tối đa 1 chữ số thập phân (Ví dụ: 8.5%).';
+                                if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                    WhNotification.alert(msg, { type: 'warning', title: 'Số chữ số thập phân không hợp lệ' });
+                                } else {
+                                    alert(msg);
+                                }
+                                if (costInput) {
+                                    costInput.focus();
+                                    costInput.style.borderColor = '#ef4444';
+                                }
+                                return;
+                            }
+                        }
+                        importCost = Math.round(parsedCost * 10) / 10;
+                    }
 
                     if (!supplierName) {
                         if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
@@ -1619,15 +1914,84 @@ const WarehouseController = (function (Model, View) {
                         return;
                     }
 
+                    // Ràng buộc kiểm tra trùng tên với nhà cung cấp khác
+                    const existingSuppliers = (typeof Model.getSuppliersList === 'function' ? Model.getSuppliersList() : (Model.getState().suppliers || []));
+                    const cleanName = supplierName.trim().toLowerCase();
+                    const duplicate = existingSuppliers.find(s => ((s.id || s.supplierId) !== supId) && (s.name || s.supplierName || '').trim().toLowerCase() === cleanName);
+                    if (duplicate) {
+                        const msg = `Tên nhà cung cấp "${supplierName}" đã tồn tại trong hệ thống (Mã: ${duplicate.code || 'NCC' + (duplicate.supplierId || duplicate.id)}). Vui lòng chọn tên khác!`;
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(msg, { type: 'warning', title: 'Tên nhà cung cấp đã tồn tại' });
+                        } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                            WhNotification.toast(msg, 'warning');
+                        } else {
+                            alert(msg);
+                        }
+                        if (nameInput) {
+                            nameInput.focus();
+                            nameInput.style.borderColor = '#ef4444';
+                        }
+                        const hintEl = document.getElementById('supplier-name-dup-hint');
+                        if (hintEl) {
+                            hintEl.style.display = 'block';
+                            hintEl.innerHTML = `⚠️ Tên nhà cung cấp "<strong>${escapeHtml(supplierName)}</strong>" đã tồn tại (Mã: <strong>${escapeHtml(duplicate.code || 'NCC' + (duplicate.supplierId || duplicate.id))}</strong>).`;
+                        }
+                        return;
+                    }
+
+                    // Kiểm tra trùng số điện thoại
+                    if (phone) {
+                        const cleanPhone = phone.trim();
+                        const dupPhone = existingSuppliers.find(s => ((s.id || s.supplierId) !== supId) && s.phone && s.phone.trim() === cleanPhone);
+                        if (dupPhone) {
+                            const msg = `Số điện thoại "${cleanPhone}" đã được đăng ký cho nhà cung cấp "${dupPhone.name || dupPhone.supplierName}".`;
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(msg, { type: 'warning', title: 'Trùng số điện thoại' });
+                            } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                                WhNotification.toast(msg, 'warning');
+                            } else {
+                                alert(msg);
+                            }
+                            if (phoneInput) {
+                                phoneInput.focus();
+                                phoneInput.style.borderColor = '#ef4444';
+                            }
+                            return;
+                        }
+                    }
+
+                    // Kiểm tra trùng email
+                    if (mail) {
+                        const cleanMail = mail.trim().toLowerCase();
+                        const dupMail = existingSuppliers.find(s => ((s.id || s.supplierId) !== supId) && s.mail && s.mail.trim().toLowerCase() === cleanMail);
+                        if (dupMail) {
+                            const msg = `Email "${mail}" đã được sử dụng bởi nhà cung cấp "${dupMail.name || dupMail.supplierName}".`;
+                            if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                                WhNotification.alert(msg, { type: 'warning', title: 'Trùng địa chỉ email' });
+                            } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                                WhNotification.toast(msg, 'warning');
+                            } else {
+                                alert(msg);
+                            }
+                            if (mailInput) {
+                                mailInput.focus();
+                                mailInput.style.borderColor = '#ef4444';
+                            }
+                            return;
+                        }
+                    }
+
                     try {
-                        await Model.updateSupplierApi(supId, { supplierName, phone, mail, address });
+                        await Model.updateSupplierApi(supId, { supplierName, phone, mail, address, importCost });
                         Model.closeSupplierModal();
                         renderMainOnly();
                         if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
                             WhNotification.toast(`Đã cập nhật thông tin nhà cung cấp "${supplierName}" thành công!`, 'success');
                         }
                     } catch (err) {
-                        if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
+                        if (typeof WhNotification !== 'undefined' && WhNotification.alert) {
+                            WhNotification.alert(err.message || 'Không thể cập nhật nhà cung cấp.', { type: 'error', title: 'Không thể cập nhật nhà cung cấp' });
+                        } else if (typeof WhNotification !== 'undefined' && WhNotification.toast) {
                             WhNotification.toast(err.message || 'Không thể cập nhật nhà cung cấp.', 'error');
                         } else {
                             alert(err.message);
@@ -1764,9 +2128,9 @@ const WarehouseController = (function (Model, View) {
                     e.preventDefault();
                     const cfg = Model.getReportDataConfig();
                     const items = cfg.items || [];
-                    let csv = '\uFEFFSTT,Mã hàng,Tên nguyên vật liệu / sản phẩm,Phân loại,ĐVT,Tồn đầu kỳ,Nhập trong kỳ,Xuất trong kỳ,Lưu xưởng (WIP),Tồn cuối kỳ,Đơn giá (đ),Thành tiền (đ),Trạng thái\n';
+                    let csv = '\uFEFFSTT,Mã hàng,Tên nguyên vật liệu / sản phẩm,Phân loại,ĐVT,Tồn đầu kỳ,Nhập trong kỳ,Xuất trong kỳ,Tồn cuối kỳ,Đơn giá (đ),Thành tiền (đ),Trạng thái\n';
                     items.forEach((it, idx) => {
-                        csv += `${idx + 1},"${it.code}","${(it.name || '').replace(/"/g, '""')}","${it.typeLabel}","${it.unit}",${it.openingStock},${it.inQty},${it.outQty},${it.wipQty},${it.closingStock},${it.unitPrice},${it.totalValue},"${it.stockStatusLabel}"\n`;
+                        csv += `${idx + 1},"${it.code}","${(it.name || '').replace(/"/g, '""')}","${it.typeLabel}","${it.unit}",${it.openingStock},${it.inQty},${it.outQty},${it.closingStock},${it.unitPrice},${it.totalValue},"${it.stockStatusLabel}"\n`;
                     });
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
@@ -1795,8 +2159,22 @@ const WarehouseController = (function (Model, View) {
                     const itemId = actionEl.getAttribute('data-item-id');
                     const itemType = actionEl.getAttribute('data-item-type');
                     if (itemId && itemType) {
-                        await Model.fetchStockCardApi(itemId, itemType);
-                        renderMainOnly();
+                        const cardData = await Model.fetchStockCardApi(itemId, itemType);
+                        if (cardData) {
+                            let existing = document.getElementById('wh-stock-card-overlay');
+                            if (existing) existing.remove();
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = View.renderStockCardModal(cardData);
+                            const overlay = tempDiv.firstElementChild;
+                            if (overlay) {
+                                overlay.id = 'wh-stock-card-overlay';
+                                if (mainMount) {
+                                    mainMount.appendChild(overlay);
+                                } else {
+                                    document.body.appendChild(overlay);
+                                }
+                            }
+                        }
                     }
                     break;
                 }
@@ -1804,18 +2182,42 @@ const WarehouseController = (function (Model, View) {
                 case 'close-stock-card-modal': {
                     e.preventDefault();
                     Model.closeStockCardModal();
-                    renderMainOnly();
+                    const overlay = document.getElementById('wh-stock-card-overlay');
+                    if (overlay) {
+                        overlay.remove();
+                    } else {
+                        renderMainOnly();
+                    }
                     break;
                 }
+            }
+        });
+
+        // Đóng Thẻ kho khi bấm vào vùng nền mờ overlay bên ngoài cửa sổ
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.id === 'wh-stock-card-overlay') {
+                Model.closeStockCardModal();
+                e.target.remove();
             }
         });
 
         // Đóng Phiếu Nhập / Xuất hoặc Modal VTHH / Lệnh SX / NCC / Thẻ kho khi bấm phím Escape
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
+                const openPrDropdown = document.querySelector('.wh-pr-dropdown-menu[style*="display: block"]');
+                if (openPrDropdown) {
+                    openPrDropdown.style.display = 'none';
+                    document.querySelectorAll('.wh-pr-select-trigger').forEach(el => el.classList.remove('is-open'));
+                    return;
+                }
                 if (Model.getReportDataConfig && Model.getReportDataConfig().stockCardModal) {
                     Model.closeStockCardModal();
-                    renderMainOnly();
+                    const overlay = document.getElementById('wh-stock-card-overlay');
+                    if (overlay) {
+                        overlay.remove();
+                    } else {
+                        renderMainOnly();
+                    }
                 } else if (Model.getState().supplierModal) {
                     Model.closeSupplierModal();
                     renderMainOnly();
@@ -1871,12 +2273,16 @@ const WarehouseController = (function (Model, View) {
                 if (codeInput) {
                     codeInput.value = draft ? (draft.supplierCode || '') : '';
                 }
+                updateVoucherModalDom();
                 return;
             }
 
             if (action === 'change-inbound-item') {
                 const rowId = target.getAttribute('data-row-id');
-                Model.changeInboundNewItem(rowId, target.value);
+                const changeRes = Model.changeInboundNewItem(rowId, target.value);
+                if (changeRes && changeRes.duplicate) {
+                    WhNotification.alert(changeRes.message, { type: 'warning', title: 'Trùng nguyên vật liệu' });
+                }
                 updateVoucherModalDom();
                 return;
             }
@@ -1887,12 +2293,34 @@ const WarehouseController = (function (Model, View) {
                 return;
             }
 
+            if (action === 'change-pr-item-product') {
+                const rowId = target.getAttribute('data-row-id');
+                if (rowId && Model.changePrItemProduct) {
+                    Model.changePrItemProduct(rowId, target.value);
+                    renderMainOnly();
+                }
+                return;
+            }
+
+            if (action === 'change-pr-item-qty') {
+                const rowId = target.getAttribute('data-row-id');
+                if (rowId && Model.changePrItemQty) {
+                    Model.changePrItemQty(rowId, target.value);
+                    renderMainOnly();
+                }
+                return;
+            }
+
             const filterId = target.getAttribute('data-filter-id');
             if (filterId === 'pr-status-filter') {
                 Model.setPrStatusFilter(target.value);
                 renderMainOnly();
-            } else if (filterId === 'pr-assign-filter') {
-                Model.setPrAssignmentFilter(target.value);
+            } else if (filterId === 'pr-receive-filter' || filterId === 'pr-assign-filter') {
+                if (Model.setPrReceiveFilter) {
+                    Model.setPrReceiveFilter(target.value);
+                } else if (Model.setPrAssignmentFilter) {
+                    Model.setPrAssignmentFilter(target.value);
+                }
                 renderMainOnly();
             } else if (filterId === 'inbound-status-filter') {
                 Model.setOperationStatusFilter('nhap-kho', target.value);
@@ -1906,6 +2334,75 @@ const WarehouseController = (function (Model, View) {
         document.addEventListener('input', async function (e) {
             const target = e.target;
             if (!target) return;
+
+            // Kiểm tra trùng lặp thời gian thực khi nhập thông tin nhà cung cấp
+            if (target.id === 'supplier-form-name') {
+                const query = target.value.trim().toLowerCase();
+                const hintEl = document.getElementById('supplier-name-dup-hint');
+                const saveBtn = document.querySelector('[data-action="save-create-supplier"], [data-action="save-edit-supplier"]');
+                const isEdit = saveBtn && saveBtn.getAttribute('data-action') === 'save-edit-supplier';
+                const currentSupId = isEdit ? parseInt(saveBtn.getAttribute('data-supplier-id'), 10) : 0;
+
+                if (!query) {
+                    target.style.borderColor = '#cbd5e1';
+                    if (hintEl) {
+                        hintEl.style.display = 'none';
+                        hintEl.textContent = '';
+                    }
+                    return;
+                }
+
+                const existingSuppliers = (typeof Model.getSuppliersList === 'function' ? Model.getSuppliersList() : (Model.getState().suppliers || []));
+                const dup = existingSuppliers.find(s => {
+                    const sid = s.id || s.supplierId;
+                    if (isEdit && sid === currentSupId) return false;
+                    return (s.name || s.supplierName || '').trim().toLowerCase() === query;
+                });
+
+                if (dup) {
+                    target.style.borderColor = '#ef4444';
+                    if (hintEl) {
+                        hintEl.style.display = 'block';
+                        hintEl.innerHTML = `⚠️ Nhà cung cấp "<strong>${escapeHtml(dup.name || dup.supplierName)}</strong>" đã tồn tại (Mã: <strong>${escapeHtml(dup.code || 'NCC' + (dup.supplierId || dup.id))}</strong>). Không thể thêm trùng!`;
+                    }
+                } else {
+                    target.style.borderColor = '#22c55e';
+                    if (hintEl) {
+                        hintEl.style.display = 'none';
+                        hintEl.textContent = '';
+                    }
+                }
+                return;
+            }
+
+            if (target.id === 'supplier-form-phone' || target.id === 'supplier-form-mail') {
+                target.style.borderColor = '#cbd5e1';
+            }
+
+            if (target.id === 'supplier-form-import-cost') {
+                const raw = target.value.trim();
+                const hintEl = document.getElementById('supplier-cost-dup-hint');
+                if (!raw) {
+                    target.style.borderColor = '#cbd5e1';
+                    if (hintEl) { hintEl.style.display = 'none'; hintEl.textContent = ''; }
+                    return;
+                }
+                const val = parseFloat(raw);
+                const hasMoreThan1Dec = raw.includes('.') && (raw.split('.')[1] || '').length > 1;
+                if (isNaN(val) || val < 0 || val > 100 || hasMoreThan1Dec) {
+                    target.style.borderColor = '#ef4444';
+                    if (hintEl) {
+                        hintEl.style.display = 'block';
+                        hintEl.innerHTML = hasMoreThan1Dec
+                            ? '⚠️ Tỷ lệ phí nhập chỉ được có tối đa 1 chữ số thập phân (Ví dụ: 8.5)'
+                            : '⚠️ Tỷ lệ phí nhập chỉ được từ 0% đến 100%';
+                    }
+                } else {
+                    target.style.borderColor = '#22c55e';
+                    if (hintEl) { hintEl.style.display = 'none'; hintEl.textContent = ''; }
+                }
+                return;
+            }
 
             // Thanh tìm kiếm nhanh thành phẩm trong modal Yêu cầu sản xuất
             if (target.id === 'pr-product-search-input') {
@@ -1930,7 +2427,51 @@ const WarehouseController = (function (Model, View) {
             }
 
             const inputAction = target.getAttribute('data-action');
+            if (inputAction === 'search-pr-product-list') {
+                const rowId = target.getAttribute('data-row-id');
+                const query = target.value.toLowerCase().trim();
+                const listEl = document.getElementById(`pr-prod-list-${rowId}`);
+                if (listEl) {
+                    const items = listEl.querySelectorAll('.wh-pr-dropdown-item');
+                    let visibleCount = 0;
+                    items.forEach(el => {
+                        const name = (el.getAttribute('data-pname') || '').toLowerCase();
+                        const code = (el.getAttribute('data-pcode') || '').toLowerCase();
+                        if (!query || name.includes(query) || code.includes(query)) {
+                            el.style.display = 'flex';
+                            visibleCount++;
+                        } else {
+                            el.style.display = 'none';
+                        }
+                    });
+                    const noRes = listEl.querySelector('.wh-pr-dropdown-no-results');
+                    if (noRes) {
+                        noRes.style.display = visibleCount === 0 ? 'block' : 'none';
+                    }
+                }
+                return;
+            }
+
+            if (inputAction === 'change-pr-item-qty') {
+                const rowId = target.getAttribute('data-row-id');
+                if (rowId && Model.changePrItemQty) {
+                    Model.changePrItemQty(rowId, target.value);
+                    const modalData = Model.getPrModalData ? Model.getPrModalData() : null;
+                    if (modalData && modalData.item && Array.isArray(modalData.item.items)) {
+                        const totalQty = modalData.item.items.reduce((s, it) => s + (parseInt(it.quantityRequired, 10) || 0), 0);
+                        const tfootEl = document.querySelector('.wh-voucher-body tfoot td[style*="color:#0284c7"]');
+                        if (tfootEl) {
+                            tfootEl.textContent = totalQty.toLocaleString('vi-VN');
+                        }
+                    }
+                }
+                return;
+            }
+
             if (inputAction === 'change-inbound-item-qty') {
+                if (target.value && target.value.length > 6) {
+                    target.value = target.value.slice(0, 6);
+                }
                 const rowId = target.getAttribute('data-row-id');
                 const row = Model.changeInboundNewItemQty(rowId, target.value);
                 if (row) {

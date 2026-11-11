@@ -72,8 +72,8 @@ SELECT
     (SELECT COALESCE(SUM(totalamount), 0) FROM public.saleorder WHERE orderdate >= DATE_TRUNC('month', CURRENT_DATE) AND orderdate < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month') AS "CurrentMonthRevenue",
     (SELECT COALESCE(SUM(quantity), 0) FROM public.wip_inventory) AS "TotalWipQuantity",
     (SELECT COUNT(*) FROM public.productionrequest WHERE status = 'Pending') AS "PendingProductionRequests",
-    (SELECT COUNT(*) FROM public.productionrequest WHERE status = 'Processing') AS "InProgressProductionRequests",
-    (SELECT COUNT(*) FROM public.productionrequest WHERE status IN ('Pending', 'Processing')) AS "OpenProductionRequests"
+    (SELECT COUNT(*) FROM public.productionrequest WHERE status IN ('In Production', 'Processing')) AS "InProgressProductionRequests",
+    (SELECT COUNT(*) FROM public.productionrequest WHERE status IN ('Pending', 'In Production', 'Processing')) AS "OpenProductionRequests"
 """;
 
                 var dashboardTask = GetDashboardMetricsAsync(sql, cancellationToken);

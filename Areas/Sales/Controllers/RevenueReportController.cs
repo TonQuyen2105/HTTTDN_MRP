@@ -136,6 +136,7 @@ namespace httt.Areas.Sales.Controllers
 
                 var exportedOrderIds = exportReceipts
                     .Where(r => r.OrderId.HasValue && (
+                        string.Equals(r.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(r.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
                         r.Status == "Đã xuất kho" ||
@@ -168,9 +169,11 @@ namespace httt.Areas.Sales.Controllers
                 // Nếu có phiếu xuất kho trực tiếp không gắn với đơn hàng
                 var standaloneDetails = exportReceipts
                     .Where(r => !r.OrderId.HasValue && (
+                        string.Equals(r.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(r.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
-                        r.Status == "Đã xuất kho"))
+                        r.Status == "Đã xuất kho" ||
+                        r.Status == "Đã hoàn thành"))
                     .SelectMany(r => r.ProductExportReceiptDetails)
                     .ToList();
 

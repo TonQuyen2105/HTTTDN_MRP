@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -737,6 +738,10 @@ public class MaterialReceiptApiController : ControllerBase
         }
 
         receipt.Status = "Approved";
+        if (receipt.ApprovedBy == null && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+        {
+            receipt.ApprovedBy = currentUserId;
+        }
         await _context.SaveChangesAsync();
 
         return Ok(new { success = true, message = $"Duyệt cấp phát vật tư phiếu {receipt.ExpReceiptCode} thành công. Đã chuyển NVL sang WIP xưởng." });

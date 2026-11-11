@@ -95,6 +95,7 @@ namespace httt.Areas.Sales.Controllers
                                     || order.Status == "Đã hoàn thành";
 
                     bool isReceiptExported = linkedReceipt != null && (
+                        string.Equals(linkedReceipt.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(linkedReceipt.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(linkedReceipt.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
                         linkedReceipt.Status == "Đã xuất kho" ||
@@ -151,6 +152,7 @@ namespace httt.Areas.Sales.Controllers
 
                 // Nếu có phiếu xuất kho độc lập (không gắn Orderid) mà đã hoàn tất thì bổ sung thêm
                 var standaloneReceipts = exportReceipts.Where(r => !r.OrderId.HasValue && (
+                    string.Equals(r.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(r.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
                     r.Status == "Đã xuất kho" ||

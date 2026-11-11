@@ -327,6 +327,16 @@ if (app.Environment.IsDevelopment())
 
     try
     {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE public.supplier ADD COLUMN IF NOT EXISTS import_cost NUMERIC(5,2) DEFAULT 0;");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not ensure supplier.import_cost column on startup.");
+    }
+
+    try
+    {
         if (!await db.UserAccounts.AsNoTracking().AnyAsync())
         {
             var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME") ?? "admin";

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -522,6 +523,10 @@ public class ProductReceiptApiController : ControllerBase
         }
 
         receipt.Status = "Approved";
+        if (receipt.ApprovedBy == null && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+        {
+            receipt.ApprovedBy = currentUserId;
+        }
         await _context.SaveChangesAsync();
 
         string code = !string.IsNullOrWhiteSpace(receipt.ReceiptCode) ? receipt.ReceiptCode : $"LNK{receipt.ProductReceiptId:D5}";

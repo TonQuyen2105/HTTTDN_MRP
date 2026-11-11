@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using httt.Constants;
 using httt.Data;
@@ -95,7 +96,8 @@ namespace httt.Areas.Sales.Controllers
 
                     if (receiptStatusDict.TryGetValue(ord.OrderId, out var rStatus))
                     {
-                        bool isReceiptExported = string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase)
+                        bool isReceiptExported = string.Equals(rStatus, "Approved", StringComparison.OrdinalIgnoreCase)
+                                              || string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase)
                                               || string.Equals(rStatus, "Exported", StringComparison.OrdinalIgnoreCase)
                                               || rStatus == "Đã xuất kho"
                                               || rStatus == "Đã hoàn thành";
@@ -264,7 +266,8 @@ namespace httt.Areas.Sales.Controllers
 
             if (receiptStatusDict.TryGetValue(o.OrderId, out var rStatus))
             {
-                if (string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                if (string.Equals(rStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(rStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(rStatus, "Exported", StringComparison.OrdinalIgnoreCase) ||
                     rStatus == "Đã xuất kho" ||
                     rStatus == "Đã hoàn thành") return true;
@@ -584,8 +587,9 @@ namespace httt.Areas.Sales.Controllers
                     return RedirectToAction("Index", new { tab = "sales" });
                 }
 
-                var user = await _context.UserAccounts.FirstOrDefaultAsync();
-                int? createdByUserId = user?.UserId;
+                int? currentUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+                int? createdByUserId = currentUserId
+                    ?? (await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserId).FirstOrDefaultAsync());
 
                 var pharmacies = new[]
                 {

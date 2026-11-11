@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using httt.Constants;
 using httt.Data;
@@ -163,8 +164,10 @@ namespace httt.Areas.Sales.Controllers
                     }
                 }
 
-                var user = await _context.UserAccounts.FirstOrDefaultAsync();
-                int? requestedByUserId = user?.UserId ?? order.CreatedBy;
+                int? currentUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+                int? requestedByUserId = currentUserId
+                    ?? order.CreatedBy
+                    ?? (await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserId).FirstOrDefaultAsync());
 
                 string receiptCode = $"PXTP{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
 

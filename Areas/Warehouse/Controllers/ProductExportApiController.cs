@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -469,8 +470,15 @@ public class ProductExportApiController : ControllerBase
         }
 
         receipt.Status = "Approved";
-        var firstUser = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync();
-        if (firstUser != null) receipt.ApprovedBy = firstUser.UserID;
+        if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentApproverId))
+        {
+            receipt.ApprovedBy = currentApproverId;
+        }
+        else
+        {
+            var firstUser = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync();
+            if (firstUser != null) receipt.ApprovedBy = firstUser.UserID;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -574,17 +582,28 @@ public class ProductExportApiController : ControllerBase
             orderId = so.OrderId;
         }
 
+        try
+        {
+            await _context.Database.ExecuteSqlRawAsync(
+                "SELECT setval(pg_get_serial_sequence('public.productexportreceipt', 'exportreceiptid'), COALESCE((SELECT MAX(exportreceiptid) FROM public.productexportreceipt), 1));");
+        }
+        catch
+        {
+            // Ignore sequence sync error if sequence name differs
+        }
+
         var maxId = await _context.ProductExportReceipts.MaxAsync(e => (int?)e.ExportReceiptId) ?? 0;
         var nextId = maxId + 1;
 
+        int? currentUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+
         var receipt = new ProductExportReceipt
         {
-            ExportReceiptId = nextId,
             ExpReceiptCode = !string.IsNullOrWhiteSpace(dto.ExpReceiptCode) ? dto.ExpReceiptCode : $"PXK_BH{nextId:D4}",
             OrderId = orderId,
             CreatedDate = now,
             Status = dto.Status ?? "Chờ xuất kho",
-            RequestedBy = dto.RequestedBy ?? (await _context.UserAccounts.Select(u => (int?)u.UserId).FirstOrDefaultAsync())
+            RequestedBy = dto.RequestedBy ?? currentUserId ?? (await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserId).FirstOrDefaultAsync())
         };
 
         _context.ProductExportReceipts.Add(receipt);

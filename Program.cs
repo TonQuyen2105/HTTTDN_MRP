@@ -345,9 +345,8 @@ if (autoMigrate)
     }
 }
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
     try
@@ -362,7 +361,49 @@ if (app.Environment.IsDevelopment())
 
     try
     {
-        if (!await db.UserAccounts.AsNoTracking().AnyAsync())
+        // 1. Chuẩn hóa tự động các Role cũ trong bảng public.useraccount về đúng 4 Role chuẩn
+        await db.Database.ExecuteSqlRawAsync(@"
+            UPDATE public.useraccount SET role = 'Warehouse' WHERE role = 'Kho';
+            UPDATE public.useraccount SET role = 'Sales' WHERE role = 'BanHang';
+            UPDATE public.useraccount SET role = 'Production' WHERE role IN ('Manager', 'Employee');
+        ");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not standardize legacy useraccount roles on startup.");
+    }
+
+    try
+    {
+        // 2. Tự động khởi tạo (Seed) / cập nhật 4 Tài khoản Demo chuẩn cho 4 Role với mật khẩu 123456
+        var demoPasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12);
+        var demoUsers = new[]
+        {
+            new UserAccount { Username = "demo_admin", FullName = "Nguyễn Minh Tài (Admin Demo)", Phone = "0903123456", Role = AppRoles.Admin, Status = "Active" },
+            new UserAccount { Username = "demo_sales", FullName = "Trần Ngọc Phương Nhi (Sales Demo)", Phone = "0912345671", Role = AppRoles.Sales, Status = "Active" },
+            new UserAccount { Username = "demo_warehouse", FullName = "Lý Minh Huy (Warehouse Demo)", Phone = "0903123458", Role = AppRoles.Warehouse, Status = "Active" },
+            new UserAccount { Username = "demo_production", FullName = "Tôn Quyền (Production Demo)", Phone = "0904000001", Role = AppRoles.Production, Status = "Active" }
+        };
+
+        foreach (var demo in demoUsers)
+        {
+            var existing = await db.UserAccounts.FirstOrDefaultAsync(u => u.Username.ToLower() == demo.Username);
+            if (existing == null)
+            {
+                demo.Password = demoPasswordHash;
+                db.UserAccounts.Add(demo);
+            }
+            else
+            {
+                existing.FullName = demo.FullName;
+                existing.Phone = demo.Phone;
+                existing.Role = demo.Role;
+                existing.Status = "Active";
+                existing.Password = demoPasswordHash;
+            }
+        }
+
+        if (!await db.UserAccounts.AsNoTracking().AnyAsync(u => u.Role == "Admin"))
         {
             var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME") ?? "admin";
             var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "Admin@123";
@@ -376,13 +417,13 @@ if (app.Environment.IsDevelopment())
                 Role = "Admin",
                 Status = "Active"
             });
-
-            await db.SaveChangesAsync();
         }
+
+        await db.SaveChangesAsync();
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "Admin seed check failed. Database is reachable but user seeding was skipped.");
+        app.Logger.LogWarning(ex, "Admin seed check or Demo users creation failed: {Message}", ex.Message);
     }
 }
 

@@ -77,11 +77,10 @@ public class AccountController : Controller
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username.ToLower() == loweredUsername);
 
-        bool isValidPassword = false;
         if (user is null)
         {
             UserAccountService.BurnPasswordCheck(password);
-            ViewBag.Error = "Không tìm thấy tài khoản hoặc thông tin đăng nhập không chính xác.";
+            ViewBag.Error = "Không tìm thấy tài khoản trong phân hệ này hoặc thông tin đăng nhập không chính xác.";
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
@@ -91,30 +90,12 @@ public class AccountController : Controller
         if (normalizedRole != AppRoles.Admin)
         {
             UserAccountService.BurnPasswordCheck(password);
-            ViewBag.Error = "Không tìm thấy tài khoản hoặc thông tin đăng nhập không chính xác.";
+            ViewBag.Error = "Không tìm thấy tài khoản trong phân hệ này hoặc thông tin đăng nhập không chính xác.";
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
 
-        if (UserAccountService.VerifyPassword(password, user.Password))
-        {
-            isValidPassword = true;
-        }
-        else
-        {
-            try
-            {
-                var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.Password, password);
-                if (verifyResult == PasswordVerificationResult.Success || verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
-                {
-                    isValidPassword = true;
-                }
-            }
-            catch
-            {
-                isValidPassword = false;
-            }
-        }
+        bool isValidPassword = VerifyAccountPassword(user, password);
 
         if (!isValidPassword)
         {
@@ -281,5 +262,113 @@ public class AccountController : Controller
 
         TempData["SuccessMessage"] = "Cập nhật thông tin thành công";
         return RedirectToAction(nameof(Profile));
+    }
+
+    // ── POST: /Admin/Account/ChangePassword ───────────────────────────────
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmPassword)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrWhiteSpace(username)) return Challenge();
+
+        if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
+        {
+            TempData["ErrorMessage"] = "Vui lòng nhập đầy đủ thông tin mật khẩu.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
+        {
+            TempData["ErrorMessage"] = "Mật khẩu mới và xác nhận mật khẩu không khớp.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var passwordError = UserAccountRules.ValidatePassword(newPassword);
+        if (passwordError is not null)
+        {
+            TempData["ErrorMessage"] = passwordError;
+            return RedirectToAction(nameof(Profile));
+        }
+
+        if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
+        {
+            TempData["ErrorMessage"] = "Mật khẩu mới không được trùng với mật khẩu hiện tại.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        string? errorMessage = null;
+
+        try
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var account = await _context.UserAccounts
+                        .FirstOrDefaultAsync(u => u.Username == username);
+
+                    if (account == null)
+                    {
+                        errorMessage = "Không tìm thấy thông tin tài khoản.";
+                        return;
+                    }
+
+                    if (!VerifyAccountPassword(account, currentPassword))
+                    {
+                        errorMessage = "Mật khẩu hiện tại không chính xác.";
+                        return;
+                    }
+
+                    account.Password = UserAccountService.HashPassword(newPassword);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password for Admin: {Username}", username);
+            TempData["ErrorMessage"] = "Lỗi khi đổi mật khẩu. Vui lòng thử lại.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            TempData["ErrorMessage"] = errorMessage;
+            return RedirectToAction(nameof(Profile));
+        }
+
+        TempData["SuccessMessage"] = "Đổi mật khẩu thành công.";
+        return RedirectToAction(nameof(Profile));
+    }
+
+    private bool VerifyAccountPassword(UserAccount user, string plainPassword)
+    {
+        if (UserAccountService.VerifyPassword(plainPassword, user.Password))
+        {
+            return true;
+        }
+
+        try
+        {
+            var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.Password, plainPassword);
+            return verifyResult == PasswordVerificationResult.Success
+                || verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

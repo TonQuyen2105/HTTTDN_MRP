@@ -390,6 +390,12 @@ const WarehouseController = (function (Model, View) {
                         Model.setOperationTab('xuat-kho', 'xuat-kho-tab');
                     }
                     const mode = (docNo || receiptId) ? 'view' : 'create';
+                    if (vType === 'inbound' && Model.fetchCurrentUserApi) {
+                        const curUser = Model.getCurrentUser ? Model.getCurrentUser() : null;
+                        if (!curUser || !curUser.userId) {
+                            await Model.fetchCurrentUserApi();
+                        }
+                    }
                     Model.openVoucherModal(vType, receiptId || docNo, mode);
                     renderMainOnly();
                     if (vType === 'inbound' && mode === 'view' && (receiptId || docNo)) {

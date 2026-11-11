@@ -1476,6 +1476,9 @@ const WarehouseComponents = (function () {
         const isCreate = voucher.mode === 'create';
         const suppliersList = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getSuppliersList) ? WarehouseModel.getSuppliersList() : [];
         const ingredientsList = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getIngredientsList) ? WarehouseModel.getIngredientsList() : [];
+        const curUser = (typeof WarehouseModel !== 'undefined' && WarehouseModel.getCurrentUser) ? WarehouseModel.getCurrentUser() : null;
+        const fallbackEmpCode = curUser?.employeeCode || (curUser?.userId ? `NV${String(curUser.userId).padStart(4, '0')}` : '');
+        const fallbackEmpName = curUser?.fullName || curUser?.username || '';
 
         let fullTitle = `Phiếu ${voucher.selectedSubType ? voucher.selectedSubType.toLowerCase() : (isInbound ? 'nhập kho' : 'xuất kho')} ${voucher.voucherNo}`;
         if (isInbound && isCreate) {
@@ -1501,11 +1504,11 @@ const WarehouseComponents = (function () {
                     <!-- Dòng 1: Mã nhân viên + Tên nhân viên (Tự động theo người đang đăng nhập) -->
                     <div class="wh-form-group">
                         <label class="wh-form-label">Mã nhân viên</label>
-                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || 'NV0005')}" readonly disabled />
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || fallbackEmpCode)}" readonly disabled />
                     </div>
                     <div class="wh-form-group wh-col-span-2">
                         <label class="wh-form-label">Tên nhân viên</label>
-                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || 'Nguyễn Tiến Huy')}" readonly disabled />
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || fallbackEmpName)}" readonly disabled />
                     </div>
 
                     <!-- Dòng 2: Mã nhà cung cấp + Tên nhà cung cấp (Dropdown) -->
@@ -1540,11 +1543,11 @@ const WarehouseComponents = (function () {
                     <!-- Dòng 1: Mã nhân viên + Tên nhân viên -->
                     <div class="wh-form-group">
                         <label class="wh-form-label">Mã nhân viên</label>
-                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || 'NV0005')}" readonly disabled />
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeCode || fallbackEmpCode)}" readonly disabled />
                     </div>
                     <div class="wh-form-group wh-col-span-2">
                         <label class="wh-form-label">Tên nhân viên</label>
-                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || 'Nguyễn Tiến Huy')}" readonly disabled />
+                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(voucher.employeeName || voucher.creatorName || fallbackEmpName)}" readonly disabled />
                     </div>
 
                     <!-- Dòng 2: Mã nhà cung cấp + Tên nhà cung cấp -->

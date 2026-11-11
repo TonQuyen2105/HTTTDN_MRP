@@ -179,7 +179,7 @@ namespace httt.Areas.Sales.Controllers
                     RequestedBy = requestedByUserId,
                     ApprovedBy = null,
                     CreatedDate = DateTime.UtcNow,
-                    Status = "Chờ xuất kho"
+                    Status = "Peding",
                 };
 
                 _context.ProductExportReceipts.Add(newReceipt);

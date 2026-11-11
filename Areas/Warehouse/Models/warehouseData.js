@@ -738,6 +738,18 @@ const WarehouseModel = (function () {
         );
     }
 
+    function getCurrentUserEmployeeInfo() {
+        const u = state.currentUser;
+        if (!u || !u.userId) {
+            return { userId: null, employeeCode: '', employeeName: '' };
+        }
+        return {
+            userId: u.userId,
+            employeeCode: u.employeeCode || `NV${String(u.userId).padStart(4, '0')}`,
+            employeeName: u.fullName || u.username || ''
+        };
+    }
+
     function getCurrentVnDateTime() {
         const now = new Date();
         const d = String(now.getDate()).padStart(2, '0');
@@ -1439,6 +1451,7 @@ const WarehouseModel = (function () {
                     if (state.activeVoucherMode === 'create' && state.inboundNewDraft) {
                         return state.inboundNewDraft;
                     }
+                    const empInfo = getCurrentUserEmployeeInfo();
                     const activeDocNo = state.activeVoucherDocNo || 'PNK00018';
                     const draftRow = (state.inboundLocalDrafts || []).find(d =>
                         d.voucherNo === activeDocNo || d.orderNo === activeDocNo || String(d.id) === String(activeDocNo) || String(d.ipReceiptId) === String(activeDocNo)
@@ -1452,8 +1465,8 @@ const WarehouseModel = (function () {
                             ipReceiptId: draftRow.id,
                             voucherNo: draftRow.voucherNo,
                             orderNo: draftRow.voucherNo,
-                            employeeCode: draftRow.employeeCode || 'NV0005',
-                            employeeName: draftRow.creatorName || 'Nguyễn Tiến Huy',
+                            employeeCode: draftRow.employeeCode || empInfo.employeeCode,
+                            employeeName: draftRow.creatorName || empInfo.employeeName,
                             supplierCode: draftRow.supplierCode || '',
                             supplierName: draftRow.supplierName || 'Chưa chọn nhà cung cấp',
                             voucherDate: draftRow.voucherDate,
@@ -1474,8 +1487,8 @@ const WarehouseModel = (function () {
                         vouchersData.inbound.receiptId = receiptRow.ipReceiptId || receiptRow.id;
                         vouchersData.inbound.ipReceiptId = receiptRow.ipReceiptId || receiptRow.id;
                         vouchersData.inbound.voucherNo = receiptRow.voucherNo;
-                        vouchersData.inbound.employeeCode = receiptRow.employeeCode || 'NV0005';
-                        vouchersData.inbound.employeeName = receiptRow.creatorName || 'Nguyễn Tiến Huy';
+                        vouchersData.inbound.employeeCode = receiptRow.employeeCode || empInfo.employeeCode;
+                        vouchersData.inbound.employeeName = receiptRow.employeeName || receiptRow.creatorName || empInfo.employeeName;
                         vouchersData.inbound.supplierCode = receiptRow.supplierCode || 'NCC0046';
                         vouchersData.inbound.supplierName = receiptRow.supplierName || 'Công ty Cổ phần Dược phẩm Trung ương CPC1';
                         vouchersData.inbound.voucherDate = receiptRow.voucherDate;
@@ -1567,13 +1580,14 @@ const WarehouseModel = (function () {
 
             if (voucherType === 'inbound' && mode === 'create') {
                 const totalExisting = (inboundDatasets.inboundReceipts || []).length + (state.inboundLocalDrafts || []).length + 10;
+                const empInfo = getCurrentUserEmployeeInfo();
                 state.inboundNewDraft = {
                     voucherType: 'inbound',
                     mode: 'create',
                     voucherNo: `PNK${String(totalExisting).padStart(5, '0')}`,
                     selectedSubType: 'Nhập kho mua hàng',
-                    employeeCode: 'NV0005',
-                    employeeName: 'Nguyễn Tiến Huy',
+                    employeeCode: empInfo.employeeCode,
+                    employeeName: empInfo.employeeName,
                     supplierCode: '',
                     supplierName: '',
                     supplierId: null,
@@ -1745,6 +1759,7 @@ const WarehouseModel = (function () {
             if (isDraft) {
                 // Lưu nháp: CHƯA LƯU VÀO DATABASE mà chỉ nằm trên giao diện (local state)
                 const draftId = `draft_${Date.now()}`;
+                const empInfo = getCurrentUserEmployeeInfo();
                 const newDraft = {
                     id: draftId,
                     receiptId: draftId,
@@ -1760,8 +1775,8 @@ const WarehouseModel = (function () {
                     status: 'Lưu nháp',
                     orderStatus: 'Lưu nháp',
                     statusType: 'secondary',
-                    creatorName: draft.employeeName || 'Nguyễn Tiến Huy',
-                    employeeCode: draft.employeeCode || 'NV0005',
+                    creatorName: draft.employeeName || empInfo.employeeName,
+                    employeeCode: draft.employeeCode || empInfo.employeeCode,
                     items: JSON.parse(JSON.stringify(draft.items || []))
                 };
 
@@ -1799,8 +1814,10 @@ const WarehouseModel = (function () {
             });
 
             try {
+                const empInfo = getCurrentUserEmployeeInfo();
                 const payload = {
                     supplierId: Number(supplierId),
+                    createdBy: empInfo.userId || undefined,
                     ipReceiptCode: draft.voucherNo,
                     status: 'Approve',
                     isDraft: false,
@@ -2458,12 +2475,17 @@ const WarehouseModel = (function () {
                 const res = await fetch(`/api/warehouse/import-receipts/${numId}`);
                 if (!res.ok) throw new Error(`HTTP error ${res.status}`);
                 const data = await res.json();
+                const empInfo = getCurrentUserEmployeeInfo();
                 const existing = inboundDatasets.inboundReceipts.find(r => r.ipReceiptId === numId || r.voucherNo === data.voucherNo || r.id === numId);
+                const empCode = data.employeeCode || existing?.employeeCode || empInfo.employeeCode;
+                const empName = data.employeeName || data.creatorName || existing?.creatorName || empInfo.employeeName;
                 if (existing) {
                     existing.items = data.items;
                     existing.status = data.status;
                     existing.orderStatus = data.status;
                     existing.statusType = data.statusType;
+                    existing.employeeCode = empCode;
+                    existing.creatorName = empName;
                 }
                 if (vouchersData.inbound && (vouchersData.inbound.voucherNo === data.voucherNo || vouchersData.inbound.receiptId === numId)) {
                     vouchersData.inbound.items = data.items;
@@ -2472,6 +2494,8 @@ const WarehouseModel = (function () {
                     vouchersData.inbound.statusType = data.statusType;
                     vouchersData.inbound.supplierName = data.supplierName;
                     vouchersData.inbound.supplierCode = data.supplierCode;
+                    vouchersData.inbound.employeeCode = empCode;
+                    vouchersData.inbound.employeeName = empName;
                 }
                 return data;
             } catch (err) {
@@ -2510,8 +2534,10 @@ const WarehouseModel = (function () {
                     };
                 });
 
+                const empInfo = getCurrentUserEmployeeInfo();
                 const payload = {
                     supplierId: Number(supplierId),
+                    createdBy: empInfo.userId || undefined,
                     ipReceiptCode: draft.voucherNo,
                     status: 'Approve',
                     isDraft: false,

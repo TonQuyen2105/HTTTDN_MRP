@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Thống kê sản xuất</title>
+  
+  <link rel="stylesheet" href="../../../wwwroot/css/base.css">
+  <link rel="stylesheet" href="../../../wwwroot/css/layout.css">
+  <link rel="stylesheet" href="../../../wwwroot/css/productions/production-order.css">
+  <link rel="stylesheet" href="../../../wwwroot/css/productions/production-statistics.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Công ty cơ khí Kim Khí Miền Nam</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;"><div class="user-avatar">NV</div><span class="user-name">Nguyễn Văn Dev</span></a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        <div class="nav-item"><a href="/Productions/Home/Index" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10H12V2z"></path></svg></span><span class="nav-text">Tổng quan</span></a></div>
+        <div class="nav-item"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span><span class="nav-text">Đơn đặt hàng</span></a></div>
+        <div class="nav-item has-sub"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span><span class="nav-text">Kế hoạch sản xuất</span></a></div>
+        
+        <!-- Điều phối & thực thi (ACTIVE THỐNG KÊ SẢN XUẤT) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path></svg></span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất</a>
+            <a href="#" class="sub-link">Lịch sản xuất</a>
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link">Yêu cầu xuất vật tư</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link active">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link">Nhập thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link">Bàn giao thành phẩm</a>
+            <a href="#" class="sub-link">Tình hình giao hàng</a>
+          </div>
+        </div>
+
+        <div class="nav-item"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span><span class="nav-text">Kiểm tra chất lượng</span></a></div>
+        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-item"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></span><span class="nav-text">Sản phẩm, NVL</span></a></div>
+        <div class="nav-item"><a href="/Productions/Home/BomList" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></span><span class="nav-text">Định mức NVL (BOM)</span></a></div>
+      </div>
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg><span class="collapse-text">Thu gọn menu</span></button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (DANH SÁCH PHIẾU THỐNG KÊ SẢN XUẤT) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in">
+        
+        <div class="stats-list-header">
+          <h1 class="stats-page-title">Thống kê sản xuất</h1>
+          <div>
+            <a href="/Productions/Home/ProductionStatisticsCreate" class="btn-add-stats">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              + Thêm phiếu thống kê
+            </a>
+          </div>
+        </div>
+
+        <div class="bom-filter-bar">
+          <div class="search-input-wrap">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="statsSearchInput" class="search-input" placeholder="Tìm theo số phiếu, lệnh SX, người thống kê...">
+          </div>
+        </div>
+
+        <div class="stats-form-card">
+          <div class="table-responsive">
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 50px;">STT</th>
+                  <th>Số phiếu</th>
+                  <th>Ngày thống kê</th>
+                  <th>Lệnh sản xuất</th>
+                  <th>Sản phẩm</th>
+                  <th>Người thống kê</th>
+                  <th class="text-right">SL sản xuất</th>
+                  <th class="text-center" style="width: 80px;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="statsListBody">
+                <tr>
+                  <td class="text-center">1</td>
+                  <td><a href="/Productions/Home/ProductionStatisticsDetail" style="color:var(--color-primary); font-weight:700;">TKSX00454</a></td>
+                  <td>22/01/2026</td>
+                  <td><a href="/Productions/Home/ProductionOrder" style="color:#2ea664; font-weight:600;">LSX0096</a></td>
+                  <td>SIRO - Siro ho, bổ phế</td>
+                  <td>Trần Thị Chung Phương</td>
+                  <td class="text-right" style="font-weight:600;">2.000,000 ml</td>
+                  <td class="text-center">
+                    <div class="row-actions-cell">
+                      <a href="/Productions/Home/ProductionStatisticsDetail" class="btn-action-view" title="Xem chi tiết phiếu">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </a>
+                      <button type="button" class="btn-action-delete" title="Xóa phiếu thống kê">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer-bar">
+            <span>Tổng số: <strong>1</strong> phiếu</span>
+            <div class="table-footer-right">
+              <span>Số dòng/trang</span>
+              <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                <option selected>20</option>
+                <option>50</option>
+              </select>
+              <span>1 - 1</span>
+              <button type="button" class="pagination-btn">&lt;</button>
+              <button type="button" class="pagination-btn">&gt;</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="../../../wwwroot/js/app.js"></script>
+  <script src="../../../wwwroot/js/productions/production-statistics.js"></script>
+</body>
+</html>

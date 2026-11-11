@@ -1,0 +1,56 @@
+/* Shared presentation for the statistics list and production history. */
+.stats-page .stats-list-header { gap:16px; margin-bottom:8px; }
+.stats-page .stats-page-title { font-size:24px; line-height:1.35; margin:0; letter-spacing:-.4px; }
+.stats-description,.stats-muted { color:#64748b; font-size:13px; line-height:1.6; }
+.stats-description { margin:8px 0 20px; }
+.stats-muted { display:block; margin-top:6px; font-size:11px; }
+.stats-page .stats-form-card { border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 2px 8px rgba(15,23,42,.035); }
+.stats-page .stats-form-body { display:block; padding:24px; }
+.stats-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:24px 0; }
+.stats-summary>div { padding:20px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; min-width:0; }
+.stats-summary span { display:block; color:#64748b; font-size:12px; font-weight:500; margin-bottom:12px; }
+.stats-summary strong { display:block; font-size:24px; font-weight:700; line-height:1.4; color:#1e293b; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.stats-summary>div:nth-child(2) { background:#f0fdf4; border-color:#dcfce7; }
+.stats-summary>div:nth-child(2) strong { color:#15803d; }
+.stats-summary small { display:block; margin-top:8px; color:#64748b; font-size:12px; line-height:1.5; }
+.stats-overview>div:nth-child(2) { background:#fff; border-color:#e2e8f0; }
+.stats-overview>div:nth-child(2) strong { color:#64748b; }
+.stats-overview>div:nth-child(4) { background:#f0fdf4; border-color:#dcfce7; }
+.stats-overview>div:nth-child(4) strong { color:#15803d; }
+.stats-summary .stats-latest strong { font-size:17px; }
+.stats-page .bom-filter-bar { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+.stats-page #statsSearchInput { width:100%; max-width:520px; min-height:42px; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; background:#f8fafc; }
+.stats-page #statsSearchInput:focus { outline:2px solid #bbf7d0; border-color:#2ea664; background:#fff; }
+.stats-page .bom-table { width:100%; border-collapse:collapse; }
+.stats-page .bom-table th { padding:15px 16px; background:#f8fafc; color:#64748b; font-size:12px; font-weight:600; white-space:nowrap; border-bottom:1px solid #e2e8f0; }
+.stats-page .bom-table td { padding:17px 16px; border-bottom:1px solid #f1f5f9; font-size:13px; line-height:1.6; vertical-align:middle; color:#334155; }
+.stats-page .bom-table tbody tr:hover { background:#f8fcfa; }
+.stats-page .bom-table td.text-right { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.stats-page .bom-table .stats-product-name { min-width:170px; font-weight:600; color:#1e293b; }
+.stats-page .ref-link { color:#15803d; text-decoration:none; font-weight:600; white-space:nowrap; }
+.stats-page .ref-link:hover { text-decoration:underline; }
+.stats-quantity { color:#15803d; font-variant-numeric:tabular-nums; }
+.stats-quantity small { font-weight:400; color:#64748b; font-size:12px; }
+.stats-detail-link { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:7px 12px; border:1px solid #d1fae5; border-radius:8px; background:#f0fdf4; color:#15803d; font-weight:600; font-size:12px; text-decoration:none; white-space:nowrap; }
+.stats-detail-link:hover { background:#dcfce7; border-color:#86efac; }
+.stats-detail-link:focus-visible,.stats-page .btn-cancel:focus-visible { outline:3px solid #bbf7d0; outline-offset:2px; }
+.stats-page .table-footer-bar { padding:14px 18px; background:#fafcfd; color:#64748b; font-size:12px; border-top:1px solid #e2e8f0; }
+.stats-order-heading { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.stats-order-heading .section-legend { font-size:20px; line-height:1.5; margin:0; padding:0; border:0; color:#1e293b; }
+.stats-order-code,.stats-log-code { display:inline-block; border-radius:6px; background:#f0fdf4; color:#15803d; font-size:12px; font-weight:600; padding:5px 10px; white-space:nowrap; }
+.stats-owner { margin:12px 0 0; color:#64748b; font-size:13px; }
+.stats-owner strong { color:#334155; font-weight:500; }
+.stats-history-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-top:28px; padding-top:24px; border-top:1px solid #e2e8f0; }
+.stats-page .stats-history-heading .sub-table-title { margin:0; font-size:16px; color:#1e293b; }
+.stats-count-pill { border-radius:20px; background:#f1f5f9; color:#64748b; padding:5px 10px; font-size:12px; }
+.stats-unset { color:#94a3b8; font-size:12px; white-space:nowrap; }
+.stats-expiry { color:#334155; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.stats-notice { padding:14px 18px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; color:#92400e; margin:16px 0; font-size:13px; line-height:1.6; }
+.stats-empty { text-align:center!important; color:#64748b!important; padding:40px 24px!important; }
+.stats-note { white-space:pre-wrap; overflow-wrap:anywhere; max-width:360px; min-width:160px; }
+.stats-page .bom-table tfoot td { background:#f8fafc; padding:16px; font-weight:600; border-top:1px solid #e2e8f0; }
+.stats-list-header .btn-cancel { text-decoration:none; border:1px solid #e2e8f0; border-radius:8px; background:#fff; padding:9px 14px; color:#475569; font-size:13px; }
+.stats-page .bom-action-footer { display:flex; justify-content:flex-end; margin-top:20px; }
+@media(max-width:1100px) { .stats-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .stats-summary { grid-template-columns:1fr; gap:12px; } .stats-list-header { flex-wrap:wrap; } .stats-page .stats-form-body { padding:16px; } .stats-page .stats-page-title { font-size:21px; } }
+@media print { .app-header,.app-sidebar,.bom-action-footer,.stats-list-header .btn-cancel,.stats-page .bom-filter-bar { display:none!important; } .app-main { margin:0!important; padding:0!important; } .table-responsive { overflow:visible!important; } .stats-page .stats-form-card { box-shadow:none; } .stats-summary { grid-template-columns:repeat(4,minmax(0,1fr)); } .stats-summary>div { padding:10px; } .stats-summary strong { font-size:16px; } .stats-page .bom-table td,.stats-page .bom-table th { padding:8px; font-size:11px; } }

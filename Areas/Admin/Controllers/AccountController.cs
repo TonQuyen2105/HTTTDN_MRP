@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using httt.Areas.Admin.Services;
+using httt.Constants;
 using httt.Data;
 using httt.Models;
 
@@ -35,14 +36,19 @@ public class AccountController : Controller
     [AllowAnonymous]
     public IActionResult Login(string? returnUrl = null)
     {
-        // Nếu đã đăng nhập với quyền Admin, chuyển hướng thẳng vào Dashboard
-        if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+        // Nếu đã đăng nhập, chuyển hướng theo vai trò tương ứng
+        if (User.Identity?.IsAuthenticated == true)
         {
-            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && AppRoles.CanAccessUrl(User, returnUrl))
             {
                 return Redirect(returnUrl);
             }
-            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+            if (User.IsInRole(AppRoles.Admin))
+            {
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+            }
+            return Redirect(AppRoles.GetDefaultUrlForRole(role));
         }
 
         ViewBag.ReturnUrl = returnUrl;
@@ -85,12 +91,12 @@ public class AccountController : Controller
             return View();
         }
 
-        // Chỉ sau khi mật khẩu ĐÚNG mới tiết lộ lý do cụ thể (kẻ tấn công không biết mật khẩu thì không biết
-        // tài khoản có tồn tại, có bị khóa hay không phải Admin).
-        if (UserAccountRules.StatusKey(user.Status) != UserAccountRules.StatusActive
-            || user.Role != UserAccountRules.AdminRole)
+        var isActive = UserAccountRules.StatusKey(user.Status) == UserAccountRules.StatusActive
+            || string.Equals(user.Status, "true", StringComparison.OrdinalIgnoreCase);
+
+        if (!isActive)
         {
-            ViewBag.Error = "Tài khoản không có quyền truy cập phân hệ Admin hoặc đã bị khóa.";
+            ViewBag.Error = "Tài khoản hiện đang bị khóa hoặc vô hiệu hóa.";
             ViewBag.ErrorMessage = ViewBag.Error;
             return View();
         }
@@ -98,14 +104,16 @@ public class AccountController : Controller
         // Tự động nâng cấp mật khẩu cũ sang BCrypt hash nếu cần
         await _accountService.UpgradePasswordIfNeededAsync(user, password);
 
-        // Chuẩn hóa role (ví dụ 'admin' -> 'Admin') để Authorize(Roles = "Admin") hoạt động chính xác
-        var normalizedRole = UserAccountRules.NormalizeRole(user.Role) ?? user.Role;
+        // Chuẩn hóa role về vai trò hệ thống chuẩn (Admin, Production, Warehouse, Sales)
+        var normalizedRole = AppRoles.NormalizeRole(user.Role);
 
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, normalizedRole)
+            new Claim(ClaimTypes.Role, normalizedRole),
+            new Claim("FullName", user.FullName ?? user.Username),
+            new Claim("OriginalRole", user.Role ?? normalizedRole)
         };
 
         var identity = new ClaimsIdentity(
@@ -119,24 +127,30 @@ public class AccountController : Controller
         var authProperties = new AuthenticationProperties
         {
             IsPersistent = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8),
+            AllowRefresh = true
         };
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && AppRoles.CanAccessUrl(principal, returnUrl))
         {
             return Redirect(returnUrl);
         }
 
-        return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        if (normalizedRole == AppRoles.Admin)
+        {
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        }
+
+        return Redirect(AppRoles.GetDefaultUrlForRole(normalizedRole));
     }
 
     // ── POST: /Admin/Account/Logout hoặc /Admin/Logout ───────────────────
     [HttpPost]
     [Route("Admin/Account/Logout")]
     [Route("Admin/Logout")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {

@@ -1,0 +1,221 @@
+@model httt.Models.ProductionStatisticsViewModel?
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Chi tiết Phiếu thống kê sản xuất</title>
+  
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/productions/production-order.css">
+  <link rel="stylesheet" href="/css/productions/production-statistics.css">
+  <link rel="stylesheet" href="/css/productions/production-statistics-history.css" asp-append-version="true">
+</head>
+<body class="stats-page">
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link active">Thống kê sản xuất</a>
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ</div>
+
+        
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (CHI TIẾT PHIẾU THỐNG KÊ SẢN XUẤT) -->
+<main class="app-main"><div class="main-container page-fade-in">
+  <div class="stats-list-header"><h1 class="stats-page-title">Chi tiết thống kê sản xuất</h1><a class="btn-cancel" href="@Url.Action("ProductionStatisticsList")">Quay lại danh sách</a></div>
+  @if (ViewBag.LoadError != null) { <div class="stats-notice" role="alert">@ViewBag.LoadError</div> }
+  @if (Model == null)
+  {
+    <div class="stats-empty">@(ViewBag.LoadError == null ? "Không tìm thấy yêu cầu sản xuất." : "Vui lòng tải lại trang để xem dữ liệu.")</div>
+  }
+  else
+  {
+    var req = Model.Request;
+    var unit = req.Product?.Unit ?? "";
+    <div class="stats-form-card"><div class="stats-form-body">
+      <div class="stats-order-heading"><span class="stats-order-code">@req.DisplayCode</span><h2 class="section-legend">@(req.Product?.ProductName ?? "—")</h2></div>
+      <p class="stats-owner">Người phụ trách: <strong>@(req.Manager?.FullName ?? "—")</strong></p>
+      <div class="stats-summary">
+        <div><span>Số lượng yêu cầu</span><strong>@req.QuantityRequired.ToString("N0") @unit</strong></div>
+        <div><span>Tổng đã sản xuất</span><strong>@Model.TotalProduced.ToString("N0") @unit</strong></div>
+        <div><span>Còn phải sản xuất</span><strong>@Model.Remaining.ToString("N0") @unit</strong></div>
+        <div class="stats-latest"><span>Sản xuất gần nhất</span><strong>@httt.Models.ProductionStatisticsViewModel.DisplayTime(Model.LatestProduction)</strong></div>
+      </div>
+      @if (Model.LegacyQuantity > 0)
+      {
+        <div class="stats-notice">Có @Model.LegacyQuantity.ToString("N0") @unit đã ghi nhận trước khi có nhật ký. Số lượng này được tính vào tổng, nhưng chưa có thông tin từng lần sản xuất hoặc ngày sản xuất.</div>
+      }
+      <div class="stats-history-heading"><h2 class="sub-table-title">Lịch sử sản xuất</h2><span class="stats-count-pill">@Model.Logs.Count lần ghi nhận</span></div>
+      <p class="stats-description">Lần mới nhất hiển thị đầu tiên. Thời gian theo giờ Việt Nam.</p>
+      <div class="table-responsive"><table class="bom-table"><thead><tr>
+        <th>Mã ghi nhận</th><th>Ngày sản xuất</th><th>Hạn sử dụng</th><th>Người ghi nhận</th><th class="text-right">Số lượng lần này</th><th>Đơn vị</th><th>Ghi chú</th>
+      </tr></thead><tbody>
+      @foreach (var log in Model.Logs)
+      {
+        <tr><td><span class="stats-log-code">GN-@log.LogId</span></td><td>@httt.Models.ProductionStatisticsViewModel.DisplayTime(log.ProducedAt)</td><td><span class="@(log.ExpiredDate.HasValue ? "stats-expiry" : "stats-unset")">@(log.ExpiredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")</span></td><td>@(log.Creator?.FullName ?? "—")</td><td class="text-right"><strong class="stats-quantity">@log.ProducedQuantity.ToString("N0")</strong></td><td>@unit</td><td class="stats-note">@(string.IsNullOrWhiteSpace(log.Note) ? "—" : log.Note)</td></tr>
+      }
+      @if (!Model.Logs.Any()) { <tr><td colspan="7" class="stats-empty">Chưa có lần sản xuất nào được lưu trong nhật ký.</td></tr> }
+      </tbody><tfoot><tr><td colspan="4">Tổng trong nhật ký (@Model.Logs.Count lần)</td><td class="text-right"><strong>@Model.LoggedQuantity.ToString("N0")</strong></td><td>@unit</td><td></td></tr></tfoot></table></div>
+    </div></div>
+    <div class="bom-action-footer"><button type="button" class="btn-save-submit" onclick="window.print()">In thống kê</button></div>
+  }
+</div></main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/productions/production-statistics.js"></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "AMIS Quản lý Kho - Warehouse";
+    var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Thủ kho";
+    var username = User.Identity?.Name ?? "warehouse";
+    var isAdmin = User.IsInRole(httt.Constants.AppRoles.Admin);
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@ViewData["Title"]</title>
+  <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    .top-nav {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #e0f2fe;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-switcher {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .nav-pill {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #64748b;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+    .nav-pill:hover {
+      color: #0f172a;
+    }
+    .nav-pill.active {
+      background: #ffffff;
+      color: #0284c7;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+    }
+    .user-avatar-small {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #0284c7;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #dc2626;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-logout:hover {
+      background: #fee2e2;
+    }
+    .content-container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .card-dashboard {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    .badge-dev {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fef3c7;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .illustration-box {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #f0f9ff;
+      color: #0284c7;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-nav">
+    <div class="brand-wrap">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+      </div>
+      <span>AMIS Kho Dược phẩm</span>
+    </div>
+
+    @if (isAdmin)
+    {
+      <nav class="nav-switcher">
+        <a href="/Admin/Home/Index" class="nav-pill">Quản trị Admin</a>
+        <a href="/Productions/Home/Index" class="nav-pill">Sản xuất (MRP)</a>
+        <a href="/Warehouse/Home/Index" class="nav-pill active">Kho dược phẩm</a>
+        <a href="/Sales/Home/Index" class="nav-pill">Bán hàng</a>
+      </nav>
+    }
+
+    <div class="user-actions">
+      <div class="user-badge">
+        <div class="user-avatar-small">@(username.Length >= 2 ? username.Substring(0, 2).ToUpper() : "KH")</div>
+        <div>
+          <div style="font-weight:600; line-height:1.2;">@fullName</div>
+          <div style="font-size:11.5px; color:#0284c7;">@(isAdmin ? "Quản trị viên" : "Bộ phận Kho")</div>
+        </div>
+      </div>
+      <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin:0;">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-logout" title="Đăng xuất">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Đăng xuất
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <main class="content-container">
+    <div class="card-dashboard">
+      <div class="illustration-box">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <br/>
+      <span class="badge-dev">Phân hệ đang được phát triển</span>
+      <h1 style="margin: 0 0 10px; font-size: 22px; color: #0f172a;">Phân hệ Quản lý Kho Dược phẩm (Warehouse)</h1>
+      <p style="margin: 0 auto 20px; max-width: 600px; color: #64748b; font-size: 14px; line-height: 1.6;">
+        Phân hệ quản lý kho nguyên phụ liệu, hoạt chất dược dụng, bao bì cấp 1 và phiếu xuất/nhập vật tư cho các lệnh sản xuất hiện đang trong lộ trình phát triển.
+      </p>
+    </div>
+  </main>
+
+</body>
+</html>

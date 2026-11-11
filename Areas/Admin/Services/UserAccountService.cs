@@ -89,9 +89,24 @@ public class UserAccountService
             catch { return false; }
         }
 
-        // ── Legacy (sẽ được nâng cấp lên BCrypt ngay khi đăng nhập thành công) ──
+        // ── Legacy / Identity PasswordHasher (sẽ được nâng cấp lên BCrypt ngay khi đăng nhập thành công) ──
         if (IsDpApiProtectedValue(storedHash))
         {
+            try
+            {
+                var identityHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<UserAccount>();
+                var verifyRes = identityHasher.VerifyHashedPassword(new UserAccount(), storedHash, plainPassword);
+                if (verifyRes == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success ||
+                    verifyRes == Microsoft.AspNetCore.Identity.PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Fallback to DPAPI check below
+            }
+
             return TryDecryptDpApiPassword(storedHash, out var decrypted) && ConstantTimeEquals(plainPassword, decrypted);
         }
 
@@ -210,7 +225,13 @@ public class UserAccountService
             return false;
 
         if (!string.IsNullOrWhiteSpace(requiredRole))
-            return string.Equals(result.Role, requiredRole, StringComparison.OrdinalIgnoreCase);
+        {
+            return string.Equals(result.Role, requiredRole, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
+                    httt.Constants.AppRoles.NormalizeRole(result.Role),
+                    httt.Constants.AppRoles.NormalizeRole(requiredRole),
+                    StringComparison.OrdinalIgnoreCase);
+        }
 
         return true;
     }

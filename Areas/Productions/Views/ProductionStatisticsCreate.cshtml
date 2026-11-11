@@ -1,0 +1,566 @@
+@{
+    Layout = null;
+    var orders = ViewBag.Orders as IEnumerable<httt.Models.ProductionRequest>;
+    var products = ViewBag.Products as IEnumerable<httt.Models.Product>;
+    var todayStr = DateTime.Now.ToString("dd/MM/yyyy");
+    var todayDateTimeStart = DateTime.Now.ToString("dd/MM/yyyy 08:00");
+    var todayDateTimeEnd = DateTime.Now.ToString("dd/MM/yyyy 17:00");
+    var newStatsCode = "TKSX-GMP-" + DateTime.Now.ToString("yyyyMMdd") + "-01";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Thêm mới Phiếu thống kê sản xuất</title>
+  
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/productions/production-order.css">
+  <link rel="stylesheet" href="/css/productions/production-statistics.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
+      </div>
+    </header>
+
+            <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link active">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ</div>
+
+        
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (THÊM PHIẾU THỐNG KÊ SẢN XUẤT) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in">
+
+        <div class="stats-form-card">
+          <div class="stats-form-header">
+            <h1 class="stats-form-title">Thêm Phiếu thống kê sản xuất</h1>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div class="misa-header-logo" title="MISA AMIS">
+                MISA<sup>®</sup>
+                <span class="misa-sub-text">TIN CẬY - TIỆN ÍCH - TẬN TÌNH</span>
+              </div>
+              <div class="order-header-actions">
+                <button type="button" class="btn-header-tool" title="Trợ giúp">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </button>
+                <button type="button" class="btn-header-tool" id="btnCloseStats" title="Đóng">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-form-body">
+            
+            <!-- HÀNG 1: THÔNG TIN CHUNG & THÔNG TIN KHÁC -->
+            <div class="stats-top-grid">
+              
+              <div class="form-section-card">
+                <h2 class="section-legend">Thông tin chung</h2>
+
+                <div class="stats-inner-2col">
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Thống kê <span class="required-mark">*</span></label>
+                    <select class="form-select">
+                      <option selected>Sản lượng</option>
+                      <option>Thời gian làm việc</option>
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Mã đơn / Phiếu kho <span class="required-mark">*</span></label>
+                    <select class="form-select" id="selectOrder">
+                      <option value="">-- Chọn mã đơn / phiếu kho --</option>
+                      @if (orders != null && orders.Any())
+                      {
+                          foreach (var ord in orders)
+                          {
+                              var rCode = !string.IsNullOrWhiteSpace(ord.RequestCode) ? ord.RequestCode : $"YCSX-{ord.RequestId}";
+                              <option value="@ord.RequestId">@rCode - @(ord.Product?.ProductName ?? "Sản phẩm")</option>
+                          }
+                      }
+                      else
+                      {
+                          <option selected>YCSX-0001 - Ginkgo Biloba 120mg Trunature</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Đơn vị sản xuất</label>
+                    <select class="form-select">
+                      <option selected>Nhà máy Dược phẩm GMP Nam Hà</option>
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Sản phẩm <span class="required-mark">*</span></label>
+                    <select class="form-select" id="selectProduct">
+                      <option value="">-- Chọn sản phẩm --</option>
+                      @if (products != null && products.Any())
+                      {
+                          foreach (var prod in products)
+                          {
+                              <option value="@prod.ProductId">@prod.ProductName (@prod.Unit)</option>
+                          }
+                      }
+                      else
+                      {
+                          <option selected>Ginkgo Biloba 120mg Trunature (Hộp)</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Công đoạn <span class="required-mark">*</span></label>
+                    <select class="form-select">
+                      <option selected>Pha chế, trộn đồng nhất & Dập viên GMP</option>
+                      <option>Cân định lượng hoạt chất API & Tá dược</option>
+                      <option>Bao màng phim bảo vệ & Ép vỉ Alu</option>
+                      <option>Đóng hộp, dán nhãn & Kiểm nghiệm thành phẩm</option>
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Phiếu giao việc</label>
+                    <select class="form-select">
+                      <option selected>-- Chọn phiếu giao việc --</option>
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Tổ sản xuất</label>
+                    <select class="form-select">
+                      <option selected>-- Chọn tổ sản xuất --</option>
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Số lượng yêu cầu</label>
+                    <input type="text" class="form-input text-right" value="2.000,000 ml" readonly style="background-color: #f8fafc;">
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Ca làm việc</label>
+                    <div class="form-control-wrap" style="border: 1px solid #dcdfe6; border-radius: 4px; padding: 2px 8px; display: flex; align-items: center; justify-content: space-between; background:#fff; height:32px;">
+                      <span class="tag-pill-sm">
+                        MOI
+                        <span class="tag-remove" title="Xóa">✕</span>
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#94a3b8;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <span class="stats-field-label">Chi tiết theo</span>
+                    <div class="stats-checkbox-group">
+                      <label class="stats-checkbox-label">
+                        <input type="checkbox" checked>
+                        Người thực hiện
+                      </label>
+                      <label class="stats-checkbox-label">
+                        <input type="checkbox">
+                        Máy móc
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Người thống kê <span class="required-mark">*</span></label>
+                    <select class="form-select">
+                      <option selected>DS. Nguyễn Minh Tài</option>
+                      <option>DS. Phan Thanh Hà</option>
+                    </select>
+                  </div>
+
+                  <div class="stats-field-row">
+                    <label class="stats-field-label">Diễn giải</label>
+                    <textarea class="form-textarea" placeholder="Nhập diễn giải cho phiếu thống kê..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột Phải: Thông tin khác -->
+              <div class="form-section-card">
+                <h2 class="section-legend">Thông tin khác</h2>
+                <div class="status-meta-grid">
+                  <div class="status-meta-item">
+                    <label class="status-meta-label">Số phiếu <span class="required-mark">*</span></label>
+                    <input type="text" class="form-input" value="@newStatsCode">
+                  </div>
+
+                  <div class="status-meta-item">
+                    <label class="status-meta-label">Ngày thống kê <span class="required-mark">*</span></label>
+                    <div class="form-control-wrap">
+                      <input type="text" class="form-input has-calendar" value="@todayStr">
+                      <span class="calendar-icon-btn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- HÀNG 2: THỜI LƯỢNG SẢN XUẤT -->
+            <div class="duration-card">
+              <div class="duration-fields-row">
+                <div class="form-group">
+                  <label class="form-label" style="min-width: 120px;">Thời gian bắt đầu</label>
+                  <div class="form-control-wrap">
+                    <input type="text" class="form-input has-calendar" value="@todayDateTimeStart">
+                    <span class="calendar-icon-btn">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="min-width: 120px;">Thời gian kết thúc</label>
+                  <div class="form-control-wrap">
+                    <input type="text" class="form-input has-calendar" value="@todayDateTimeEnd">
+                    <span class="calendar-icon-btn">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="min-width: 140px;">Thời lượng dừng SX</label>
+                  <div class="form-control-wrap input-with-edit">
+                    <input type="text" class="form-input text-right" value="0,000 Phút">
+                    <span class="edit-pencil-icon" title="Chỉnh sửa thời lượng dừng">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="min-width: 120px;">
+                    Thời lượng SX
+                    <span class="info-tooltip-icon">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </span>
+                  </label>
+                  <div class="form-control-wrap">
+                    <input type="text" class="form-input text-right" value="540,000 Phút" readonly style="background-color: #f8fafc;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- HÀNG 3: BẢNG CHI TIẾT THỐNG KÊ -->
+            <div class="bom-section-box">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <h2 class="bom-section-title" style="margin-bottom: 0;">Chi tiết thống kê</h2>
+                
+                <label class="stats-checkbox-label" style="font-size: 13px; color: #475569;">
+                  <input type="checkbox" checked>
+                  Thống kê chi tiết theo thời gian
+                </label>
+              </div>
+
+              <div class="table-responsive">
+                <table class="bom-table">
+                  <thead>
+                    <tr>
+                      <th>Người thực hiện</th>
+                      <th>Tên người thực hiện</th>
+                      <th>ĐVT</th>
+                      <th class="text-right">SL đã sản xuất</th>
+                      <th class="text-right">SL đạt</th>
+                      <th class="text-right">SL lỗi</th>
+                      <th>Lý do lỗi</th>
+                      <th>Số lô</th>
+                      <th>Ngày sản xuất</th>
+                      <th class="text-center" style="width: 60px;">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statsDetailBody">
+                    <tr>
+                      <td><input type="text" class="form-input" placeholder="Mã NV..." style="height:26px; font-size:12px;"></td>
+                      <td><input type="text" class="form-input" placeholder="Họ và tên..." style="height:26px; font-size:12px;"></td>
+                      <td>Hộp</td>
+                      <td class="text-right"><input type="number" class="form-input text-right" placeholder="0" style="height:26px; font-size:12px;"></td>
+                      <td class="text-right"><input type="number" class="form-input text-right" placeholder="0" style="height:26px; font-size:12px; color:#2ea664; font-weight:600;"></td>
+                      <td class="text-right"><input type="number" class="form-input text-right" placeholder="0" style="height:26px; font-size:12px; color:#e54848; font-weight:600;"></td>
+                      <td><input type="text" class="form-input" placeholder="Lý do lỗi (nếu có)..." style="height:26px; font-size:12px;"></td>
+                      <td><input type="text" class="form-input" placeholder="Số lô..." style="height:26px; font-size:12px;"></td>
+                      <td><input type="text" class="form-input" value="@todayStr" style="height:26px; font-size:12px;"></td>
+                      <td class="text-center">
+                        <button type="button" class="row-act-btn btn-delete-row" title="Xóa">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer-bar">
+                <div class="table-footer-left">
+                  <span>Tổng số: <strong id="totalStatsCount">1</strong></span>
+                  <button type="button" class="btn-table-action btn-add-row" id="btnAddStatsRow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Thêm dòng
+                  </button>
+                  <button type="button" class="btn-table-action btn-clear-rows" id="btnClearStatsRows">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Xóa hết dòng
+                  </button>
+                </div>
+
+                <div class="table-footer-right">
+                  <span>Số dòng/trang</span>
+                  <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                    <option selected>100</option>
+                    <option>50</option>
+                  </select>
+                  <span>1 - 1</span>
+                  <button type="button" class="pagination-btn">&lt;</button>
+                  <button type="button" class="pagination-btn">&gt;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- HÀNG 4: BẢNG PHỤ PHẨM (ĐÃ LOẠI BỎ KHỐI XANH GÓC TRÁI VÀ CON DẤU MỘC GÓC PHẢI) -->
+            <div class="sub-table-section">
+              <h2 class="sub-table-title">Phụ phẩm phát sinh</h2>
+              <div class="table-responsive">
+                <table class="bom-table">
+                  <thead>
+                    <tr>
+                      <th>Tên phụ phẩm</th>
+                      <th>ĐVT</th>
+                      <th class="text-right">Số lượng</th>
+                      <th>Mã quy cách</th>
+                      <th>Số lô</th>
+                      <th>Ngày sản xuất</th>
+                      <th>Hạn sử dụng</th>
+                      <th class="text-center" style="width: 60px;">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statsSubBody">
+                    <tr>
+                      <td colspan="8" style="text-align:center; color:#64748b; font-style:italic; padding:16px;">Chưa có dữ liệu phụ phẩm phát sinh</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div style="margin: 16px 0; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 12px 16px; font-size: 13px; color: #92400e;">
+          <strong>Lưu ý:</strong> Chức năng lập phiếu thống kê sản xuất thủ công chưa được triển khai backend. Hệ thống ghi nhận sản lượng thực tế qua chức năng Đánh dấu sản phẩm hoàn thành từ đơn đặt hàng.
+        </div>
+
+        <div class="bom-action-footer">
+          <button type="button" class="btn-cancel" id="btnCancelStats">Hủy</button>
+          <button type="button" class="btn-save-submit" id="btnSaveStats">Lưu phiếu thống kê</button>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/productions/production-statistics.js"></script>
+</body>
+</html>

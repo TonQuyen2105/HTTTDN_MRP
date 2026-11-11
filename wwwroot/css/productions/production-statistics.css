@@ -1,0 +1,330 @@
+/**
+ * PRODUCTIONS - PRODUCTION STATISTICS CSS
+ * Giao diện Phiếu Thống kê sản xuất & Danh sách Thống kê
+ */
+
+/* ==========================================================================
+   STATISTICS LIST PAGE (TRANG DANH SÁCH PHIẾU THỐNG KÊ)
+   ========================================================================== */
+.stats-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stats-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.btn-add-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(46, 166, 100, 0.2);
+  transition: all var(--transition-fast);
+}
+
+.btn-add-stats:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 3px 6px rgba(46, 166, 100, 0.3);
+}
+
+/* ==========================================================================
+   STATISTICS TOOLBAR (TÌM KIẾM & LỌC)
+   ========================================================================== */
+.stats-filter-bar,
+.bom-filter-bar {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  box-shadow: var(--card-shadow);
+  flex-wrap: wrap;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 320px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 32px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background-color: #ffffff;
+  color: #1e293b;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(46, 166, 100, 0.15);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Row Action Buttons in Table */
+.row-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-action-view,
+.btn-edit-action {
+  color: #3b82f6;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  transition: all var(--transition-fast);
+}
+
+.btn-action-view:hover,
+.btn-edit-action:hover {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.btn-action-delete,
+.row-act-btn {
+  color: #94a3b8;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  transition: all var(--transition-fast);
+}
+
+.btn-action-delete:hover,
+.row-act-btn:hover {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+/* Tag Pill trong select (ví dụ Ca làm việc: MOI X) */
+.tag-pill-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.tag-pill-sm .tag-remove {
+  cursor: pointer;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.tag-pill-sm .tag-remove:hover {
+  color: #e54848;
+}
+
+/* MISA Brand logo on Top right */
+.misa-header-logo {
+  font-size: 18px;
+  font-weight: 900;
+  color: #d32f2f;
+  letter-spacing: 1px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.misa-sub-text {
+  font-size: 8px;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   FORM CONTAINER & SECTIONS
+   ========================================================================== */
+.stats-form-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.stats-form-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stats-form-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stats-form-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Top 2 columns grid */
+.stats-top-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 16px;
+}
+
+/* Sub-column grid inside Thông tin chung */
+.stats-inner-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 16px;
+  row-gap: 12px;
+}
+
+.stats-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-field-label {
+  font-size: 13px;
+  color: #475569;
+  min-width: 105px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stats-field-label .required-mark {
+  color: #e54848;
+}
+
+/* Checkbox group inline */
+.stats-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.stats-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.stats-checkbox-label input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* Card thời lượng sản xuất */
+.duration-card {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.duration-fields-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr 1.2fr;
+  gap: 14px;
+}
+
+/* Bảng phụ phẩm chân trang */
+.sub-table-section {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sub-table-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 12px 16px 8px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .stats-top-grid {
+    grid-template-columns: 1fr;
+  }
+  .duration-fields-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-inner-2col {
+    grid-template-columns: 1fr;
+  }
+  .duration-fields-row {
+    grid-template-columns: 1fr;
+  }
+}

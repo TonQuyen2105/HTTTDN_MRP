@@ -1,0 +1,419 @@
+/**
+ * PRODUCTIONS - MATERIAL REQUISITION CSS
+ * Giao diện Yêu cầu xuất vật tư (Danh sách & Lập phiếu yêu cầu)
+ */
+
+/* ==========================================================================
+   LIST PAGE (DANH SÁCH YÊU CẦU XUẤT VẬT TƯ)
+   ========================================================================== */
+.mr-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mr-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.btn-add-mr {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(46, 166, 100, 0.2);
+  transition: all var(--transition-fast);
+}
+
+.btn-add-mr:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 3px 6px rgba(46, 166, 100, 0.3);
+}
+
+/* Toolbar Tìm kiếm & Lọc */
+.mr-filter-bar {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  box-shadow: var(--card-shadow);
+  flex-wrap: wrap;
+}
+
+/* Status Badges */
+.badge-status-waiting {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.badge-status-approved {
+  background-color: #e8f7ee;
+  color: #2ea664;
+  border: 1px solid #bbf7d0;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.badge-status-done {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   FORM & DETAIL PAGE (LẬP PHIẾU YÊU CẦU XUẤT VẬT TƯ)
+   ========================================================================== */
+.handover-detail-header,
+.mr-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.handover-detail-title,
+.mr-detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.handover-detail-actions,
+.mr-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-close-modal {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-close-modal:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+/* Grid Thông tin chung & Thông tin khác */
+.mr-top-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mr-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 16px 20px;
+}
+
+.mr-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Form Row layout trong MR Card */
+.mr-field-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mr-field-row.row-2col {
+  grid-template-columns: 120px 1fr 110px 1fr;
+}
+
+.mr-field-row label {
+  font-size: 12.5px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.required-star {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* Date input with icon inside */
+.date-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.date-input-wrap .form-input {
+  width: 100%;
+  padding-right: 32px;
+}
+
+.date-picker-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ref-link {
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ref-link:hover {
+  text-decoration: underline;
+}
+
+/* Table Section */
+.mr-table-card,
+.handover-table-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.mr-table-header,
+.handover-table-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mr-table-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.handover-table-actions,
+.mr-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background-color: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-table-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-table-action:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.btn-table-action.danger:hover {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: #ef4444;
+}
+
+/* Section Tệp đính kèm */
+.handover-attach-card,
+.mr-attach-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.handover-attach-box,
+.mr-attach-box {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.handover-attach-box:hover,
+.mr-attach-box:hover {
+  border-color: var(--color-primary);
+  background-color: #f0fdf4;
+}
+
+.attach-icon {
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.attach-text {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.attach-text strong {
+  color: var(--color-primary);
+}
+
+/* Action Footer */
+.mr-action-footer,
+.handover-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  margin-top: 16px;
+  margin-bottom: 30px;
+}
+
+.mr-action-footer .btn-cancel,
+.handover-action-footer .btn-cancel {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid #dcdfe6;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mr-action-footer .btn-cancel:hover,
+.handover-action-footer .btn-cancel:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.mr-action-footer .btn-save-draft,
+.handover-action-footer .btn-save-draft {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid var(--color-primary);
+  background: #ffffff;
+  color: var(--color-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mr-action-footer .btn-save-draft:hover,
+.handover-action-footer .btn-save-draft:hover {
+  background: #e8f7ee;
+}
+
+.mr-action-footer .btn-save-submit,
+.handover-action-footer .btn-save-submit {
+  padding: 8px 24px;
+  border-radius: 6px;
+  border: none;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(46, 166, 100, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.mr-action-footer .btn-save-submit:hover,
+.handover-action-footer .btn-save-submit:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 4px 8px rgba(46, 166, 100, 0.35);
+}
+
+@media (max-width: 1100px) {
+  .mr-top-grid {
+    grid-template-columns: 1fr;
+  }
+  .mr-field-row.row-2col {
+    grid-template-columns: 120px 1fr;
+  }
+}

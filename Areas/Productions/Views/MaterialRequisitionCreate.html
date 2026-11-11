@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Lập Phiếu yêu cầu xuất vật tư</title>
+  
+  <link rel="stylesheet" href="../../../wwwroot/css/base.css">
+  <link rel="stylesheet" href="../../../wwwroot/css/layout.css">
+  <link rel="stylesheet" href="../../../wwwroot/css/productions/production-order.css">
+  <link rel="stylesheet" href="../../../wwwroot/css/productions/material-requisition.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Công ty cơ khí Kim Khí Miền Nam</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;"><div class="user-avatar">NV</div><span class="user-name">Nguyễn Văn Dev</span></a>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        <div class="nav-item"><a href="/Productions/Home/Index" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10H12V2z"></path></svg></span><span class="nav-text">Tổng quan</span></a></div>
+        <div class="nav-item"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span><span class="nav-text">Đơn đặt hàng</span></a></div>
+        <div class="nav-item has-sub"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span><span class="nav-text">Kế hoạch sản xuất</span></a></div>
+        
+        <!-- Điều phối & thực thi (ACTIVE YÊU CẦU XUẤT VẬT TƯ) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path></svg></span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/ProductionOrder" class="sub-link">Lệnh sản xuất</a>
+            <a href="#" class="sub-link">Lịch sản xuất</a>
+            <!-- YÊU CẦU XUẤT VẬT TƯ ACTIVE XANH LÁ -->
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link active">Yêu cầu xuất vật tư</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link">Nhập thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link">Bàn giao thành phẩm</a>
+            <a href="#" class="sub-link">Tình hình giao hàng</a>
+          </div>
+        </div>
+
+        <div class="nav-item"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span><span class="nav-text">Kiểm tra chất lượng</span></a></div>
+        <div class="nav-section-title">QUẢN TRỊ & BÁO CÁO</div>
+        <div class="nav-item"><a href="#" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></span><span class="nav-text">Sản phẩm, NVL</span></a></div>
+        <div class="nav-item"><a href="/Productions/Home/BomList" class="nav-link"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></span><span class="nav-text">Định mức NVL (BOM)</span></a></div>
+      </div>
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg><span class="collapse-text">Thu gọn menu</span></button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (LẬP PHIẾU YÊU CẦU XUẤT VẬT TƯ) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in" style="padding-bottom: 24px;">
+        
+        <!-- Header Phiếu Yêu Cầu -->
+        <div class="handover-detail-header">
+          <div class="handover-detail-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            Lập Phiếu yêu cầu xuất vật tư
+          </div>
+          <div class="handover-detail-actions">
+            <button type="button" class="btn-close-modal" id="btnCloseMR" title="Đóng">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- GRID 2 CỘT: THÔNG TIN CHUNG & THÔNG TIN KHÁC -->
+        <div class="mr-top-grid">
+          
+          <!-- Cột Trái: Thông tin chung -->
+          <div class="mr-card">
+            <div class="mr-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Thông tin chung
+            </div>
+
+            <div class="mr-field-row row-2col">
+              <label>Lệnh sản xuất<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>LSX0096 - SIRO (Siro ho, bổ phế)</option>
+                <option>LSX0095 - VIEN_NGAM (Viên ngậm)</option>
+              </select>
+
+              <label>Bộ phận yêu cầu<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>Phân xưởng Pha chế & Phối trộn</option>
+                <option>Phân xưởng Đóng gói & Dán nhãn</option>
+                <option>Phân xưởng Chế biến</option>
+              </select>
+            </div>
+
+            <div class="mr-field-row row-2col">
+              <label>Người yêu cầu<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>Hoàng Thu Hằng</option>
+                <option>Trần Thị Chung Phương</option>
+                <option>Nguyễn Văn Dev</option>
+              </select>
+
+              <label>Ngày cần vật tư<span class="required-star">*</span></label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="23/01/2026">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="mr-field-row" style="align-items: flex-start;">
+              <label style="padding-top: 6px;">Lý do / Ghi chú</label>
+              <textarea class="form-textarea" rows="2" placeholder="Nhập lý do xuất hoặc ghi chú đặc biệt cho thủ kho...">Cấp phát nguyên liệu đợt 1 phục vụ lệnh sản xuất LSX0096</textarea>
+            </div>
+
+          </div>
+
+          <!-- Cột Phải: Thông tin khác -->
+          <div class="mr-card">
+            <div class="mr-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Thông tin khác
+            </div>
+
+            <div class="mr-field-row">
+              <label>Số phiếu<span class="required-star">*</span></label>
+              <input type="text" class="form-input" value="YCXVT00188" readonly style="background-color: #f8fafc; font-weight: 600;">
+            </div>
+
+            <div class="mr-field-row">
+              <label>Ngày lập phiếu<span class="required-star">*</span></label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="22/01/2026">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="mr-field-row">
+              <label>Trạng thái</label>
+              <div>
+                <span class="badge-status-waiting">Chờ xuất kho</span>
+              </div>
+            </div>
+
+            <div class="mr-field-row">
+              <label>Người duyệt</label>
+              <input type="text" class="form-input" value="Nguyễn Văn Dev" readonly style="background-color: #f8fafc;">
+            </div>
+
+            <div class="mr-field-row">
+              <label>Tham chiếu</label>
+              <div>
+                <a href="/Productions/Home/ProductionOrder" class="ref-link" title="Xem lệnh sản xuất">LSX0096 ...</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BẢNG CHI TIẾT NGUYÊN VẬT LIỆU YÊU CẦU XUẤT -->
+        <div class="mr-table-card">
+          <div class="mr-table-header">
+            <span class="mr-table-title">Chi tiết nguyên vật liệu yêu cầu xuất kho</span>
+            <div style="font-size: 12.5px; color: #64748b;">Dữ liệu tự động đồng bộ theo <strong>Định mức NVL (BOM_SIRO)</strong></div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 45px;">STT</th>
+                  <th>Mã nguyên vật liệu</th>
+                  <th>Tên nguyên vật liệu</th>
+                  <th>ĐVT</th>
+                  <th class="text-right">SL định mức (BOM)</th>
+                  <th class="text-right">SL yêu cầu xuất</th>
+                  <th class="text-center" style="width: 60px;">Xóa</th>
+                </tr>
+              </thead>
+              <tbody id="mrTableBody">
+                <tr>
+                  <td class="text-center">1</td>
+                  <td><strong>NVL_DUONG</strong></td>
+                  <td>Đường phèn tinh luyện cao cấp</td>
+                  <td>kg</td>
+                  <td class="text-right">50,000</td>
+                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="50,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
+                  <td class="text-center">
+                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-center">2</td>
+                  <td><strong>NVL_DUOCLIEU</strong></td>
+                  <td>Cao xạ can thảo dược tự nhiên</td>
+                  <td>lít</td>
+                  <td class="text-right">20,000</td>
+                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="20,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
+                  <td class="text-center">
+                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-center">3</td>
+                  <td><strong>NVL_TINHOAU</strong></td>
+                  <td>Tinh dầu húng chanh nguyên chất</td>
+                  <td>lít</td>
+                  <td class="text-right">5,000</td>
+                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="5,000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
+                  <td class="text-center">
+                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-center">4</td>
+                  <td><strong>BB_CHAI100</strong></td>
+                  <td>Chai thủy tinh cánh gián 100ml</td>
+                  <td>cái</td>
+                  <td class="text-right">2.000</td>
+                  <td class="text-right"><input type="text" class="form-input text-right val-req" value="2.000" style="height:26px; font-size:12px; font-weight:600; width:100px;"></td>
+                  <td class="text-center">
+                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer-bar">
+            <span>Tổng số: <strong id="totalMRCount">4</strong> loại nguyên vật liệu</span>
+            <div class="table-footer-right">
+              <span>Số dòng/trang</span>
+              <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                <option selected>20</option>
+                <option>50</option>
+              </select>
+              <span>1 - 4</span>
+              <button type="button" class="pagination-btn">&lt;</button>
+              <button type="button" class="pagination-btn">&gt;</button>
+            </div>
+          </div>
+
+          <div class="handover-table-actions">
+            <button type="button" class="btn-table-action" id="btnAddMRRow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Thêm nguyên vật liệu
+            </button>
+            <button type="button" class="btn-table-action danger" id="btnClearMRRows">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Xóa hết dòng
+            </button>
+          </div>
+        </div>
+
+        <!-- THANH NÚT CHÂN TRANG -->
+        <div class="mr-action-footer">
+          <button type="button" class="btn-cancel" id="btnCancelMR">Hủy</button>
+          <button type="button" class="btn-save-draft" id="btnSaveAndNewMR">Lưu & Thêm mới</button>
+          <button type="button" class="btn-save-submit" id="btnSaveMR">Lập yêu cầu xuất</button>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="../../../wwwroot/js/app.js"></script>
+  <script src="../../../wwwroot/js/productions/material-requisition.js"></script>
+</body>
+</html>

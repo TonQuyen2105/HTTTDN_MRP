@@ -38,6 +38,13 @@ public class UserAccount
     [Column("userid")]
     public int UserId { get; set; }
 
+    [NotMapped]
+    public int UserID
+    {
+        get => UserId;
+        set => UserId = value;
+    }
+
     [Required]
     [Column("username")]
     public string Username { get; set; } = string.Empty;

@@ -1,0 +1,778 @@
+@model IEnumerable<httt.Models.ProductionRequest>
+@{
+    Layout = null;
+    ViewData["Title"] = "AMIS Sản xuất - Quản lý Lệnh sản xuất thuốc GMP";
+    var totalOrders = Model?.Count() ?? 0;
+    var pendingOrders = Model?.Count(m => m.Status == "Pending") ?? 0;
+    var inProgOrders = Model?.Count(m => m.Status == "In Production" || m.Status == "Approved") ?? 0;
+    var completedOrders = Model?.Count(m => m.Status == "Completed") ?? 0;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0; url=/Productions/Home/DrugOrder">
+  <title>@ViewData["Title"]</title>
+  
+  <!-- CSS dùng chung -->
+  <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+  
+  <!-- CSS riêng cho trang Thêm Lệnh sản xuất -->
+  <link rel="stylesheet" href="~/css/productions/production-order.css" asp-append-version="true" />
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+
+          <button type="button" class="icon-btn" title="Thông báo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="badge-dot"></span>
+          </button>
+        </div>
+
+        <a href="/Productions/Home/UserProfile" class="user-profile" style="text-decoration: none; color: inherit;" title="Tài khoản cá nhân">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+            <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link active">Lệnh sản xuất thuốc</a> -->
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ</div>
+
+        
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <main class="app-main">
+      <div class="main-container page-fade-in">
+
+        <!-- HEADER TRANG & CHUYỂN CHẾ ĐỘ XEM -->
+        <div class="order-header-card" style="margin-bottom: 16px; border-radius: 8px; border-bottom: 1px solid var(--card-border);">
+          <div>
+            <h1 class="order-header-title">Quản lý Lệnh sản xuất thuốc (GMP)</h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Dữ liệu đồng bộ trực tiếp từ bảng <code>productionrequest</code> hệ thống ERP Dược</p>
+          </div>
+
+          <div class="order-header-actions">
+            <div class="order-view-toggle">
+              <button type="button" class="btn-view-tab active" id="tabOrderList">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                Danh sách Lệnh (@totalOrders)
+              </button>
+              <button type="button" class="btn-view-tab" id="tabOrderCreate">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                + Lập Lệnh mới
+              </button>
+            </div>
+
+            <button type="button" class="btn-header-tool" title="Trợ giúp">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== VIEW 1: DANH SÁCH LỆNH SẢN XUẤT ==================== -->
+        <div id="orderListView">
+
+          <!-- KPI Summary Cards -->
+          <div class="order-kpi-grid">
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@totalOrders</div>
+                <div class="order-kpi-label">Tổng số Lệnh sản xuất</div>
+              </div>
+            </div>
+
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon amber">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@pendingOrders</div>
+                <div class="order-kpi-label">Lệnh chờ duyệt (Pending)</div>
+              </div>
+            </div>
+
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@inProgOrders</div>
+                <div class="order-kpi-label">Đang sản xuất / Đã duyệt</div>
+              </div>
+            </div>
+
+            <div class="order-kpi-card">
+              <div class="order-kpi-icon green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div>
+                <div class="order-kpi-val">@completedOrders</div>
+                <div class="order-kpi-label">Lô đã hoàn thành</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="order-list-card">
+            <div class="order-filter-toolbar">
+              <div class="order-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="orderSearchInput" placeholder="Tìm theo mã LSX, tên thuốc, dược sĩ...">
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <select id="statusFilterSelect" class="form-select" style="width: 170px; height: 34px; font-size: 13px;">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="Pending">Chờ duyệt (Pending)</option>
+                  <option value="Approved">Đã duyệt (Approved)</option>
+                  <option value="In Production">Đang sản xuất</option>
+                  <option value="Completed">Đã hoàn thành</option>
+                </select>
+
+                <button type="button" class="btn-save-submit" id="btnOpenCreateFromList" style="padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  + Lập Lệnh sản xuất
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="bom-table">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 50px;">STT</th>
+                    <th>Số Lệnh sản xuất</th>
+                    <th>Ngày lập</th>
+                    <th>Sản phẩm thuốc</th>
+                    <th class="text-right">Số lượng yêu cầu</th>
+                    <th class="text-right">Đơn giá định mức</th>
+                    <th>Dược sĩ phụ trách</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center" style="width: 150px;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="orderListTableBody">
+                  @if (Model != null && Model.Any())
+                  {
+                      int stt = 1;
+                      foreach (var order in Model)
+                      {
+                          var prodName = order.Product?.ProductName ?? "Sản phẩm thuốc dược dụng";
+                          var unit = order.Product?.Unit ?? "Hộp";
+                          var managerName = order.Manager?.FullName ?? "—";
+                          var dateStr = order.CreatedDate?.ToString("dd/MM/yyyy") ?? "—";
+                          var costStr = order.Product?.Cost.HasValue == true ? order.Product.Cost.Value.ToString("N0") + " đ" : "—";
+                          var statusClass = order.Status switch {
+                              "Pending" => "badge-status-pending",
+                              "Approved" => "badge-status-approved",
+                              "In Production" => "badge-status-inprog",
+                              "Completed" => "badge-status-completed",
+                              _ => "badge-status-pending"
+                          };
+                          var statusText = order.Status switch {
+                              "Pending" => "Chờ duyệt",
+                              "Approved" => "Đã duyệt",
+                              "In Production" => "Đang sản xuất",
+                              "Completed" => "Hoàn thành",
+                              _ => order.Status
+                          };
+
+                          var orderCode = order.DisplayCode;
+                          <tr data-status="@order.Status" data-name="@prodName.ToLower()" data-code="@orderCode.ToLower()">
+                            <td class="text-center">@stt</td>
+                            <td><strong style="color: var(--color-primary);">@orderCode</strong></td>
+                            <td>@dateStr</td>
+                            <td>
+                              <strong>@prodName</strong>
+                              <div style="font-size: 11.5px; color: #64748b;">Mã SP: SP@order.ProductId.ToString("D4")</div>
+                            </td>
+                            <td class="text-right"><strong>@order.QuantityRequired.ToString("N0")</strong> @unit</td>
+                            <td class="text-right" style="color: #64748b;">@costStr</td>
+                            <td>@managerName</td>
+                            <td class="text-center">
+                              <span class="badge-status @statusClass">@statusText</span>
+                            </td>
+                            <td class="text-center">
+                              <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <a href="/Productions/Home/MaterialRequirement?requestId=@order.RequestId" class="row-action-link primary" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:2px 8px; border-radius:4px; font-weight:600;" title="Tính nhu cầu NVL theo BOM">
+                                  Tính NVL
+                                </a>
+                                <a href="/Productions/Home/MaterialRequisitionCreate" class="row-action-link primary" title="Xuất kho nguyên liệu cho lệnh này">
+                                  Xuất NVL
+                                </a>
+                                <a href="/Productions/Home/ProductionStatisticsList" class="row-action-link blue" title="Thống kê sản xuất">
+                                  Thống kê
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                          stt++;
+                      }
+                  }
+                  else
+                  {
+                      <tr>
+                        <td colspan="9" class="text-center" style="padding: 30px; color: #64748b;">
+                          Chưa có lệnh sản xuất nào trong cơ sở dữ liệu. Nhấn <strong>+ Lập Lệnh sản xuất</strong> để tạo mới.
+                        </td>
+                      </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer-bar">
+              <div class="table-footer-left">
+                <span>Tổng số: <strong>@totalOrders</strong> lệnh sản xuất</span>
+              </div>
+              <div class="table-footer-right">
+                <span>Số dòng/trang</span>
+                <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                  <option selected>20</option>
+                  <option>50</option>
+                </select>
+                <span>1 - @totalOrders</span>
+                <button type="button" class="pagination-btn" title="Trang trước">&lt;</button>
+                <button type="button" class="pagination-btn" title="Trang sau">&gt;</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==================== VIEW 2: FORM LẬP LỆNH SẢN XUẤT MỚI ==================== -->
+        <div id="orderFormView" style="display: none;">
+
+          <div class="order-header-card">
+            <div>
+              <h2 class="order-header-title">Lập Lệnh sản xuất thuốc mới</h2>
+              <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Khai báo kế hoạch sản xuất theo tiêu chuẩn thực hành sản xuất thuốc tốt (GMP-WHO)</p>
+            </div>
+            <div class="order-header-actions">
+              <button type="button" class="btn-cancel" id="btnBackToList" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                Quay lại danh sách
+              </button>
+            </div>
+          </div>
+
+        <div class="order-form-body">
+          
+          <div class="order-top-grid">
+            
+            <div class="form-section-card">
+              <h2 class="section-legend">Thông tin chung</h2>
+              
+              <div class="form-inner-grid">
+                
+                <div class="form-group">
+                  <label class="form-label">LSX theo <span class="required-mark">*</span></label>
+                  <div class="form-control-wrap">
+                    <select class="form-select">
+                      <option selected>Đơn đặt hàng thuốc từ Kho</option>
+                      <option>Kế hoạch sản xuất</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Số đơn hàng <span class="required-mark">*</span></label>
+                  <div class="form-control-wrap">
+                    <select class="form-select">
+                      <option value="">— Chọn đơn đặt hàng —</option>
+                      @if (Model != null && Model.Any())
+                      {
+                        foreach (var ord in Model)
+                        {
+                          <option value="@ord.RequestId">@ord.RequestDisplayCode (@(ord.Product?.ProductName ?? "Thuốc"))</option>
+                        }
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Sản phẩm thuốc <span class="required-mark">*</span></label>
+                  <div class="form-control-wrap">
+                    <select class="form-select">
+                      <option value="">— Chọn sản phẩm thuốc —</option>
+                      @if (ViewBag.Products != null && ((IEnumerable<httt.Models.Product>)ViewBag.Products).Any())
+                      {
+                          foreach (var prod in (IEnumerable<httt.Models.Product>)ViewBag.Products)
+                          {
+                              <option value="@prod.ProductId">@prod.ProductName (@prod.Unit)</option>
+                          }
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Số lượng sản xuất <span class="required-mark">*</span></label>
+                  <div class="form-control-wrap">
+                    <input type="number" class="form-input text-right" placeholder="Nhập số lượng..." min="1">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Hạn sử dụng</label>
+                  <div class="form-control-wrap">
+                    <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy">
+                    <span class="calendar-icon-btn">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">BOM công thức</label>
+                  <div class="form-control-wrap">
+                    <select class="form-select">
+                      <option value="">— Chọn công thức định mức (BOM) —</option>
+                      @if (ViewBag.Boms != null && ((IEnumerable<httt.Models.Bom>)ViewBag.Boms).Any())
+                      {
+                          foreach (var bom in (IEnumerable<httt.Models.Bom>)ViewBag.Boms)
+                          {
+                              <option value="@bom.BomId">@(bom.BomCode ?? $"BOM-{bom.BomId}") - @(bom.BomName ?? bom.Product?.ProductName ?? "BOM")</option>
+                          }
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Dược sĩ phụ trách</label>
+                  <div class="form-control-wrap">
+                    <input type="text" class="form-input" placeholder="Chưa cập nhật">
+                  </div>
+                </div>
+                
+
+                <div class="form-group full-width">
+                  <label class="form-label">Diễn giải</label>
+                  <div class="form-control-wrap">
+                    <textarea class="form-textarea" placeholder="Nhập diễn giải cho lệnh sản xuất (nếu có)..."></textarea>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="form-section-card">
+              <h2 class="section-legend">Thông tin khác</h2>
+
+              <div class="status-meta-grid">
+                <div class="status-meta-row">
+                  <div class="status-meta-item">
+                    <label class="status-meta-label">Số lệnh sản xuất <span class="required-mark">*</span></label>
+                    <input type="text" class="form-input" placeholder="Tự sinh (LSX-GMP-...)" readonly>
+                  </div>
+
+                  <div class="status-meta-item">
+                    <label class="status-meta-label">Ngày lập <span class="required-mark">*</span></label>
+                    <div class="form-control-wrap">
+                      <input type="text" class="form-input has-calendar" value="@DateTime.Now.ToString("dd/MM/yyyy")">
+                      <span class="calendar-icon-btn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="status-meta-row">
+                  <div class="status-meta-item">
+                    <span class="status-meta-label">Ưu tiên</span>
+                    <div class="priority-tag">
+                      <span>Tiêu chuẩn</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="status-meta-item">
+                    <span class="status-meta-label">Trạng thái sản xuất</span>
+                    <span class="status-pill-gray">Chờ tiếp nhận</span>
+                  </div>
+                </div>
+
+                <div class="status-meta-row">
+                  <div class="status-meta-item">
+                    <span class="status-meta-label">Tham chiếu</span>
+                    <div class="ref-link-box">
+                      <span>—</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <div class="time-section-card">
+            <h2 class="section-legend">Thời gian sản xuất</h2>
+
+            <div class="time-fields-row">
+              <div class="form-group">
+                <label class="form-label">
+                  Thời lượng
+                  <span class="info-tooltip-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                  </span>
+                </label>
+                <div class="form-control-wrap input-with-edit">
+                  <input type="text" class="form-input" placeholder="HH:MM">
+                  <span class="edit-pencil-icon" title="Chỉnh sửa thời lượng">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Hạn sản xuất <span class="required-mark">*</span></label>
+                <div class="form-control-wrap">
+                  <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy">
+                  <span class="calendar-icon-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Bắt đầu <span class="required-mark">*</span></label>
+                <div class="form-control-wrap">
+                  <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy hh:mm">
+                  <span class="calendar-icon-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Kết thúc <span class="required-mark">*</span></label>
+                <div class="form-control-wrap">
+                  <input type="text" class="form-input has-calendar" placeholder="dd/mm/yyyy hh:mm">
+                  <span class="calendar-icon-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabs-section-card">
+            <div class="order-tabs-bar">
+              <span class="order-tab-link active">Chi tiết nguyên vật liệu</span>
+            </div>
+
+            <div class="tab-toolbar">
+              <span>Được tính toán dựa trên số lượng sản phẩm và BOM hoặc có thể khai báo thủ công</span>
+              
+              <div class="tab-toolbar-actions">
+                <span class="tab-action-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                  </svg>
+                  Lấy tồn kho NVL
+                </span>
+                <span class="tab-action-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                  </svg>
+                  Lấy lại theo BOM
+                </span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="bom-table">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width: 45px;">STT</th>
+                    <th>Mã nguyên vật liệu</th>
+                    <th>Tên nguyên vật liệu</th>
+                    <th>ĐVT</th>
+                    <th class="text-center">Là NVL chính ⓘ</th>
+                    <th class="text-right">Định mức theo BOM ⓘ</th>
+                    <th class="text-right">SL theo định mức</th>
+                    <th class="text-center" style="width: 70px;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="bomTableBody">
+                  <tr>
+                    <td colspan="8" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
+                      Chưa có dữ liệu nguyên vật liệu. Vui lòng chọn BOM hoặc bấm "Thêm dòng" để khai báo.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer-bar">
+              <div class="table-footer-left">
+                <span>Tổng số: <strong id="totalRowsCount">0</strong></span>
+                <button type="button" class="btn-table-action btn-add-row" id="btnAddRow">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Thêm dòng
+                </button>
+                <button type="button" class="btn-table-action btn-clear-rows" id="btnClearRows">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  Xóa hết dòng
+                </button>
+              </div>
+
+              <div class="table-footer-right">
+                <span>Số dòng/trang</span>
+                <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                  <option selected>100</option>
+                  <option>50</option>
+                  <option>20</option>
+                </select>
+                <span>0 - 0</span>
+                <button type="button" class="pagination-btn" title="Trang trước">&lt;</button>
+                <button type="button" class="pagination-btn" title="Trang sau">&gt;</button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div style="margin: 16px 0; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 12px 16px; font-size: 13px; color: #92400e;">
+          <strong>Lưu ý:</strong> Chức năng tạo lệnh sản xuất thủ công chưa được triển khai.
+        </div>
+
+        <div class="order-bottom-actions">
+          <button type="button" class="btn-cancel" id="btnCancelOrder">Quay lại danh sách</button>
+          <button type="button" class="btn-save-draft" disabled title="Chức năng chưa triển khai" style="opacity: 0.6; cursor: not-allowed;">Lưu nháp</button>
+          <button type="button" class="btn-save-submit" id="btnSubmitOrder">Lưu Lệnh sản xuất</button>
+        </div>
+
+        </div> <!-- End orderFormView -->
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="~/js/app.js" asp-append-version="true"></script>
+  <script src="~/js/productions/production-order.js" asp-append-version="true"></script>
+</body>
+</html>

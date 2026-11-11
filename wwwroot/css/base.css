@@ -1,0 +1,108 @@
+/**
+ * BASE & DESIGN SYSTEM
+ * Hệ thống biến màu, reset và typography chuẩn cho hệ thống MRP
+ */
+
+:root {
+  /* Primary brand colors */
+  --color-primary: #2ea664;
+  --color-primary-hover: #268e55;
+  --color-primary-light: #e8f7ee;
+  --color-primary-text: #ffffff;
+
+  /* Neutral & Dark sidebar colors */
+  --sidebar-bg: #1e2433;
+  --sidebar-active-bg: #2ea664;
+  --sidebar-hover-bg: #283044;
+  --sidebar-text: #a6b0cf;
+  --sidebar-text-active: #ffffff;
+  --sidebar-header: #6c7895;
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
+
+  /* App header */
+  --header-height: 52px;
+  --header-bg: #ffffff;
+  --header-border: #e6ebf1;
+
+  /* Body background & surfaces */
+  --bg-main: #f3f5f8;
+  --card-bg: #ffffff;
+  --card-border: #e8ecf1;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  /* Text colors */
+  --text-main: #1f2937;
+  --text-heading: #111827;
+  --text-muted: #6b7280;
+  --text-subtle: #9ca3af;
+
+  /* Status & Accent colors */
+  --status-gray: #8f9bb3;
+  --status-green: #2ea664;
+  --status-blue: #3b82f6;
+  --status-orange: #f59e0b;
+  --status-red: #e54848;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 28px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-normal: 0.25s ease-in-out;
+}
+
+/* Reset cơ bản */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  color: var(--text-main);
+  background-color: var(--bg-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* Scrollbar tinh gọn */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

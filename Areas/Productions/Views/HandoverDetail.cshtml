@@ -1,0 +1,489 @@
+@model httt.Models.ProductReceipt?
+@{
+    Layout = null;
+    var isNotFound = Model == null;
+    var receiptId = Model?.ProductReceiptId ?? 0;
+    var requester = Model?.Requester?.FullName ?? "Chưa cập nhật";
+    var approver = Model?.Approver?.FullName ?? "Chưa cập nhật";
+    var dateStr = Model?.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "—";
+    var isRejected = httt.Models.HandoverStatus.IsRejected(Model?.Status);
+    var isDone = string.Equals(Model?.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(Model?.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(Model?.Status, "Received", StringComparison.OrdinalIgnoreCase);
+    var reqCode = Model?.ProductionRequest != null ? Model.ProductionRequest.DisplayCode : (Model?.RequestId.HasValue == true ? $"YCSX-{Model.RequestId}" : "—");
+    var receiptCode = Model != null ? Model.DisplayCode : "—";
+    var firstDetailNote = Model?.Details?.FirstOrDefault()?.Note ?? string.Empty;
+    var cleanNote = System.Text.RegularExpressions.Regex.Replace(firstDetailNote, @"^\[IK:[^\]]+\]\s*", string.Empty).Trim();
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Xem Phiếu bàn giao bán thành phẩm</title>
+  
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/productions/production-order.css">
+  <link rel="stylesheet" href="/css/productions/handover.css" asp-append-version="true">
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1-1.51H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;">
+          @if (User.Identity?.IsAuthenticated == true)
+          {
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "ND")</div>
+            <span class="user-name">@User.Identity.Name</span>
+          }
+          else
+          {
+            <div class="user-avatar" style="background: #64748b;">—</div>
+            <span class="user-name" style="color: #64748b;">Chưa đăng nhập</span>
+          }
+        </a>
+      </div>
+    </header>
+
+            <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
+            <!-- <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link ">Nhập kho thành phẩm</a> -->
+            <a href="/Productions/Home/HandoverList" class="sub-link active">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ</div>
+
+        
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (XEM PHIẾU BÀN GIAO BÁN THÀNH PHẨM) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in" style="padding-bottom: 24px;">
+        
+        @if (isNotFound)
+        {
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 24px; margin-bottom: 24px; color: #991b1b;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                <line x1="12" y1="12" x2="12" y2="16"></line>
+              </svg>
+              <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Không tìm thấy Phiếu bàn giao thành phẩm</h2>
+            </div>
+            <p style="margin: 0 0 16px 0; font-size: 14px; color: #7f1d1d;">Bản ghi phiếu bàn giao không tồn tại hoặc đã bị xóa khỏi hệ thống.</p>
+            <a href="/Productions/Home/HandoverList" class="btn-cancel" style="display: inline-block; text-decoration: none; padding: 8px 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; color: #1e293b; font-weight: 500;">&larr; Về danh sách bàn giao</a>
+          </div>
+        }
+        else
+        {
+        <!-- Header Phiếu Bàn Giao -->
+        <div class="handover-detail-header">
+          <div class="handover-detail-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Xem Phiếu bàn giao thành phẩm: @receiptCode
+          </div>
+          <div class="handover-detail-actions">
+            <button type="button" class="btn-close-modal" id="btnCloseHandover" title="Đóng phiếu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- GRID 2 CỘT: THÔNG TIN CHUNG & THÔNG TIN KHÁC -->
+        <div class="handover-top-grid">
+          
+          <!-- Cột Trái: Thông tin chung -->
+          <div class="handover-card">
+            <div class="handover-card-title">Thông tin chung</div>
+
+            <!-- Phân mục: Bên bàn giao -->
+            <div class="handover-section-label">Bên bàn giao</div>
+
+            <!-- Mã đơn / Phiếu kho & Phiếu thống kê -->
+            <div class="handover-field-row row-2col">
+              <label>Mã đơn / Phiếu kho<span class="required-star">*</span></label>
+              <input type="text" class="form-input" value="@reqCode" readonly style="background-color: #f8fafc;">
+
+              <label>Phiếu thống kê</label>
+              <select class="form-select" disabled>
+                <option value="">— Chưa liên kết phiếu thống kê —</option>
+              </select>
+            </div>
+
+            <!-- Người bàn giao & Thời gian bàn giao -->
+            <div class="handover-field-row row-2col">
+              <label>Người bàn giao<span class="required-star">*</span></label>
+              <input type="text" class="form-input" value="@requester" readonly style="background-color: #f8fafc;">
+
+              <label>Thời gian bàn giao<span class="required-star">*</span></label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="@dateStr" readonly style="background-color: #f8fafc;">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <!-- Ghi chú -->
+            <div class="handover-field-row" style="align-items: flex-start;">
+              <label style="padding-top: 6px;">Ghi chú</label>
+              <textarea class="form-textarea" rows="2" placeholder="Chưa có ghi chú" readonly style="background-color: #f8fafc;">@cleanNote</textarea>
+            </div>
+
+            <!-- Phân mục: Bên nhận -->
+            <div class="handover-section-label">Bên nhận</div>
+
+            <!-- Người nhận & Thời gian nhận -->
+            <div class="handover-field-row row-2col">
+              <label>Người nhận<span class="required-star">*</span></label>
+              <input type="text" class="form-input" value="@(isDone ? approver : "Chưa xác nhận")" readonly style="background-color: #f8fafc;">
+
+              <label>Thời gian nhận</label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="@(isDone ? dateStr : "—")" readonly style="background-color: #f8fafc;">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Cột Phải: Thông tin khác -->
+          <div class="handover-card handover-info-right">
+            <div class="handover-card-title">Thông tin khác</div>
+
+            <div class="handover-field-row">
+              <label>Số phiếu<span class="required-star">*</span></label>
+              <input type="text" class="form-input" value="@receiptCode" readonly style="background-color: #f8fafc; font-weight: 600;">
+            </div>
+
+            <div class="handover-field-row">
+              <label>Ngày lập phiếu<span class="required-star">*</span></label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="@dateStr" readonly style="background-color: #f8fafc;">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="handover-field-row">
+              <label>Trạng thái</label>
+              <div>
+                @if (isRejected)
+                {
+                  <span class="badge-rejected">Bị từ chối</span>
+                  <p class="handover-rejected-hint">Phiếu này đã bị Kho từ chối và không còn giữ số lượng chờ nhận. Vào tab Chờ bàn giao để lập phiếu mới sau khi xử lý yêu cầu của Kho.</p>
+                }
+                else if (isDone)
+                {
+                  <span class="badge-confirmed">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Đã duyệt
+                  </span>
+                }
+                else
+                {
+                  <span class="badge-waiting" style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600;">
+                    Chờ kho nhận
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="handover-field-row">
+              <label>Tham chiếu</label>
+              <div>
+                @if (Model?.RequestId.HasValue == true)
+                {
+                  <a href="/Productions/Home/DrugOrder" class="ref-link" title="Xem đơn đặt hàng thuốc">@reqCode</a>
+                }
+                else
+                {
+                  <span style="color:#64748b;">—</span>
+                }
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BẢNG CHI TIẾT BÀN GIAO -->
+        <div class="handover-table-card">
+          <div class="handover-table-header">Chi tiết bàn giao</div>
+          
+          <div class="table-responsive">
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 45px;">STT</th>
+                  <th>Mã sản phẩm</th>
+                  <th>Tên sản phẩm</th>
+                  <th>ĐVT</th><th>Lần sản xuất</th><th>Ngày sản xuất</th><th>Hạn sử dụng</th>
+                  <th>Mã đơn / Phiếu kho</th>
+                  <th class="text-right">SL bàn giao</th>
+                  <th class="text-center" style="width: 130px;">Trạng thái nhận</th>
+                  <th class="text-center" style="width: 60px;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="handoverTableBody">
+                @if (Model?.Details != null && Model.Details.Any())
+                {
+                  int rIdx = 1;
+                  foreach (var d in Model.Details)
+                  {
+                    var pCode = d.Product?.ProductId != null ? $"SP{d.Product.ProductId:D4}" : "—";
+                    var pName = d.Product?.ProductName ?? "Sản phẩm thuốc";
+                    var pUnit = d.Product?.Unit ?? "Hộp";
+                    <tr>
+                      <td class="text-center">@rIdx</td>
+                      <td><strong>@pCode</strong></td>
+                      <td>@pName</td>
+                      <td>@pUnit</td><td>@(d.ProductionLogId.HasValue ? $"GN-{d.ProductionLogId}" : "Chưa cập nhật")</td>
+                      <td>@(d.ProductionLog == null ? "Chưa cập nhật" : httt.Models.ProductionStatisticsViewModel.DisplayTime(d.ProductionLog.ProducedAt))</td>
+                      <td>@(d.ExpiredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")</td>
+                      <td><span style="color:#64748b;">@reqCode</span></td>
+                      <td class="text-right font-weight-bold" style="font-weight:600; color:#059669;">@d.Quantity.ToString("N0")</td>
+                      <td class="text-center">
+                        <span style="font-size:12px; color: @(isRejected ? "#b91c1c" : isDone ? "#059669" : "#d97706"); font-weight:600;">
+                          @(isRejected ? "Bị từ chối" : isDone ? "Đã duyệt" : "Chờ kho nhận")
+                        </span>
+                      </td>
+                      <td class="text-center" style="color:#94a3b8;">—</td>
+                    </tr>
+                    rIdx++;
+                  }
+                }
+                else
+                {
+                  <tr>
+                    <td colspan="11" style="text-align: center; color: #64748b; font-style: italic; padding: 24px;">
+                      Chưa có dòng chi tiết sản phẩm nào được ghi nhận trong phiếu này
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer-bar">
+            <span>Tổng số: <strong id="totalHandoverCount">@(Model?.Details?.Count ?? 0)</strong> dòng</span>
+            <div class="table-footer-right">
+              <span>Số dòng/trang</span>
+              <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                <option selected>100</option>
+                <option>50</option>
+                <option>20</option>
+              </select>
+              <span>1 - @(Model?.Details?.Count ?? 0)</span>
+              <button type="button" class="pagination-btn">&lt;&lt;</button>
+              <button type="button" class="pagination-btn">&lt;</button>
+              <button type="button" class="pagination-btn">&gt;</button>
+              <button type="button" class="pagination-btn">&gt;&gt;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TỆP ĐÍNH KÈM -->
+        <div class="handover-attach-card">
+          <div class="handover-card-title">Tệp đính kèm</div>
+          <div class="handover-attach-box">
+            <div class="attach-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="attach-text">Kéo thả tệp vào đây hoặc <strong>bấm vào đây để chọn tệp tải lên</strong></div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Hỗ trợ: .pdf, .docx, .xlsx, .png, .jpg (Tối đa 10MB)</div>
+          </div>
+        </div>
+
+        <!-- THANH NÚT CHÂN TRANG: QUAY LẠI, IN PHIẾU -->
+        <div class="handover-action-footer">
+          <a href="/Productions/Home/HandoverList?tab=slips" class="btn-cancel" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Quay lại danh sách</span>
+          </a>
+          <button type="button" class="btn-save-submit" onclick="window.print()" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>In phiếu</span>
+          </button>
+        </div>
+        }
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/productions/handover.js"></script>
+</body>
+</html>

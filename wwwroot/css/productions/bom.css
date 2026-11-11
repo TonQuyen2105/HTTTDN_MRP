@@ -1,0 +1,273 @@
+/**
+ * PRODUCTIONS - BOM (BILL OF MATERIALS) CSS
+ * Style cho Trang Danh sách BOM, Thêm BOM và Sửa BOM
+ */
+
+/* ==========================================================================
+   BOM LIST (TRANG DANH SÁCH BOM)
+   ========================================================================== */
+.bom-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.bom-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.bom-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-add-bom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(46, 166, 100, 0.2);
+  transition: all var(--transition-fast);
+}
+
+.btn-add-bom:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 3px 6px rgba(46, 166, 100, 0.3);
+}
+
+/* Toolbar tìm kiếm & lọc trên trang danh sách */
+.bom-filter-bar {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  box-shadow: var(--card-shadow);
+  flex-wrap: wrap;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 320px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 32px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+}
+
+/* Status Badges */
+.badge-status-active {
+  background-color: #e8f7ee;
+  color: #2ea664;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.badge-status-inactive {
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Action button edit ✏️ */
+.btn-edit-action {
+  color: #3b82f6;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-edit-action:hover {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* ==========================================================================
+   FORM THÊM & SỬA BOM
+   ========================================================================== */
+.bom-form-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.bom-form-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bom-form-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.bom-form-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Section Container */
+.bom-section-box {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.bom-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 14px;
+}
+
+/* Form layout rows */
+.bom-form-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.bom-form-row:last-child {
+  margin-bottom: 0;
+}
+
+.bom-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.bom-field-label {
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.bom-field-label .required-mark {
+  color: #e54848;
+}
+
+/* Radio Group */
+.radio-group-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio-item input[type="radio"] {
+  accent-color: var(--color-primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* File Upload Dropzone (Tệp đính kèm) */
+.file-dropzone-area {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 24px 16px;
+  text-align: center;
+  background-color: #fafbfc;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.file-dropzone-area:hover {
+  border-color: var(--color-primary);
+  background-color: #f7fdf9;
+}
+
+.dropzone-link {
+  color: var(--color-primary);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.dropzone-sub {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* Floating / Bottom Action Bar */
+.bom-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 0 28px;
+}

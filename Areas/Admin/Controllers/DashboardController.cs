@@ -184,7 +184,7 @@ SELECT
                 RequestId = r.RequestId,
                 ProductName = r.Product != null ? r.Product.ProductName : "—",
                 Status = r.Status,
-                CreatedDate = r.CreatedDate,
+                CreatedDate = r.CreatedDate ?? DateTime.MinValue,
                 RequestedByUsername = r.AssignedUser != null ? r.AssignedUser.Username : "—",
                 RequestedByFullName = r.AssignedUser != null ? r.AssignedUser.FullName : "—"
             })

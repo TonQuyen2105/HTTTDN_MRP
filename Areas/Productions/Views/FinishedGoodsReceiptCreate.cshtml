@@ -1,0 +1,438 @@
+@*
+    TRANG "LẬP PHIẾU NHẬP KHO THÀNH PHẨM" - ĐÃ TẠM THỜI ẨN / COMMENT THEO YÊU CẦU
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMIS Sản xuất - Lập Phiếu nhập kho thành phẩm</title>
+  
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/productions/production-order.css">
+  <link rel="stylesheet" href="/css/productions/finished-goods-receipt.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button type="button" class="btn-sidebar-toggle" id="sidebarToggleBtn" title="Đóng/Mở menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="/Productions/Home/Index" class="app-brand" style="text-decoration: none; color: inherit;">
+          <div class="app-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4h4v16"></path>
+            </svg>
+          </div>
+          <span class="app-brand-name">Sản xuất Dược</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <div class="branch-selector" title="Chọn chi nhánh làm việc">
+          <span>Chi nhánh:</span>
+          <strong>Nhà máy Dược phẩm GMP Nam Hà</strong>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-btn" title="Cài đặt hệ thống">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1 1.51z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Trợ giúp & Hướng dẫn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+          <button type="button" class="icon-btn" title="Thông báo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="badge-dot"></span></button>
+        </div>
+        <a href="/Productions/Home/UserProfile" class="user-profile" title="Xem thông tin cá nhân" style="text-decoration:none;"><div class="user-avatar">MT</div><span class="user-name">DS. Nguyễn Minh Tài</span></a>
+      </div>
+    </header>
+
+            <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-nav-container">
+        
+        <div class="nav-item">
+          <a href="/Productions/Home/Index" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Tổng quan</span>
+          </a>
+        </div>
+
+        <div class="nav-item">
+          <a href="/Productions/Home/DrugOrder" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Đơn đặt hàng thuốc</span>
+          </a>
+        </div>
+
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="nav-text">Kế hoạch sản xuất</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <a href="/Productions/Home/MaterialRequirement" class="sub-link">Tính nhu cầu nguyên vật liệu</a>
+          </div>
+        </div>
+
+        <!-- Điều phối & thực thi (Đã xóa Lịch sản xuất, Tình hình giao hàng) -->
+        <div class="nav-item has-sub open">
+          <a href="#" class="nav-link">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Điều phối & thực thi</span>
+            <svg class="nav-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </a>
+          <div class="sub-menu">
+            <!-- <a href="/Productions/Home/ProductionOrder" class="sub-link ">Lệnh sản xuất thuốc</a> -->
+            <a href="/Productions/Home/MaterialRequisitionList" class="sub-link ">Xuất kho hoạt chất</a>
+            <a href="/Productions/Home/ProductionStatisticsList" class="sub-link ">Thống kê sản xuất</a>
+            <a href="/Productions/Home/FinishedGoodsReceiptList" class="sub-link active">Nhập kho thành phẩm</a>
+            <a href="/Productions/Home/HandoverList" class="sub-link ">Bàn giao thành phẩm</a>
+          </div>
+        </div>
+
+        <div class="nav-section-title">QUẢN TRỊ</div>
+
+        
+
+        <div class="nav-item">
+          <a href="/Productions/Home/BomList" class="nav-link ">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-text">Định mức công thức (BOM)</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-collapse-sidebar" id="sidebarCollapseBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+          <span class="collapse-text">Thu gọn menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH (LẬP PHIẾU NHẬP KHO THÀNH PHẨM) -->
+    <main class="app-main">
+      <div class="main-container page-fade-in" style="padding-bottom: 24px;">
+        
+        <!-- Header Phiếu Nhập Kho -->
+        <div class="handover-detail-header">
+          <div class="handover-detail-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
+              <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
+              <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            Lập Phiếu nhập kho thành phẩm
+          </div>
+          <div class="handover-detail-actions">
+            <button type="button" class="btn-close-modal" id="btnCloseFGR" title="Đóng">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- GRID 2 CỘT: THÔNG TIN CHUNG & THÔNG TIN KHÁC -->
+        <div class="fgr-top-grid">
+          
+          <!-- Cột Trái: Thông tin chung -->
+          <div class="fgr-card">
+            <div class="fgr-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Thông tin chung
+            </div>
+
+            <div class="fgr-field-row row-2col">
+              <label>Mã đơn / Phiếu kho<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>YCSX-0001 - Ginkgo Biloba 120mg Trunature (500 Hộp)</option>
+                <option>YCSX-0002 - Glucosamine HCL 1500mg (300 Chai)</option>
+                <option>YCSX-0003 - Milk Thistle Extract 1000mg (200 Hộp)</option>
+                <option>YCSX-0004 - Viên nén Paracetamol 500mg (1000 Hộp)</option>
+              </select>
+
+              <label>Phiếu bàn giao</label>
+              <select class="form-select">
+                <option selected>BG-DPH-0001 - Phân xưởng Đóng gói & Hoàn thiện</option>
+                <option>Không theo phiếu bàn giao</option>
+              </select>
+            </div>
+
+            <div class="fgr-field-row row-2col">
+              <label>Kho nhập thành phẩm<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>Kho Thành phẩm Dược phẩm GMP Nam Hà</option>
+                <option>Kho Hàng mẫu kiểm nghiệm Dược</option>
+                <option>Kho Biệt trữ chờ xuất viện</option>
+              </select>
+
+              <label>Ngày nhập kho<span class="required-star">*</span></label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="25/05/2025">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="fgr-field-row row-2col">
+              <label>Người giao (SX)<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>DS. Trần Vương</option>
+                <option>DS. Phan Thanh Hà</option>
+              </select>
+
+              <label>Thủ kho nhận<span class="required-star">*</span></label>
+              <select class="form-select">
+                <option selected>DS. Nguyễn Minh Tài</option>
+                <option>DS. Lê Văn Kho</option>
+              </select>
+            </div>
+
+            <div class="fgr-field-row" style="align-items: flex-start;">
+              <label style="padding-top: 6px;">Diễn giải / Ghi chú</label>
+              <textarea class="form-textarea" rows="2" placeholder="Nhập ghi chú chi tiết...">Nhập kho lô thành phẩm thuốc Ginkgo Biloba 120mg hoàn thành theo YCSX-0001, đã qua kiểm tra chất lượng KCS đạt chuẩn xuất kho lưu hành.</textarea>
+            </div>
+
+          </div>
+
+          <!-- Cột Phải: Thông tin khác -->
+          <div class="fgr-card">
+            <div class="fgr-card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-primary);">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Thông tin khác
+            </div>
+
+            <div class="fgr-field-row">
+              <label>Số phiếu nhập<span class="required-star">*</span></label>
+              <input type="text" class="form-input" value="NKTP00215" readonly style="background-color: #f8fafc; font-weight: 600;">
+            </div>
+
+            <div class="fgr-field-row">
+              <label>Ngày lập phiếu<span class="required-star">*</span></label>
+              <div class="date-input-wrap">
+                <input type="text" class="form-input" value="23/01/2026">
+                <span class="date-picker-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="fgr-field-row">
+              <label>Trạng thái</label>
+              <div>
+                <span class="badge-status-inwarded">Đã nhập kho</span>
+              </div>
+            </div>
+
+            <div class="fgr-field-row">
+              <label>Chất lượng (KCS)</label>
+              <div>
+                <span class="badge-status-approved" style="font-size: 11.5px;">✓ Đạt chuẩn kiểm nghiệm</span>
+              </div>
+            </div>
+
+            <div class="fgr-field-row">
+              <label>Tham chiếu đơn kho</label>
+              <div>
+                <a href="/Productions/Home/DrugOrder" class="ref-link" title="Xem đơn đặt hàng thuốc">YCSX-0001 ...</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BẢNG CHI TIẾT THÀNH PHẨM NHẬP KHO -->
+        <div class="mr-table-card">
+          <div class="mr-table-header">
+            <span class="mr-table-title">Chi tiết thành phẩm nhập kho</span>
+            <div style="font-size: 12.5px; color: #64748b;">Dữ liệu liên kết từ <strong>Thống kê sản xuất (TKSX-GMP-0001)</strong></div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width: 45px;">STT</th>
+                  <th>Mã thành phẩm</th>
+                  <th>Tên thành phẩm</th>
+                  <th>ĐVT</th>
+                  <th>Kho nhập</th>
+                  <th>Số lô SX</th>
+                  <th class="text-right">Ngày SX</th>
+                  <th class="text-right">Hạn sử dụng</th>
+                  <th class="text-right">SL kế hoạch</th>
+                  <th class="text-right">SL thực nhập</th>
+                  <th class="text-right">SL phế phẩm</th>
+                  <th class="text-right">Thành tiền (VNĐ)</th>
+                  <th class="text-center" style="width: 60px;">Xóa</th>
+                </tr>
+              </thead>
+              <tbody id="fgrTableBody">
+                <tr>
+                  <td class="text-center">1</td>
+                  <td><strong>GINKGO120</strong></td>
+                  <td>Ginkgo Biloba 120mg Trunature (Hộp 6 vỉ x 10 viên)</td>
+                  <td>Hộp</td>
+                  <td>Kho Thành phẩm Dược phẩm GMP Nam Hà</td>
+                  <td><span class="tag-pill-sm">LOT-GMP-2026-01</span></td>
+                  <td class="text-right">25/05/2025</td>
+                  <td class="text-right">25/05/2028</td>
+                  <td class="text-right">500</td>
+                  <td class="text-right"><input type="text" class="form-input text-right val-rec" value="495" style="height:26px; font-size:12px; font-weight:700; color:#2ea664; width:90px;"></td>
+                  <td class="text-right" style="color:#ef4444; font-weight:600;">5</td>
+                  <td class="text-right font-weight-bold" style="font-weight:700;">123.750.000</td>
+                  <td class="text-center">
+                    <button type="button" class="row-act-btn btn-delete-row" title="Xóa dòng" style="border:none; background:transparent;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer-bar">
+            <span>Tổng số: <strong id="totalFGRCount">1</strong> dòng sản phẩm</span>
+            <div class="table-footer-right">
+              <span>Số dòng/trang</span>
+              <select class="form-select" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px;">
+                <option selected>20</option>
+                <option>50</option>
+              </select>
+              <span>1 - 1</span>
+              <button type="button" class="pagination-btn">&lt;</button>
+              <button type="button" class="pagination-btn">&gt;</button>
+            </div>
+          </div>
+
+          <div class="handover-table-actions">
+            <button type="button" class="btn-table-action" id="btnAddFGRRow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Thêm dòng thành phẩm
+            </button>
+            <button type="button" class="btn-table-action danger" id="btnClearFGRRows">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Xóa hết dòng
+            </button>
+          </div>
+        </div>
+
+        <!-- TỆP ĐÍNH KÈM -->
+        <div class="handover-attach-card">
+          <div class="handover-card-title">Tệp đính kèm</div>
+          <div class="handover-attach-box">
+            <div class="attach-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="attach-text">Kéo thả biên bản kiểm nghiệm KCS hoặc <strong>bấm vào đây để chọn tệp tải lên</strong></div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Hỗ trợ: .pdf, .docx, .xlsx, .png, .jpg (Tối đa 10MB)</div>
+          </div>
+        </div>
+
+        <!-- THANH NÚT CHÂN TRANG -->
+        <div class="fgr-action-footer">
+          <button type="button" class="btn-cancel" id="btnCancelFGR">Hủy</button>
+          <button type="button" class="btn-save-draft" id="btnSaveAndNewFGR">Lưu & Thêm mới</button>
+          <button type="button" class="btn-save-submit" id="btnSaveFGR">Lưu nhập kho</button>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/productions/finished-goods-receipt.js"></script>
+</body>
+</html>
+*@

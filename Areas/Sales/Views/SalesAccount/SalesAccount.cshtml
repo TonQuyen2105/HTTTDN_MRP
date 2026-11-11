@@ -1,0 +1,209 @@
+@model httt.Models.UserAccount
+@{
+    ViewData["Title"] = "Tài khoản bán hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var user = Model ?? new httt.Models.UserAccount
+    {
+        Username = "sales_user",
+        Fullname = "Nhân viên bán hàng",
+        Role = "Sales",
+        Status = "Hoạt động",
+        Phone = "0987654321"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sales-account.css" asp-append-version="true" />
+}
+
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
+            </div>
+
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item" href="/Sales/Orders">
+                    <span>Xem đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/ExportSlips">
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+                <a class="order-nav-item active" href="/Sales/SalesAccount">
+                    <span>Tài khoản của tôi</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/RevenueReport">
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
+                    <strong>@(user.Fullname ?? "Nhân viên bán hàng")</strong>
+                    <span>@user.Username • Pharma Store</span>
+                </div>
+                <a href="/Account/LogoutGet" style="display: block; margin-top: 8px; padding: 6px 10px; text-align: center; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none;">
+                    Đăng xuất
+                </a>
+            </div>
+        </aside>
+
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="sales-main-content">
+
+            <div class="sales-page-heading">
+                <div>
+                    <div class="sales-breadcrumb">
+                        <span>Trang chủ</span>
+                        <span class="breadcrumb-separator">/</span>
+                        <span>Bán hàng</span>
+                        <span class="breadcrumb-separator">/</span>
+                        <strong>Tài khoản</strong>
+                    </div>
+
+                    <h1>Tài khoản của tôi</h1>
+                    <p>Quản lý thông tin cá nhân và tài khoản nhân viên.</p>
+                </div>
+            </div>
+
+            <!-- PROFILE BANNER -->
+            <section class="sales-profile-banner">
+                <div class="sales-profile-main">
+                    <div class="sales-avatar">NV</div>
+
+                    <div class="sales-profile-text">
+                        <span class="sales-eyebrow">HỒ SƠ NHÂN VIÊN</span>
+                        <h2>@user.Fullname</h2>
+                        <p>
+                            <span class="sales-profile-dot"></span>
+                            @user.Username
+                        </p>
+                    </div>
+                </div>
+
+                <div class="sales-profile-badges">
+                    <span class="sales-role-badge">
+                        Vai trò: @(user.Role ?? "Sales")
+                    </span>
+
+                    <span class="sales-status-badge">
+                        <span class="status-dot"></span>
+                        @(user.Status ?? "Đang hoạt động")
+                    </span>
+                </div>
+            </section>
+
+            <!-- SUMMARY CARDS -->
+            <div class="sales-summary-grid">
+                <div class="sales-summary-card">
+                    <div>
+                        <span class="summary-label">Tài khoản</span>
+                        <strong>@user.Username</strong>
+                        <small>Tên đăng nhập hệ thống</small>
+                    </div>
+                </div>
+
+                <div class="sales-summary-card">
+                    <div>
+                        <span class="summary-label">Trạng thái</span>
+                        <strong class="summary-active">@(user.Status ?? "Hoạt động")</strong>
+                        <small>Tài khoản đang sử dụng</small>
+                    </div>
+                </div>
+
+                <div class="sales-summary-card">
+                    <div>
+                        <span class="summary-label">Phân quyền</span>
+                        <strong style="color: var(--primary);">@(user.Role ?? "Sales")</strong>
+                        <small>Nhân viên bán hàng</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT INFORMATION CARD -->
+            <section class="sales-info-card">
+                <div class="sales-info-heading">
+                    <div>
+                        <h3>Thông tin cá nhân</h3>
+                        <p>Thông tin được lưu trong cơ sở dữ liệu Supabase (bảng useraccount)</p>
+                    </div>
+                </div>
+
+                <div class="sales-info-grid">
+                    <div class="sales-info-field">
+                        <label>Tên đăng nhập</label>
+                        <div class="sales-input-wrap">
+                            <input type="text" value="@user.Username" readonly />
+                        </div>
+                    </div>
+
+                    <div class="sales-info-field">
+                        <label>Họ và tên</label>
+                        <div class="sales-input-wrap">
+                            <input type="text" value="@user.Fullname" readonly />
+                        </div>
+                    </div>
+
+                    <div class="sales-info-field">
+                        <label>Vai trò hệ thống</label>
+                        <div class="sales-input-wrap">
+                            <input type="text" value="@(user.Role ?? "Sales")" readonly />
+                        </div>
+                    </div>
+
+                    <div class="sales-info-field">
+                        <label>Số điện thoại</label>
+                        <div class="sales-input-wrap">
+                            <input type="text" value="@(string.IsNullOrWhiteSpace(user.Phone) ? "Chưa cập nhật" : user.Phone)" readonly />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sales-info-footer">
+                    <p>
+                        Đây là thông tin hiển thị cho giao diện nhân viên bán hàng. Mọi thay đổi về phân quyền vui lòng liên hệ quản trị hệ thống.
+                    </p>
+                </div>
+            </section>
+
+            <footer class="order-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho thuốc và bán hàng</span>
+            </footer>
+
+        </main>
+    </div>
+</div>

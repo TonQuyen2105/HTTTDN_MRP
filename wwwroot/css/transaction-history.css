@@ -1,0 +1,599 @@
+/* ==========================================================================
+   PHARMAMRP - TRANSACTION HISTORY STYLING (CLEAN & BALANCED ERP THEME)
+   File: wwwroot/css/transaction-history.css
+   ========================================================================== */
+
+:root {
+    --primary: #158058;
+    --primary-hover: #0f6243;
+    --primary-light: #eef7f3;
+    --primary-border: #c8e6d9;
+
+    --text-title: #0f172a;
+    --text-body: #334155;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+
+    --border-soft: #e2e8f0;
+    --border-light: #f1f5f9;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+
+    /* Theme colors pastel dịu mắt */
+    --theme-green-text: #166534;
+    --theme-green-bg: #f0fdf4;
+    --theme-green-border: #bbf7d0;
+
+    --theme-amber-text: #92400e;
+    --theme-amber-bg: #fffbeb;
+    --theme-amber-border: #fde68a;
+
+    --theme-blue-text: #0369a1;
+    --theme-blue-bg: #f0f9ff;
+    --theme-blue-border: #bae6fd;
+}
+
+/* ==========================================================================
+   1. MAIN WORKSPACE
+   ========================================================================== */
+.history-main {
+    margin-left: 260px;
+    flex: 1;
+    padding: 18px 26px 28px;
+    min-width: 0;
+    max-width: 1260px;
+}
+
+/* ==========================================================================
+   2. HEADING SECTION
+   ========================================================================== */
+.history-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+.history-heading .breadcrumb {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.history-heading .breadcrumb strong {
+    color: var(--primary);
+}
+
+.history-heading h1 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-title);
+    margin: 0 0 2px;
+    letter-spacing: -0.3px;
+}
+
+.history-heading p {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.heading-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-back-orders {
+    background: var(--primary);
+    color: #ffffff;
+    text-decoration: none;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.15s ease;
+}
+
+.btn-back-orders:hover {
+    background: var(--primary-hover);
+}
+
+/* ==========================================================================
+   3. 3 THẺ THỐNG KÊ (SUMMARY CARDS)
+   ========================================================================== */
+.history-statistics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 9px 13px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.stat-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.stat-card strong {
+    display: block;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-title);
+    line-height: 1.2;
+}
+
+.stat-card strong.amount-accent {
+    color: var(--theme-green-text);
+}
+
+.stat-card small {
+    display: block;
+    font-size: 9.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ==========================================================================
+   4. PANEL & BỘ LỌC
+   ========================================================================== */
+.history-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+    margin-bottom: 12px;
+}
+
+.panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.panel-heading h3 {
+    font-size: 13px;
+    font-weight: 750;
+    color: var(--text-title);
+    margin: 0 0 1px;
+}
+
+.panel-heading p {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.badge-total-pill {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+}
+
+.history-filters-simple {
+    display: flex;
+    gap: 8px;
+    background: #fbfcfb;
+    border: 1px solid var(--border-soft);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    align-items: flex-end;
+}
+
+.filter-search {
+    flex: 1;
+}
+
+.filter-item label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 650;
+    color: #475569;
+    margin-bottom: 3px;
+}
+
+.history-filters-simple .form-control {
+    width: 100%;
+    height: 32px;
+    padding: 4px 9px;
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    font-size: 11.5px;
+    outline: none;
+    background: #ffffff;
+    transition: border-color 0.15s ease;
+}
+
+.history-filters-simple .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.btn-filter-submit {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-filter-submit:hover {
+    background: var(--primary-hover);
+}
+
+.btn-filter-reset {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    color: var(--text-secondary);
+    text-decoration: none;
+    height: 32px;
+    padding: 0 11px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.15s ease;
+}
+
+.btn-filter-reset:hover {
+    color: var(--text-title);
+    border-color: #cbd5e1;
+}
+
+/* ==========================================================================
+   5. BẢNG DỮ LIỆU CHUẨN GỌN GÀNG
+   ========================================================================== */
+.table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    text-align: left;
+}
+
+.history-table th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-weight: 750;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    white-space: nowrap;
+}
+
+.history-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.history-table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+.code-primary {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 11.5px;
+}
+
+.partner-name {
+    color: var(--text-title);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.partner-phone {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.amount-val {
+    font-size: 12.5px;
+    font-weight: 850;
+    color: #0f172a;
+}
+
+/* Pill xanh pastel đồng bộ */
+.badge-status-completed {
+    display: inline-flex;
+    align-items: center;
+    background: var(--theme-green-bg);
+    color: var(--theme-green-text);
+    border: 1px solid var(--theme-green-border);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1.25;
+}
+
+.btn-view-detail {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    color: var(--text-body);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-view-detail:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary-border);
+}
+
+.table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px 0;
+    font-size: 10.5px;
+    color: var(--text-muted);
+}
+
+.history-empty-cell {
+    text-align: center;
+    padding: 28px 14px !important;
+    color: var(--text-muted);
+}
+
+.btn-goto-export {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 5px;
+    display: inline-block;
+    margin-top: 6px;
+    transition: all 0.15s ease;
+}
+
+.btn-goto-export:hover {
+    background: #d1e5da;
+}
+
+/* ==========================================================================
+   6. MODAL CHI TIẾT
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-overlay[hidden] {
+    display: none !important;
+}
+
+.detail-modal {
+    background: #ffffff;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border-soft);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    background: #f8fafc;
+}
+
+.modal-badge-status {
+    background: var(--theme-green-bg);
+    color: var(--theme-green-text);
+    border: 1px solid var(--theme-green-border);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 2px;
+}
+
+.modal-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--text-title);
+    margin: 0 0 1px;
+}
+
+.modal-subtitle {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    color: var(--text-title);
+}
+
+.modal-body-content {
+    padding: 12px 14px;
+}
+
+.modal-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.info-card {
+    background: #f8fafc;
+    border: 1px dashed var(--border-soft);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.info-card h4 {
+    font-size: 9.5px;
+    font-weight: 750;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 6px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 3px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+.info-row span {
+    color: var(--text-secondary);
+}
+
+.info-row strong {
+    color: var(--text-title);
+}
+
+.modal-products-section h4 {
+    font-size: 11.5px;
+    font-weight: 750;
+    color: var(--text-title);
+    margin: 0 0 6px;
+}
+
+.modal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.modal-table th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.modal-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.modal-table tfoot td {
+    background: #f8fafc;
+    border-top: 1px solid var(--border-soft);
+    padding: 7px 8px;
+    font-size: 11.5px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border-soft);
+    background: #f8fafc;
+}
+
+.btn-print {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    color: var(--text-body);
+    padding: 4px 11px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-close-modal {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 4px 13px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* FOOTER */
+.order-page-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0 6px;
+    border-top: 1px solid var(--border-soft);
+    margin-top: 18px;
+    font-size: 10px;
+    color: var(--text-muted);
+}

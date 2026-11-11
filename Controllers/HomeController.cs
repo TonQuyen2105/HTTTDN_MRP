@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using httt.Constants;
 using httt.Models;
@@ -8,13 +9,20 @@ namespace httt.Controllers;
 
 public class HomeController : Controller
 {
+    private readonly ILogger<HomeController> _logger;
+
+    public HomeController(ILogger<HomeController> logger)
+    {
+        _logger = logger;
+    }
+
+    [AllowAnonymous]
     public IActionResult Index()
     {
         if (User?.Identity?.IsAuthenticated == true)
         {
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
-            var targetUrl = AppRoles.GetDefaultUrlForRole(role);
-            return Redirect(targetUrl);
+            return Redirect(AppRoles.GetDefaultUrlForRole(role));
         }
 
         return RedirectToAction("Login", "Account");

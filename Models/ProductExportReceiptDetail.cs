@@ -12,11 +12,25 @@ public class ProductExportReceiptDetail
     [Column("exportreceiptid")]
     public int ExportReceiptId { get; set; }
 
+    [NotMapped]
+    public int Exportreceiptid
+    {
+        get => ExportReceiptId;
+        set => ExportReceiptId = value;
+    }
+
     [ForeignKey(nameof(ExportReceiptId))]
     public virtual ProductExportReceipt? ProductExportReceipt { get; set; }
 
     [Column("productid")]
     public int ProductId { get; set; }
+
+    [NotMapped]
+    public int Productid
+    {
+        get => ProductId;
+        set => ProductId = value;
+    }
 
     [ForeignKey(nameof(ProductId))]
     public virtual Product? Product { get; set; }
@@ -43,4 +57,11 @@ public class ProductExportReceiptDetail
 
     [Column("createddate")]
     public DateTime? CreatedDate { get; set; }
+
+    [NotMapped]
+    public DateTime? Createddate
+    {
+        get => CreatedDate;
+        set => CreatedDate = value;
+    }
 }

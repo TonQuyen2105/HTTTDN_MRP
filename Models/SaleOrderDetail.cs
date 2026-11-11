@@ -12,11 +12,25 @@ public class SaleOrderDetail
     [Column("orderid")]
     public int OrderId { get; set; }
 
+    [NotMapped]
+    public int Orderid
+    {
+        get => OrderId;
+        set => OrderId = value;
+    }
+
     [ForeignKey(nameof(OrderId))]
     public virtual SaleOrder? SaleOrder { get; set; }
 
     [Column("productid")]
     public int ProductId { get; set; }
+
+    [NotMapped]
+    public int Productid
+    {
+        get => ProductId;
+        set => ProductId = value;
+    }
 
     [ForeignKey(nameof(ProductId))]
     public virtual Product? Product { get; set; }
@@ -26,6 +40,13 @@ public class SaleOrderDetail
 
     [Column("unitprice")]
     public decimal? UnitPrice { get; set; }
+
+    [NotMapped]
+    public decimal? Unitprice
+    {
+        get => UnitPrice;
+        set => UnitPrice = value;
+    }
 
     [NotMapped]
     public decimal TotalAmount { get; set; }

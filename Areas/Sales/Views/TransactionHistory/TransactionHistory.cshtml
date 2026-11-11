@@ -1,0 +1,341 @@
+@model List<httt.Areas.Sales.Controllers.TransactionItemDto>
+@{
+    ViewData["Title"] = "Lịch sử đơn hàng đã hoàn tất";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var transactions = Model ?? new List<httt.Areas.Sales.Controllers.TransactionItemDto>();
+    int totalDoneOrders = ViewBag.TotalDoneOrders ?? transactions.Count;
+    int totalExportReceipts = ViewBag.TotalExportReceipts ?? 0;
+    decimal totalRevenue = ViewBag.TotalRevenue ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/transaction-history.css" asp-append-version="true" />
+}
+
+<div class="order-page">
+    <div class="order-workspace">
+
+        <!-- SIDEBAR -->
+        <aside class="order-sidebar">
+            <div class="order-sidebar-brand">
+                <h2>PharmaMRP</h2>
+                <span>HỆ THỐNG BÁN HÀNG</span>
+            </div>
+
+            <div class="order-sidebar-label">MENU BÁN HÀNG</div>
+
+            <nav class="order-sidebar-nav">
+                <a class="order-nav-item" href="/Sales/Orders">
+                    <span>Xem đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/CreateOrder">
+                    <span>Tạo phiếu xuất thành phẩm</span>
+                </a>
+                <a class="order-nav-item active" href="/Sales/TransactionHistory">
+                    <span>Lịch sử đơn hàng</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/ExportSlips">
+                    <span>Theo dõi phiếu xuất kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/MedicineInventory">
+                    <span>Tra cứu thuốc và tồn kho</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/SalesAccount">
+                    <span>Tài khoản của tôi</span>
+                </a>
+                <a class="order-nav-item" href="/Sales/RevenueReport">
+                    <span>Thống kê, báo cáo doanh thu</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-status-box">
+                <div class="sidebar-status-title">Hạ tầng hệ thống</div>
+                <div class="status-indicator-item">
+                    <span>Kết nối DB:</span>
+                    <span class="status-dot-active">● Supabase Online</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Kho thuốc:</span>
+                    <span style="color: #0284C7; font-weight: 700;">● Sẵn sàng xuất</span>
+                </div>
+                <div class="status-indicator-item">
+                    <span>Bộ nhớ đệm:</span>
+                    <span>● Trực tiếp DB</span>
+                </div>
+            </div>
+
+            <div class="order-sidebar-bottom">
+                <div class="order-user-info">
+                    <strong>@(User.FindFirst("FullName")?.Value ?? "Nhân viên bán hàng")</strong>
+                    <span>@(User.Identity?.Name ?? "sales_user") • Pharma Store</span>
+                </div>
+                <a href="/Account/LogoutGet" style="display: block; margin-top: 8px; padding: 6px 10px; text-align: center; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none;">
+                    Đăng xuất
+                </a>
+            </div>
+        </aside>
+
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="history-main">
+
+            <div class="history-heading">
+                <div>
+                    <div class="breadcrumb">
+                        <span>Trang chủ</span> / <span>Bán hàng</span> / <strong>Lịch sử đơn hàng</strong>
+                    </div>
+                    <h1>Lịch sử đơn hàng đã hoàn tất</h1>
+                    <p>Danh sách các đơn hàng đã xong và đã bàn giao thành công, đồng bộ trực tiếp từ Supabase.</p>
+                </div>
+
+                <div class="heading-actions">
+                    <a href="/Sales/Orders" class="btn-back-orders">
+                        Xem đơn đang xử lý
+                    </a>
+                </div>
+            </div>
+
+            <!-- 3 THẺ THỐNG KÊ GỌN ĐẸP -->
+            <div class="history-statistics">
+                <div class="stat-card">
+                    <span class="stat-label">Đơn đã hoàn tất</span>
+                    <strong>@totalDoneOrders.ToString("D2")</strong>
+                    <small>Đơn hàng ở trạng thái "Đã xong"</small>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Phiếu xuất thành phẩm</span>
+                    <strong style="color: var(--theme-blue-text);">@totalExportReceipts.ToString("D2")</strong>
+                    <small>Phiếu từ ProductExportReceipt</small>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Doanh thu thực tế</span>
+                    <strong class="amount-accent">@totalRevenue.ToString("N0") đ</strong>
+                    <small>Tổng tiền từ các đơn đã xong</small>
+                </div>
+            </div>
+
+            <!-- PANEL DANH SÁCH BẢNG -->
+            <section class="history-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h3>Danh sách đơn hàng xuất kho hoàn tất</h3>
+                        <p>Dữ liệu đồng bộ trực tiếp từ trạng thái "Đã xong" bên Quản lý Đơn hàng</p>
+                    </div>
+                    <span class="badge-total-pill">@transactions.Count đơn</span>
+                </div>
+
+                <!-- BỘ LỌC TÌM KIẾM NHỎ GỌN -->
+                <form method="get" action="/Sales/TransactionHistory" class="history-filters-simple">
+                    <div class="filter-item filter-search">
+                        <label for="searchInput">Tìm kiếm nhanh</label>
+                        <input id="searchInput" name="keyword" type="text" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập mã đơn, mã phiếu xuất, tên khách hàng..." />
+                    </div>
+
+                    <div class="filter-item">
+                        <button type="submit" class="btn-filter-submit">Tìm kiếm</button>
+                        <a href="/Sales/TransactionHistory" class="btn-filter-reset">Đặt lại</a>
+                    </div>
+                </form>
+
+                <!-- BẢNG DỮ LIỆU ĐỒNG BỘ -->
+                <div class="table-wrapper">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;">STT</th>
+                                <th style="width: 140px;">Mã đơn</th>
+                                <th style="width: 140px;">Mã phiếu xuất</th>
+                                <th>Khách hàng / Nhà thuốc</th>
+                                <th style="width: 110px;">Điện thoại</th>
+                                <th style="width: 130px; text-align: center;">Ngày tạo</th>
+                                <th style="width: 125px; text-align: right;">Tổng tiền</th>
+                                <th style="width: 110px; text-align: center;">Trạng thái</th>
+                                <th style="width: 80px; text-align: center;">Thao tác</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="historyTableBody">
+                            @if (!transactions.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" class="history-empty-cell">
+                                        <h4>Chưa có đơn hàng nào ở trạng thái "Đã xong"</h4>
+                                        <p>Khi bên kho xuất hàng hoặc bạn bấm xác nhận "Đã xong", đơn hàng sẽ tự động xuất hiện tại đây.</p>
+                                        <a href="/Sales/Orders" class="btn-goto-export">Tới danh sách đơn hàng</a>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int idx = 1;
+                                @foreach (var item in transactions)
+                                {
+                                    <tr>
+                                        <td style="text-align: center; color: var(--text-muted);">@(idx++)</td>
+                                        <td>
+                                            <strong class="code-primary">@item.Id</strong>
+                                        </td>
+                                        <td>
+                                            @if (item.ReceiptCode != "Chưa lập phiếu")
+                                            {
+                                                <strong style="color: #0284C7;">@item.ReceiptCode</strong>
+                                            }
+                                            else
+                                            {
+                                                <span style="color: var(--text-muted); font-style: italic;">Chưa lập phiếu</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong class="partner-name">@item.Partner</strong>
+                                            <div style="font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;">@item.PartnerAddress</div>
+                                        </td>
+                                        <td>
+                                            <span class="partner-phone">@item.PartnerPhone</span>
+                                        </td>
+                                        <td style="text-align: center; color: var(--text-secondary);">
+                                            @item.Date
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <strong class="amount-val">@item.TotalAmount.ToString("N0") đ</strong>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <span class="badge-status-completed">✓ Đã xong</span>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <button type="button" class="btn-view-detail" onclick='showDetailModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(item)))'>
+                                                Chi tiết
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <span>Tổng cộng: <strong style="color: var(--text-title);">@transactions.Count</strong> đơn hàng đã xong</span>
+                    <span>Dữ liệu lưu trữ an toàn trong Supabase</span>
+                </div>
+            </section>
+
+            <footer class="order-page-footer">
+                <strong>PharmaMRP</strong>
+                <span>Hệ thống quản lý kho thuốc và bán hàng</span>
+            </footer>
+
+        </main>
+    </div>
+</div>
+
+<!-- MODAL CHI TIẾT ĐƠN HÀNG ĐÃ XONG -->
+<div id="detailModal" class="modal-overlay" hidden>
+    <div class="detail-modal">
+        <div class="modal-header">
+            <div>
+                <span class="modal-badge-status">✓ ĐÃ XONG (COMPLETED)</span>
+                <h3 id="modalTitle" class="modal-title">Chi tiết đơn hàng</h3>
+                <p id="modalSubtitle" class="modal-subtitle"></p>
+            </div>
+            <button type="button" class="modal-close" onclick="closeDetail()" title="Đóng">✕</button>
+        </div>
+
+        <div id="detailContent" class="modal-body-content"></div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn-print" onclick="window.print()">In phiếu</button>
+            <button type="button" class="btn-close-modal" onclick="closeDetail()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showDetailModal(item) {
+            document.getElementById('modalTitle').textContent = 'Đơn hàng: ' + item.Id;
+            document.getElementById('modalSubtitle').textContent = 'Mã phiếu xuất kho: ' + item.ReceiptCode + ' — Ngày đặt: ' + item.Date;
+
+            let productsHtml = '';
+            let totalQty = 0;
+            if (item.Products && item.Products.length > 0) {
+                productsHtml = item.Products.map((p, idx) => {
+                    totalQty += p.Quantity;
+                    return `
+                        <tr>
+                            <td style="text-align: center; color: var(--text-muted);">${idx + 1}</td>
+                            <td><strong style="color: var(--text-title);">${p.Name}</strong></td>
+                            <td style="text-align: center;">${p.Unit || 'Hộp'}</td>
+                            <td style="text-align: center; font-weight: 700; color: #158058;">${p.Quantity.toLocaleString()}</td>
+                            <td style="text-align: right;">${p.Price.toLocaleString()} đ</td>
+                            <td style="text-align: right; font-weight: 700; color: var(--text-title);">${p.Total.toLocaleString()} đ</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                productsHtml = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 12px;">Chi tiết mặt hàng: ${item.ProductSummary || 'Không có dữ liệu'}</td></tr>`;
+            }
+
+            let html = `
+                <div class="modal-info-grid">
+                    <div class="info-card">
+                        <h4>Khách hàng / Nhà thuốc</h4>
+                        <div class="info-row"><span>Tên đối tác:</span> <strong>${item.Partner}</strong></div>
+                        <div class="info-row"><span>Số điện thoại:</span> <strong>${item.PartnerPhone}</strong></div>
+                        <div class="info-row"><span>Địa chỉ nhận:</span> <strong>${item.PartnerAddress}</strong></div>
+                    </div>
+                    <div class="info-card">
+                        <h4>Thông tin phiếu xuất</h4>
+                        <div class="info-row"><span>Mã phiếu:</span> <strong style="color: #0284C7;">${item.ReceiptCode}</strong></div>
+                        <div class="info-row"><span>Ngày tạo đơn:</span> <strong>${item.Date}</strong></div>
+                        <div class="info-row"><span>Trạng thái:</span> <span class="badge-status-completed">Đã xong</span></div>
+                    </div>
+                </div>
+
+                <div class="modal-products-section">
+                    <h4>Danh mục thuốc bàn giao</h4>
+                    <table class="modal-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 35px; text-align: center;">STT</th>
+                                <th>Tên thuốc thành phẩm</th>
+                                <th style="width: 70px; text-align: center;">ĐVT</th>
+                                <th style="width: 70px; text-align: center;">SL</th>
+                                <th style="width: 110px; text-align: right;">Đơn giá</th>
+                                <th style="width: 120px; text-align: right;">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${productsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="text-align: right; font-weight: 700;">Tổng số lượng:</td>
+                                <td style="text-align: center; font-weight: 800; color: #158058;">${item.TotalQuantity || totalQty}</td>
+                                <td style="text-align: right; font-weight: 700;">Tổng thanh toán:</td>
+                                <td style="text-align: right; font-weight: 850; font-size: 13px; color: #0F172A;">${item.TotalAmount.toLocaleString()} đ</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('detailContent').innerHTML = html;
+            const modal = document.getElementById('detailModal');
+            modal.hidden = false;
+        }
+
+        function closeDetail() {
+            const modal = document.getElementById('detailModal');
+            modal.hidden = true;
+        }
+
+        document.getElementById('detailModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeDetail();
+            }
+        });
+    </script>
+}

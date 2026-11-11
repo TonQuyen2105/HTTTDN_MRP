@@ -160,10 +160,24 @@ public class Supplier
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int SupplierId { get; set; }
 
+    [NotMapped]
+    public int Supplierid
+    {
+        get => SupplierId;
+        set => SupplierId = value;
+    }
+
     [Required(ErrorMessage = "Tên nhà cung cấp không được để trống.")]
     [MaxLength(100, ErrorMessage = "Tên nhà cung cấp tối đa 100 ký tự.")]
     [Column("suppliername")]
     public string SupplierName { get; set; } = string.Empty;
+
+    [NotMapped]
+    public string Suppliername
+    {
+        get => SupplierName;
+        set => SupplierName = value;
+    }
 
     [MaxLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
     [Column("phone")]
@@ -179,6 +193,8 @@ public class Supplier
 
     [Column("import_cost")]
     public decimal? ImportCost { get; set; } = 0;
+
+    public virtual ICollection<httt.Areas.Warehouse.Models.ImportReceipt> ImportReceipts { get; set; } = new List<httt.Areas.Warehouse.Models.ImportReceipt>();
 }
 
 public class MarkProducedGoodsRequest

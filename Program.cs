@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -412,27 +413,31 @@ app.MapAreaControllerRoute(
     areaName: "Warehouse",
     pattern: "Warehouse/{controller=Dashboard}/{action=Index}/{id?}");
 
-// 5.4 Route ngắn cho các Area: /Admin, /Warehouse, /Sales
+// 5.4 Route cho phân hệ Sales (/Sales/Order, /Sales/Orders, /Sales/CreateOrder...)
+app.MapAreaControllerRoute(
+    name: "sales_area",
+    areaName: "Sales",
+    pattern: "Sales/{controller=Order}/{action=Index}/{id?}");
+
+// 5.5 Route ngắn cho các Area: /Admin, /Warehouse, /Sales
 app.MapControllerRoute(
     name: "areas_short",
     pattern: "{area:exists}/{action=Index}/{id?}",
     defaults: new { controller = "Home" });
 
-// 5.5 Route chuẩn cho các Area: /{area:exists}/{controller=Home}/{action=Index}/{id?}
+// 5.6 Route chuẩn cho các Area: /{area:exists}/{controller=Home}/{action=Index}/{id?}
 app.MapControllerRoute(
     name: "areas_home",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
-// 5.6 Route chuẩn cho các Area dùng Dashboard controller
+// 5.7 Route chuẩn cho các Area dùng Dashboard controller
 app.MapControllerRoute(
     name: "areas",
-    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
 

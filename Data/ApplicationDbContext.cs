@@ -209,12 +209,20 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("importreceipt", "public");
             entity.HasKey(r => r.IpReceiptId);
             entity.Property(r => r.Status).HasMaxLength(50);
+            entity.HasOne(r => r.Supplier)
+                  .WithMany(s => s.ImportReceipts)
+                  .HasForeignKey(r => r.SupplierId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<ImportReceiptDetail>(entity =>
         {
             entity.ToTable("importreceiptdetail", "public");
             entity.HasKey(d => new { d.IpReceiptId, d.IngrId });
+            entity.HasOne(d => d.ImportReceipt)
+                  .WithMany(r => r.ImportReceiptDetails)
+                  .HasForeignKey(d => d.IpReceiptId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Phiếu xuất kho vật tư
@@ -365,12 +373,12 @@ public class ApplicationDbContext : DbContext
             entity.Property(d => d.UnitPrice).HasColumnType("numeric(18,2)");
 
             entity.HasOne(d => d.SaleOrder)
-                  .WithMany()
+                  .WithMany(o => o.SaleOrderDetails)
                   .HasForeignKey(d => d.OrderId)
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(d => d.Product)
-                  .WithMany()
+                  .WithMany(p => p.SaleOrderDetails)
                   .HasForeignKey(d => d.ProductId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
@@ -385,6 +393,11 @@ public class ApplicationDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(r => r.ApprovedBy)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.SaleOrder)
+                  .WithMany(o => o.ProductExportReceipts)
+                  .HasForeignKey(r => r.OrderId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<ProductExportReceiptDetail>(entity =>
@@ -395,12 +408,12 @@ public class ApplicationDbContext : DbContext
             entity.Property(d => d.Price).HasColumnType("numeric(18,2)");
 
             entity.HasOne(d => d.ProductExportReceipt)
-                  .WithMany()
+                  .WithMany(r => r.ProductExportReceiptDetails)
                   .HasForeignKey(d => d.ExportReceiptId)
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(d => d.Product)
-                  .WithMany()
+                  .WithMany(p => p.ProductExportReceiptDetails)
                   .HasForeignKey(d => d.ProductId)
                   .OnDelete(DeleteBehavior.Restrict);
         });

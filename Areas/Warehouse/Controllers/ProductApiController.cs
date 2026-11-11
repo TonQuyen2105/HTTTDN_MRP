@@ -47,6 +47,25 @@ public class ProductApiController : ControllerBase
         string statusType,
         string note);
 
+    private static bool IsRefundReceipt(string? receiptCode, string? note)
+    {
+        if (!string.IsNullOrWhiteSpace(receiptCode) &&
+            receiptCode.Trim().StartsWith("HOAN-", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(note) &&
+            (note.Contains("Hoàn lại số lượng đã xuất", StringComparison.OrdinalIgnoreCase) ||
+             note.Contains("Hoàn lại kho", StringComparison.OrdinalIgnoreCase) ||
+             note.Contains("Hoàn hàng", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private async Task<List<ApprovedReceiptItem>> GetApprovedReceiptsForProductAsync(Product item)
     {
         string unit = !string.IsNullOrWhiteSpace(item.Unit) ? item.Unit : "Hộp";
@@ -65,12 +84,14 @@ public class ProductApiController : ControllerBase
                                where d.ProductId == item.ProductId
                                join r in _context.ProductReceipts.AsNoTracking() on d.ProductReceiptId equals r.ProductReceiptId
                                where r.Status != null && ApprovedStatuses.Contains(r.Status)
+                                     && (r.ReceiptCode == null || !r.ReceiptCode.ToUpper().StartsWith("HOAN-"))
                                join u in _context.UserAccounts.AsNoTracking() on r.RequestedBy equals u.UserId into uJoin
                                from u in uJoin.DefaultIfEmpty()
                                orderby (r.CreatedDate ?? d.CreatedDate) descending, r.ProductReceiptId descending
                                select new
                                {
                                    productReceiptId = r.ProductReceiptId,
+                                   rawReceiptCode = r.ReceiptCode,
                                    voucherNo = !string.IsNullOrWhiteSpace(r.ReceiptCode) ? r.ReceiptCode : $"LNK{r.ProductReceiptId:D5}",
                                    orderNo = !string.IsNullOrWhiteSpace(r.ReceiptCode) ? r.ReceiptCode : $"LNK{r.ProductReceiptId:D5}",
                                    importDate = (r.CreatedDate ?? d.CreatedDate).HasValue
@@ -88,32 +109,34 @@ public class ProductApiController : ControllerBase
                                }).ToListAsync();
 
         var now = DateTime.UtcNow;
-        return rawDetails.Select(r =>
-        {
-            bool isDisposed = disposedCodes.Contains($"HSP-{r.voucherNo}") || disposedCodes.Contains($"HSP-LNK{r.productReceiptId:D5}");
-            bool isExpired = r.rawExpiredDate.HasValue && r.rawExpiredDate.Value <= now;
-            return new ApprovedReceiptItem(
-                r.productReceiptId,
-                r.voucherNo,
-                r.orderNo,
-                r.importDate,
-                r.creatorName,
-                r.employeeCode,
-                r.voucherNo.StartsWith("HOAN-", StringComparison.OrdinalIgnoreCase) ? "Kho thành phẩm (Hoàn hàng)" : "Phân xưởng sản xuất",
-                r.quantity,
-                r.quantity.ToString("N0"),
-                unit,
-                r.cost,
-                r.cost.ToString("N0"),
-                r.cost * r.quantity,
-                (r.cost * r.quantity).ToString("N0"),
-                r.expiredDate,
-                isExpired,
-                isDisposed,
-                isDisposed ? "Đã hủy" : "Approved",
-                isDisposed ? "danger" : "success",
-                r.note);
-        }).ToList();
+        return rawDetails
+            .Where(r => !IsRefundReceipt(r.rawReceiptCode, r.note))
+            .Select(r =>
+            {
+                bool isDisposed = disposedCodes.Contains($"HSP-{r.voucherNo}") || disposedCodes.Contains($"HSP-LNK{r.productReceiptId:D5}");
+                bool isExpired = r.rawExpiredDate.HasValue && r.rawExpiredDate.Value <= now;
+                return new ApprovedReceiptItem(
+                    r.productReceiptId,
+                    r.voucherNo,
+                    r.orderNo,
+                    r.importDate,
+                    r.creatorName,
+                    r.employeeCode,
+                    "Phân xưởng sản xuất",
+                    r.quantity,
+                    r.quantity.ToString("N0"),
+                    unit,
+                    r.cost,
+                    r.cost.ToString("N0"),
+                    r.cost * r.quantity,
+                    (r.cost * r.quantity).ToString("N0"),
+                    r.expiredDate,
+                    isExpired,
+                    isDisposed,
+                    isDisposed ? "Đã hủy" : "Approved",
+                    isDisposed ? "danger" : "success",
+                    r.note);
+            }).ToList();
     }
 
     private async Task EnsureReceiptCostsAsync()

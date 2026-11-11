@@ -32,9 +32,10 @@ public class ProductReceiptApiController : ControllerBase
     {
         await SaleOrderCancellationSync.SyncAsync(_context);
 
-        // Điều kiện: status = ['Approve', 'Pending', 'Rejected'] và receiptcode khác NULL
+        // Điều kiện: chỉ hiển thị các phiếu nhập có RequestId, receiptcode khác NULL và status = ['Approve', 'Pending', 'Rejected']
         var query = _context.ProductReceipts.AsNoTracking()
-            .Where(p => p.ReceiptCode != null && p.ReceiptCode.Trim() != "" &&
+            .Where(p => p.RequestId != null &&
+                        p.ReceiptCode != null && p.ReceiptCode.Trim() != "" &&
                        (p.Status == "Pending" || p.Status == "Chờ nhập kho" ||
                         p.Status == "Approved" || p.Status == "Approve" || p.Status == "Đã nhập kho" ||
                         p.Status == "Rejected" || p.Status == "Reject" || p.Status == "Từ chối"));

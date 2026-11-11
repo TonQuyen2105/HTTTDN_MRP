@@ -11,7 +11,6 @@
     var currentKeyword = ViewBag.Keyword as string ?? "";
     var currentDate = ViewBag.Date as string ?? "";
 
-    // Helper: Kiểm tra trạng thái độc lập của từng phiếu xuất
     bool CheckSlipCompleted(string? s) => string.Equals(s, "Completed", StringComparison.OrdinalIgnoreCase) 
                                        || s == "Đã hoàn thành" || s == "Đã xong";
 
@@ -35,6 +34,21 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/export-slips.css" asp-append-version="true" />
+    <style>
+        .badge-invalid-order {
+            background: #FEF2F2 !important;
+            color: #DC2626 !important;
+            border: 1px solid #FECACA !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            padding: 4px 10px !important;
+            border-radius: 6px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            letter-spacing: 0.2px !important;
+        }
+    </style>
 }
 
 <div class="order-page">
@@ -165,7 +179,7 @@
                             <option value="ready" selected="@(currentStatus == "ready" ? "selected" : null)">🔔 Kho đã xuất hàng (Chờ duyệt)</option>
                             <option value="completed" selected="@(currentStatus == "completed" ? "selected" : null)">✓ Đã xong (Completed)</option>
                             <option value="rejected" selected="@(currentStatus == "rejected" ? "selected" : null)">✕ Kho từ chối xuất hàng</option>
-                            <option value="cancelled" selected="@(currentStatus == "cancelled" ? "selected" : null)">⊘ Đã hủy (Cancelled)</option>
+                            <option value="cancelled" selected="@(currentStatus == "cancelled" ? "selected" : null)">⊘ Đã hủy / Đơn hủy</option>
                         </select>
                     </div>
 
@@ -205,7 +219,7 @@
                     <div class="order-empty-box">
                         <div class="empty-icon">📋</div>
                         <h3>Không tìm thấy phiếu xuất kho phù hợp</h3>
-                        <p>Không có phiếu xuất nào khớp với điều kiện lọc hiện tại. Bạn có thể xóa bộ lọc để xem toàn bộ danh sách.</p>
+                        <p>Không có phiếu xuất nào khớp với điều kiện lọc hiện tại.</p>
                         <a href="/Sales/ExportSlips" class="order-btn-reset" style="display: inline-flex; margin-top: 6px;">
                             Xóa bộ lọc
                         </a>
@@ -217,16 +231,21 @@
                     {
                         bool isSlipDone = CheckSlipCompleted(slip.Status);
                         bool isSlipRejected = CheckSlipRejected(slip.Status);
-                        bool isSlipCancelled = CheckSlipCancelled(slip.Status) || (slip.SaleOrder != null && (slip.SaleOrder.Status == "Cancelled" || slip.SaleOrder.Status == "Đã hủy"));
-                        bool isSlipReady = CheckSlipReady(slip.Status) && !isSlipDone && !isSlipCancelled;
+                        bool isSlipDirectCancelled = CheckSlipCancelled(slip.Status);
+                        // Nhận biết đơn hàng gốc đã bị hủy
+                        bool isParentCancelled = slip.SaleOrder != null && (
+                            string.Equals(slip.SaleOrder.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
+                            slip.SaleOrder.Status == "Đã hủy"
+                        );
+                        bool isSlipReady = CheckSlipReady(slip.Status) && !isSlipDone;
 
-                        var slipCode = !string.IsNullOrWhiteSpace(slip.Expreceiptcode) ? slip.Expreceiptcode : ("PX-" + slip.Exportreceiptid);
-                        var orderCode = slip.SaleOrder?.Ordercode ?? (slip.Orderid.HasValue ? ("HD-" + slip.Orderid.Value) : "Đơn ngoài");
-                        decimal totalVal = slip.ProductExportReceiptDetails?.Sum(d => (d.Price ?? 0) * d.Quantity) ?? (slip.SaleOrder?.Totalamount ?? 0);
+                        var slipCode = !string.IsNullOrWhiteSpace(slip.ExpReceiptCode) ? slip.ExpReceiptCode : ("PX-" + slip.ExportReceiptId);
+                        var orderCode = slip.SaleOrder?.OrderCode ?? (slip.OrderId.HasValue ? ("DH-" + slip.OrderId.Value) : "Đơn ngoài");
+                        decimal totalVal = slip.ProductExportReceiptDetails?.Sum(d => (d.Price ?? 0) * d.Quantity) ?? (slip.SaleOrder?.TotalAmount ?? 0);
 
-                        string cardClass = isSlipCancelled ? "card-theme-rejected" : (isSlipDone ? "card-theme-done" : (isSlipRejected ? "card-theme-rejected" : (isSlipReady ? "card-theme-ready" : "")));
+                        string cardClass = isParentCancelled ? "card-theme-cancelled" : (isSlipDone ? "card-theme-done" : (isSlipRejected ? "card-theme-rejected" : (isSlipReady ? "card-theme-ready" : "")));
 
-                        <article class="slip-card @cardClass">
+                        <article class="slip-card @cardClass" style="@(isParentCancelled ? "border-left: 4px solid #EF4444; background: #FFFBFB;" : "")">
                             <div class="slip-card-top">
                                 <div class="slip-id-wrap">
                                     <span class="slip-label">MÃ PHIẾU:</span>
@@ -234,10 +253,17 @@
                                 </div>
 
                                 <div class="slip-actions-wrap">
-                                    @if (isSlipCancelled)
+                                    @* NẾU ĐƠN HÀNG GỐC BỊ HỦY -> ĐỒNG BỘ HIỂN THỊ "✕ Không hiệu lực (Đơn hủy)" GIỐNG BÊN TẠO PHIẾU *@
+                                    @if (isParentCancelled)
+                                    {
+                                        <span class="badge-invalid-order">
+                                            ✕ Không hiệu lực (Đơn hủy)
+                                        </span>
+                                    }
+                                    else if (isSlipDirectCancelled)
                                     {
                                         <span class="pill-badge pill-rejected">
-                                            ⊘ Đã hủy (Cancelled)
+                                            ⊘ Phiếu đã hủy
                                         </span>
                                     }
                                     else if (isSlipDone)
@@ -257,7 +283,7 @@
                                         <span class="pill-badge pill-ready">
                                             🔔 Kho đã xuất hàng
                                         </span>
-                                        <button type="button" class="btn-confirm-action" onclick="confirmOrderDone(@slip.Exportreceiptid, '@slipCode', this)">
+                                        <button type="button" class="btn-confirm-action" onclick="confirmOrderDone(@slip.ExportReceiptId, '@slipCode', this)">
                                             Duyệt đơn ĐÃ XONG
                                         </button>
                                     }
@@ -272,15 +298,14 @@
 
                             <div class="slip-card-body">
                                 <div class="slip-main-row">
-                                    <!-- Khối khách hàng -->
                                     <div class="slip-col-customer">
                                         <span class="meta-caption">KHÁCH NHẬN / ĐƠN HÀNG</span>
-                                        <h3 class="customer-title">@(slip.SaleOrder?.Customername ?? "Khách hàng mua thuốc")</h3>
+                                        <h3 class="customer-title">@(slip.SaleOrder?.CustomerName ?? "Khách hàng mua thuốc")</h3>
                                         <div class="order-subline">
                                             <span>Mã đơn:</span>
-                                            @if (slip.Orderid.HasValue)
+                                            @if (slip.OrderId.HasValue)
                                             {
-                                                <a href="/Sales/Order/Details/@slip.Orderid.Value" class="link-order-id">
+                                                <a href="/Sales/Order/Details/@slip.OrderId.Value" class="link-order-id" style="@(isParentCancelled ? "text-decoration: line-through; color: #DC2626;" : "")">
                                                     @orderCode
                                                 </a>
                                             }
@@ -288,25 +313,24 @@
                                             {
                                                 <span class="link-order-id">@orderCode</span>
                                             }
-                                            @if (!string.IsNullOrWhiteSpace(slip.SaleOrder?.Customerphone))
+                                            @if (!string.IsNullOrWhiteSpace(slip.SaleOrder?.CustomerPhone))
                                             {
                                                 <span class="text-sep">•</span>
-                                                <span class="text-phone">@slip.SaleOrder.Customerphone</span>
+                                                <span class="text-phone">@slip.SaleOrder.CustomerPhone</span>
                                             }
                                         </div>
                                     </div>
 
-                                    <!-- Khối thông số ngày & trạng thái -->
                                     <div class="slip-col-meta">
                                         <div class="meta-item">
                                             <span class="meta-caption">NGÀY LẬP</span>
-                                            <strong>@(slip.Createddate.HasValue ? slip.Createddate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
+                                            <strong>@(slip.CreatedDate.HasValue ? slip.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
                                         </div>
                                         <div class="meta-item">
                                             <span class="meta-caption">TRẠNG THÁI KHO</span>
-                                            @if (isSlipCancelled)
+                                            @if (isParentCancelled)
                                             {
-                                                <strong class="color-red font-semibold">Đã hủy bỏ</strong>
+                                                <strong style="color: #DC2626; font-weight: 700;">Không hiệu lực</strong>
                                             }
                                             else if (isSlipDone)
                                             {
@@ -332,7 +356,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Chi tiết danh mục thuốc bàn giao -->
                                 @if (slip.ProductExportReceiptDetails != null && slip.ProductExportReceiptDetails.Any())
                                 {
                                     <div class="slip-details-strip">
@@ -340,9 +363,9 @@
                                         <div class="details-chips">
                                             @foreach (var detail in slip.ProductExportReceiptDetails)
                                             {
-                                                var pName = !string.IsNullOrWhiteSpace(detail.Product?.Productname) 
-                                                          ? detail.Product.Productname 
-                                                          : $"SP #{detail.Productid}";
+                                                var pName = !string.IsNullOrWhiteSpace(detail.Product?.ProductName) 
+                                                          ? detail.Product.ProductName 
+                                                          : $"SP #{detail.ProductId}";
                                                 var unit = !string.IsNullOrWhiteSpace(detail.Product?.Unit) ? detail.Product.Unit : "Hộp";
                                                 <span class="detail-chip">
                                                     <strong>@pName</strong>: @detail.Quantity @unit × @((detail.Price ?? 0).ToString("N0")) đ

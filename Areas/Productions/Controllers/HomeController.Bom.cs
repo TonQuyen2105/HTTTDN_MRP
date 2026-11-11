@@ -144,8 +144,24 @@ public partial class HomeController
             if (product == null || string.IsNullOrWhiteSpace(product.Unit))
                 return BadRequest(new { success = false, message = "Sản phẩm không tồn tại hoặc chưa có đơn vị tính." });
             var ids = req.Lines.Select(l => l.IngredientId).ToList();
-            if (await _context.Ingredients.CountAsync(i => ids.Contains(i.IngrId) && i.Unit != null && i.Unit.Trim() != "") != ids.Count)
+            var ingredients = await _context.Ingredients.AsNoTracking()
+                .Where(i => ids.Contains(i.IngrId)).ToListAsync();
+            if (ingredients.Count != ids.Count || ingredients.Any(i => string.IsNullOrWhiteSpace(i.Unit)))
                 return BadRequest(new { success = false, message = "Nguyên liệu không tồn tại hoặc chưa có đơn vị tính. Vui lòng kiểm tra danh mục." });
+            // Recalculate with database costs, never accept a client-supplied total.
+            decimal? materialCost;
+            try
+            {
+                materialCost = new BomEditorViewModel { Lines = req.Lines, Ingredients = ingredients }.MaterialTotal;
+            }
+            catch (OverflowException)
+            {
+                return BadRequest(new { success = false, message = "Tổng tiền nguyên vật liệu vượt giới hạn lưu trữ. Vui lòng kiểm tra giá nhập và định mức." });
+            }
+            if (materialCost > 9999999999999999.99m)
+                return BadRequest(new { success = false, message = "Tổng tiền nguyên vật liệu vượt giới hạn lưu trữ. Vui lòng kiểm tra giá nhập và định mức." });
+            // Missing ingredient costs clear a stale estimate rather than storing a partial total.
+            product.MaterialCost = materialCost;
             // A changed price is independent of the BOM material estimate.
             if (req.ProductPrice != req.OriginalProductPrice)
             {
@@ -176,7 +192,7 @@ public partial class HomeController
             _context.Boms.RemoveRange(current.Skip(req.Lines.Count));
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-            return Ok(new { success = true, message = "Đã lưu đầy đủ công thức cho 1 thành phẩm.", id = current[0].BomId });
+            return Ok(new { success = true, message = materialCost.HasValue ? "Đã lưu công thức và chi phí NVL cho 1 thành phẩm." : "Đã lưu công thức. Chưa đủ giá nhập NVL nên chi phí NVL được để trống.", materialCost, id = current[0].BomId });
         }
         catch (Exception ex)
         {

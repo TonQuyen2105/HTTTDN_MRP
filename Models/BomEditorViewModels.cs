@@ -19,8 +19,8 @@ public class BomEditorViewModel
     public string? Description { get; set; }
     public int? ShelfLifeMonths { get; set; }
     public decimal? ProductPrice { get; set; }
-    public decimal? MaterialTotal => Lines.Count == 0 || Lines.Any(l => Ingredients.All(i => i.IngrId != l.IngredientId || !i.Price.HasValue || i.Price < 0))
-        ? null : Lines.Sum(l => Math.Round(l.Quantity * Ingredients.First(i => i.IngrId == l.IngredientId).Price!.Value, 2, MidpointRounding.AwayFromZero));
+    public decimal? MaterialTotal => Lines.Count == 0 || Lines.Any(l => Ingredients.All(i => i.IngrId != l.IngredientId || !i.Cost.HasValue || i.Cost < 0))
+        ? null : Lines.Sum(l => Math.Round(l.Quantity * Ingredients.First(i => i.IngrId == l.IngredientId).Cost!.Value, 2, MidpointRounding.AwayFromZero));
     public static string Money(decimal? value) => value.HasValue ? value.Value.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " đ" : "Chưa có giá";
     public int? Id { get; set; }
     public string Version { get; set; } = "";

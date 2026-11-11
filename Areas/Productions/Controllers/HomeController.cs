@@ -102,6 +102,9 @@ namespace httt.Areas.Productions.Controllers
             {
                 var requisitions = await _context.MaterialReceipts
                     .AsNoTracking()
+                    // Only show receipts linked to an existing production request.
+                    // Requests without a custom code still display as YCSX-{RequestId}.
+                    .Where(m => m.RequestId.HasValue && m.RequestId > 0 && m.ProductionRequest != null)
                     .Include(m => m.Requester)
                     .Include(m => m.Approver)
                     .Include(m => m.ProductionRequest)

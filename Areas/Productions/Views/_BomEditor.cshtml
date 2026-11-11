@@ -25,8 +25,8 @@ else if (Model.IsReadOnly)
             {
                 var line = Model.Lines[i];
                 var ingredient = Model.Ingredients.FirstOrDefault(x => x.IngrId == line.IngredientId);
-                decimal? amount = ingredient?.Price is >= 0 ? Math.Round(line.Quantity * ingredient.Price.Value, 2, MidpointRounding.AwayFromZero) : null;
-                <tr><td>@(i + 1)</td><td>@ingredient?.IngrName <small class="bom-hint">(NVL-@line.IngredientId)</small></td><td>@ingredient?.Unit</td><td>@line.Quantity.ToString("0.############################", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</td><td>@httt.Models.BomEditorViewModel.Money(ingredient?.Price)</td><td>@httt.Models.BomEditorViewModel.Money(amount)</td></tr>
+                decimal? amount = ingredient?.Cost is >= 0 ? Math.Round(line.Quantity * ingredient.Cost.Value, 2, MidpointRounding.AwayFromZero) : null;
+                <tr><td>@(i + 1)</td><td>@ingredient?.IngrName <small class="bom-hint">(NVL-@line.IngredientId)</small></td><td>@ingredient?.Unit</td><td>@line.Quantity.ToString("0.############################", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</td><td>@httt.Models.BomEditorViewModel.Money(ingredient?.Cost)</td><td>@httt.Models.BomEditorViewModel.Money(amount)</td></tr>
             }
             </tbody>
             <tfoot><tr><td colspan="5"><strong>Tổng tiền NVL / 1 @product?.Unit (tham khảo)</strong></td><td><strong>@(Model.MaterialTotal.HasValue ? httt.Models.BomEditorViewModel.Money(Model.MaterialTotal) : "Chưa đủ đơn giá NVL")</strong></td></tr></tfoot>
@@ -77,7 +77,7 @@ else { <a asp-action="BomList" class="btn-cancel">Hủy</a> }<button id="bomSave
 </form>
 <template id="bomLineTemplate"><tr>
 <td data-row-number></td><td><select class="form-select bom-ingredient" required aria-label="Nguyên liệu"><option value="">Chọn nguyên liệu</option>
-@foreach(var ingredient in Model.Ingredients) { <option value="@ingredient.IngrId" data-unit="@ingredient.Unit" data-price="@ingredient.Price?.ToString(System.Globalization.CultureInfo.InvariantCulture)">@ingredient.IngrName · NVL-@ingredient.IngrId</option> }
+@foreach(var ingredient in Model.Ingredients) { <option value="@ingredient.IngrId" data-unit="@ingredient.Unit" data-price="@ingredient.Cost?.ToString(System.Globalization.CultureInfo.InvariantCulture)">@ingredient.IngrName · NVL-@ingredient.IngrId</option> }
 </select></td><td data-ingredient-unit>—</td><td><input class="form-input bom-quantity" type="number" step="any" min="0" max="1000000000" required aria-label="Định mức cho một thành phẩm" /></td><td data-material-price>—</td><td data-material-amount>—</td><td><button type="button" class="row-act-btn bom-remove-line" aria-label="Xóa nguyên liệu">Xóa</button></td>
 </tr></template>
 <script id="bomProductDescriptions" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products.Select(p => new { id = p.ProductId, description = p.Description })))</script>

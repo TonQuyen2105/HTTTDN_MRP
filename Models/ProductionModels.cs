@@ -6,6 +6,9 @@ namespace httt.Models;
 [Table("product")]
 public class Product
 {
+    [Column("materialcost", TypeName = "numeric(18,2)")]
+    public decimal? MaterialCost { get; set; }
+
     [Key]
     [Column("productid")]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -60,6 +63,9 @@ public class Ingredient
 
     [Column("price", TypeName = "numeric(18,2)")]
     public decimal? Price { get; set; }
+
+    [Column("cost", TypeName = "numeric(18,2)")]
+    public decimal? Cost { get; set; }
 
     [MaxLength(255, ErrorMessage = "Đường dẫn ảnh tối đa 255 ký tự.")]
     [Column("imageurl")]

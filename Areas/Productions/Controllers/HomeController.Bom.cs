@@ -87,6 +87,10 @@ public partial class HomeController
                 model.Description = model.Products.FirstOrDefault(p => p.ProductId == model.ProductId)?.Description;
                 model.ShelfLifeMonths = model.Products.FirstOrDefault(p => p.ProductId == model.ProductId)?.ShelfLifeMonths;
                 model.ProductPrice = model.Products.FirstOrDefault(p => p.ProductId == model.ProductId)?.Cost;
+                model.MaterialsLocked = await _context.ProductionRequests.AsNoTracking()
+                    .AnyAsync(r => r.ProductId == model.ProductId && (r.Status == "Approved" || r.Status == "In Production"));
+                model.History = await _context.BomHistories.AsNoTracking().Where(h => h.BomId == model.Id)
+                    .OrderByDescending(h => h.ChangedAt).ThenByDescending(h => h.HistoryId).ToListAsync();
             }
         }
         catch (Exception ex)
@@ -116,9 +120,21 @@ public partial class HomeController
             return BadRequest(new { success = false, message = "Thời hạn sử dụng phải là số tháng nguyên lớn hơn 0." });
         req.Code = req.Code.Trim();
         req.Name = req.Name.Trim();
+        var operationKey = Guid.NewGuid();
         try
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null) return Unauthorized(new { success = false, message = "Vui lòng đăng nhập lại trước khi lưu công thức." });
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync<IActionResult>(async () =>
+            {
+            _context.ChangeTracker.Clear();
+            var committed = await _context.BomHistories.AsNoTracking().FirstOrDefaultAsync(h => h.OperationKey == operationKey);
+            if (committed != null)
+                return Ok(new { success = true, message = "Công thức và lịch sử đã được lưu.", id = committed.BomId });
             await using var transaction = await _context.Database.BeginTransactionAsync();
+            // Serialize the acceptance/status check with concurrent production updates.
+            await _context.Database.ExecuteSqlRawAsync("LOCK TABLE public.productionrequest IN SHARE MODE");
             // The existing row-per-ingredient schema has no unique formula key.
             // Serialize BOM writes so concurrent creates cannot introduce duplicate formulas.
             await _context.Database.ExecuteSqlRawAsync("LOCK TABLE public.bom IN SHARE ROW EXCLUSIVE MODE");
@@ -160,6 +176,9 @@ public partial class HomeController
             }
             if (materialCost > 9999999999999999.99m)
                 return BadRequest(new { success = false, message = "Tổng tiền nguyên vật liệu vượt giới hạn lưu trữ. Vui lòng kiểm tra giá nhập và định mức." });
+            var oldIds = current.Select(b => b.IngrId).ToList();
+            var oldIngredients = await _context.Ingredients.AsNoTracking().Where(i => oldIds.Contains(i.IngrId)).ToListAsync();
+            var before = current.Count == 0 ? null : BomSnapshot.Capture(current, product, oldIngredients);
             // Missing ingredient costs clear a stale estimate rather than storing a partial total.
             product.MaterialCost = materialCost;
             // A changed price is independent of the BOM material estimate.
@@ -181,6 +200,20 @@ public partial class HomeController
                     return Conflict(new { success = false, message = "Mô tả sản phẩm đã thay đổi ở nơi khác. Vui lòng tải lại trang." });
                 product.Description = req.Description;
             }
+            var proposedRows = req.Lines.Select(l => new Bom {
+                BomCode = req.Code, BomName = req.Name, ProductId = req.ProductId,
+                IngrId = l.IngredientId, ItemQuantity = 1, MaterialQuantity = l.Quantity
+            }).ToList();
+            var after = BomSnapshot.Capture(proposedRows, product, ingredients);
+            var changes = BomSnapshot.Compare(before, after);
+            if (before != null && changes.Count == 0)
+                return Ok(new { success = true, message = "Công thức không có thay đổi.", id = current[0].BomId });
+            if (before != null && BomSnapshot.MaterialsChanged(before, after)
+                && await _context.ProductionRequests.AsNoTracking().AnyAsync(r => r.ProductId == req.ProductId
+                    && (r.Status == "Approved" || r.Status == "In Production")))
+                return Conflict(new { success = false, message = "Sản phẩm còn đơn đã tiếp nhận đang sản xuất. Chỉ được thêm, xóa hoặc đổi định mức nguyên liệu sau khi các đơn đó hoàn thành hoặc hủy." });
+            if (before != null && string.IsNullOrWhiteSpace(req.ChangeReason))
+                return BadRequest(new { success = false, message = "Vui lòng nhập lý do cập nhật công thức." });
             // Keep the first row ID stable for existing links; save the complete group atomically.
             for (int i = 0; i < req.Lines.Count; i++)
             {
@@ -191,8 +224,18 @@ public partial class HomeController
             }
             _context.Boms.RemoveRange(current.Skip(req.Lines.Count));
             await _context.SaveChangesAsync();
+            _context.BomHistories.Add(new BomHistory {
+                OperationKey = operationKey, ProductId = req.ProductId, BomId = current[0].BomId,
+                ChangedBy = user.UserID, ChangedByName = user.FullName ?? user.Username ?? "Người dùng",
+                ChangedAt = DateTimeOffset.UtcNow,
+                Reason = before == null ? "Tạo công thức" : req.ChangeReason!.Trim(),
+                BeforeData = before == null ? null : JsonSerializer.Serialize(before),
+                AfterData = JsonSerializer.Serialize(after)
+            });
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return Ok(new { success = true, message = materialCost.HasValue ? "Đã lưu công thức và chi phí NVL cho 1 thành phẩm." : "Đã lưu công thức. Chưa đủ giá nhập NVL nên chi phí NVL được để trống.", materialCost, id = current[0].BomId });
+            });
         }
         catch (Exception ex)
         {

@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Supplier> Suppliers { get; set; } = null!;
     public DbSet<Ingredient> Ingredients { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<BomHistory> BomHistories { get; set; } = null!;
     public DbSet<Bom> Boms { get; set; } = null!;
     public DbSet<ProductionRequest> ProductionRequests { get; set; } = null!;
     public DbSet<ProductionLog> ProductionLogs { get; set; } = null!;

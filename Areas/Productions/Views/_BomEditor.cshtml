@@ -33,11 +33,12 @@ else if (Model.IsReadOnly)
         </table></div>
         <p class="bom-hint">Tổng tiền NVL chỉ dùng để tham khảo, chưa bao gồm chi phí khác và không tự thay đổi đơn giá thành phẩm.</p>
     </div></div>
+    <partial name="~/Areas/Productions/Views/_BomHistory.cshtml" model="Model" />
     <div class="bom-editor-actions"><a asp-action="BomEdit" asp-route-id="@Model.Id" class="btn-save-submit">Sửa công thức</a></div>
 }
 else
 {
-<form id="bomEditorForm" data-id="@Model.Id" data-version="@Model.Version" data-save-url="@Url.Action("SaveBom")" data-list-url="@Url.Action("BomList")" data-detail-url="@Url.Action("BomDetail", new { id = (int?)null })" data-original-price="@Model.ProductPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-original-shelf-life="@Model.ShelfLifeMonths">
+<form id="bomEditorForm" data-materials-locked="@(Model.MaterialsLocked ? "true" : "false")" data-id="@Model.Id" data-version="@Model.Version" data-save-url="@Url.Action("SaveBom")" data-list-url="@Url.Action("BomList")" data-detail-url="@Url.Action("BomDetail", new { id = (int?)null })" data-original-price="@Model.ProductPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-original-shelf-life="@Model.ShelfLifeMonths">
 @Html.AntiForgeryToken()
 <div class="bom-form-card"><div class="bom-form-body">
 <h2 class="bom-section-title">Thông tin công thức</h2>
@@ -67,9 +68,17 @@ else
     <textarea id="bomDescription" class="form-textarea" rows="3" placeholder="Nhập mô tả, đặc điểm hoặc ghi chú cho sản phẩm…">@Model.Description</textarea>
   </div>
 </div>
+@if (Model.MaterialsLocked)
+{
+<div class="bom-alert" role="status">Sản phẩm còn đơn đang sản xuất. Danh sách nguyên liệu và định mức đang được khóa; có thể sửa sau khi các đơn hoàn thành hoặc hủy.</div>
+}
 <h2 class="bom-section-title">Nguyên vật liệu</h2>
 <div class="table-responsive"><table class="bom-table"><thead><tr><th>STT</th><th>Nguyên liệu *</th><th>Đơn vị</th><th>Định mức / 1 thành phẩm *</th><th>Đơn giá NVL / ĐVT</th><th>Thành tiền</th><th></th></tr></thead><tbody id="bomEditorLines"></tbody><tfoot><tr><td colspan="5"><strong>Tổng tiền NVL / 1 thành phẩm (tham khảo)</strong></td><td colspan="2"><strong id="bomMaterialTotal">—</strong></td></tr></tfoot></table></div>
-<div class="bom-lines-footer"><button type="button" id="bomAddLine" class="btn-table-action">+ Thêm nguyên liệu</button><span><strong id="bomLineCount">0</strong> nguyên liệu</span></div>
+<div class="bom-lines-footer"><button type="button" disabled="@Model.MaterialsLocked" id="bomAddLine" class="btn-table-action">+ Thêm nguyên liệu</button><span><strong id="bomLineCount">0</strong> nguyên liệu</span></div>
+@if (Model.Id.HasValue)
+{
+<div class="bom-field bom-change-reason"><label for="bomChangeReason" class="bom-field-label">Lý do cập nhật</label><textarea id="bomChangeReason" class="form-textarea" rows="2" maxlength="1000" placeholder="Ví dụ: điều chỉnh định mức nguyên liệu theo công thức mới" aria-describedby="bomReasonHelp"></textarea><small id="bomReasonHelp" class="bom-field-help">Bắt buộc khi có thay đổi. Nội dung được lưu cùng lịch sử công thức.</small></div>
+}
 </div></div>
 <div id="bomFormMessage" class="bom-alert" role="alert" hidden></div>
 <div class="bom-editor-actions">@if (Model.Id.HasValue) { <a asp-action="BomDetail" asp-route-id="@Model.Id" class="btn-cancel">Hủy</a> }

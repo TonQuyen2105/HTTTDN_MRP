@@ -22,3 +22,24 @@
 .bom-description-read{margin:0 0 24px;padding:16px;background:#f8fafc;border-radius:8px}
 .bom-description-read h3{font-size:13px;color:#64748b;margin:0 0 8px}.bom-description-read p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;line-height:1.6}
 @media(max-width:700px){.bom-product-settings{padding:16px}#bomEditorForm .bom-editor-grid{gap:16px}}
+
+/* BOM audit history */
+.bom-history { margin-top: 24px; }
+.bom-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.bom-history-count, .bom-history-kind { background: #ecfdf5; color: #047857; border-radius: 6px; padding: 4px 10px; font-size: 12px; white-space: nowrap; }
+.bom-history-entry { border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 12px; overflow: hidden; }
+.bom-history-entry summary { display: flex; align-items: center; gap: 24px; padding: 16px 20px; cursor: pointer; background: #f8fafc; }
+.bom-history-entry summary:focus-visible { outline: 2px solid #059669; outline-offset: -3px; }
+.bom-history-entry summary small { display: block; margin-top: 5px; color: #64748b; font-weight: normal; overflow-wrap: anywhere; white-space: pre-wrap; }
+.bom-history-summary { flex: 1; min-width: 0; }
+.bom-history-action { color: #059669; font-weight: 600; white-space: nowrap; }
+.bom-history-entry[open] .bom-history-action::after { content: ' ▴'; }
+.bom-history-action::after { content: ' ▾'; }
+.bom-history-content { padding: 16px; }
+.bom-history-content td { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 360px; vertical-align: top; }
+.bom-history-before { color: #64748b; }
+.bom-history-empty { padding: 24px; text-align: center; background: #f8fafc; border-radius: 8px; color: #64748b; }
+.bom-change-reason { margin-top: 24px; }
+#bomEditorForm button:disabled { opacity: .5; cursor: not-allowed; }
+#bomEditorForm .bom-quantity[readonly] { background: #f1f5f9; }
+@media (max-width: 700px) { .bom-history-entry summary { flex-wrap: wrap; gap: 10px; } .bom-history-summary { flex-basis: 100%; order: 3; } .bom-history-action { margin-left: auto; } }

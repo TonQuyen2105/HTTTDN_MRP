@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const message = document.getElementById('bomFormMessage');
   const save = document.getElementById('bomSaveButton');
   let dirty = false;
+  const materialsLocked = form.dataset.materialsLocked === 'true';
   const priceInput = document.getElementById('bomProductPrice');
   let originalPrice = form.dataset.originalPrice || '';
   const shelfLifeInput = document.getElementById('bomShelfLifeMonths');
@@ -36,13 +37,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const row = fragment.querySelector('tr');
     const select = row.querySelector('.bom-ingredient');
     const quantity = row.querySelector('.bom-quantity');
+    select.disabled = materialsLocked;
+    quantity.readOnly = materialsLocked;
+    row.querySelector('.bom-remove-line').disabled = materialsLocked;
     select.value = line.IngredientId || '';
     // Keep the original decimal text until the user changes it to avoid needless numeric rounding.
     quantity.value = line.Quantity ?? '';
     function syncUnit() { row.querySelector('[data-ingredient-unit]').textContent = select.selectedOptions[0]?.dataset.unit || '—'; }
     select.addEventListener('change', () => { syncUnit(); updateMaterialTotal(); });
     quantity.addEventListener('input', updateMaterialTotal);
-    row.querySelector('.bom-remove-line').addEventListener('click', () => { if (save.disabled) return; row.remove(); renumber(); dirty = true; });
+    row.querySelector('.bom-remove-line').addEventListener('click', () => { if (save.disabled || materialsLocked) return; row.remove(); renumber(); dirty = true; });
     syncUnit(); body.appendChild(fragment); renumber();
   }
   const initial = JSON.parse(document.getElementById('bomInitialLines').textContent);
@@ -56,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     originalDescription = descriptions.find(p => p.id === Number(product.value))?.description ?? null;
     descriptionInput.value = originalDescription ?? '';
   });
-  document.getElementById('bomAddLine').addEventListener('click', () => { if (save.disabled) return; if (body.rows.length >= 200) { showError('Tối đa 200 nguyên liệu trong một công thức.'); return; } addLine(); dirty = true; });
+  document.getElementById('bomAddLine').addEventListener('click', () => { if (save.disabled || materialsLocked) return; if (body.rows.length >= 200) { showError('Tối đa 200 nguyên liệu trong một công thức.'); return; } addLine(); dirty = true; });
   form.addEventListener('input', () => { dirty = true; });
   window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
   form.addEventListener('submit', async e => {
@@ -68,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (priceInput.value !== '' && (!Number.isFinite(Number(priceInput.value)) || Number(priceInput.value) < 0)) { showError('Giá thành phẩm không được âm.'); return; }
     const shelfLife = shelfLifeInput.value === '' ? null : Number(shelfLifeInput.value);
     if (shelfLife !== null && (!Number.isInteger(shelfLife) || shelfLife <= 0 || shelfLife > 2147483647)) { showError('Thời hạn sử dụng phải là số tháng nguyên lớn hơn 0.'); return; }
-    const payload = { description: descriptionInput.value === '' ? null : descriptionInput.value, originalDescription, shelfLifeMonths: shelfLife, originalShelfLifeMonths: originalShelfLife, productPrice: priceInput.value === '' ? null : priceInput.value, originalProductPrice: originalPrice === '' ? null : originalPrice, id: form.dataset.id ? Number(form.dataset.id) : null, version: form.dataset.version, code: document.getElementById('bomCode').value.trim(), name: document.getElementById('bomName').value.trim(), productId: Number(product.value), lines };
+    const payload = { changeReason: document.getElementById('bomChangeReason')?.value.trim() || null, description: descriptionInput.value === '' ? null : descriptionInput.value, originalDescription, shelfLifeMonths: shelfLife, originalShelfLifeMonths: originalShelfLife, productPrice: priceInput.value === '' ? null : priceInput.value, originalProductPrice: originalPrice === '' ? null : originalPrice, id: form.dataset.id ? Number(form.dataset.id) : null, version: form.dataset.version, code: document.getElementById('bomCode').value.trim(), name: document.getElementById('bomName').value.trim(), productId: Number(product.value), lines };
     save.disabled = true; save.textContent = 'Đang lưu...'; message.hidden = true;
     try {
       const response = await fetch(form.dataset.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'RequestVerificationToken': form.querySelector('[name="__RequestVerificationToken"]').value }, body: JSON.stringify(payload) });

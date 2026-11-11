@@ -15,6 +15,8 @@ public class BomFormulaViewModel
 }
 public class BomEditorViewModel
 {
+    public bool MaterialsLocked { get; set; }
+    public List<BomHistory> History { get; set; } = new();
     public bool IsReadOnly { get; set; }
     public string? Description { get; set; }
     public int? ShelfLifeMonths { get; set; }
@@ -42,6 +44,8 @@ public class BomEditorLine
 }
 public class SaveBomRequest
 {
+    [MaxLength(1000)]
+    public string? ChangeReason { get; set; }
     public string? Description { get; set; }
     public string? OriginalDescription { get; set; }
     [Range(1, int.MaxValue, ErrorMessage = "Thời hạn sử dụng phải là số tháng nguyên lớn hơn 0.")]

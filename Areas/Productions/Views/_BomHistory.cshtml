@@ -1,0 +1,31 @@
+@model httt.Models.BomEditorViewModel
+<section class="bom-form-card bom-history" aria-labelledby="bomHistoryTitle">
+  <div class="bom-form-body">
+    <div class="bom-history-heading"><h2 id="bomHistoryTitle" class="bom-section-title">Lịch sử cập nhật công thức</h2><span class="bom-history-count">@Model.History.Count lần lưu</span></div>
+    <p class="bom-hint">Lần mới nhất hiển thị đầu tiên. Lịch sử chỉ để xem; thời gian theo giờ Việt Nam. Những thay đổi trước khi bật chức năng này không có lịch sử.</p>
+    @if (!Model.History.Any())
+    {
+      <p class="bom-history-empty">Chưa có lịch sử cập nhật. Lần chỉnh sửa tiếp theo sẽ lưu nội dung trước và sau khi thay đổi.</p>
+    }
+    @foreach (var entry in Model.History)
+    {
+      var changes = entry.Changes;
+      <details class="bom-history-entry">
+        <summary>
+          <span><strong>@entry.ChangedAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm")</strong><small>@entry.ChangedByName</small></span>
+          <span class="bom-history-summary">@(entry.BeforeData == null ? "Tạo công thức" : $"Cập nhật {changes.Count} nội dung")<small>@entry.Reason</small></span>
+          <span class="bom-history-action">Xem thay đổi</span>
+        </summary>
+        <div class="bom-history-content">
+          <p class="bom-hint">Chỉ các nội dung thay đổi được liệt kê. Định mức tính cho 1 thành phẩm; thời hạn sử dụng tính bằng tháng.</p>
+          <div class="table-responsive"><table class="bom-table">
+            <thead><tr><th>Nội dung</th><th>Trước khi sửa</th><th>Sau khi sửa</th><th>Thay đổi</th></tr></thead>
+            <tbody>@foreach (var change in changes) {
+              <tr><td>@change.Field</td><td class="bom-history-before">@change.Before</td><td>@change.After</td><td><span class="bom-history-kind">@change.Kind</span></td></tr>
+            }</tbody>
+          </table></div>
+        </div>
+      </details>
+    }
+  </div>
+</section>

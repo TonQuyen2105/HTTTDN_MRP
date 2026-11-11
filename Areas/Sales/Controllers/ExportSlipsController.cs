@@ -47,6 +47,7 @@ namespace httt.Areas.Sales.Controllers
                 ViewBag.Date = date;
 
                 // 1. CHỈ LẤY CÁC PHIẾU CÓ ORDERID KHÁC NULL VÀ CÓ CHI TIẾT SẢN PHẨM
+                // Nạp toàn bộ phiếu (kể cả phiếu của đơn đã hủy) để tính đúng tổng số phiếu và lưu vết
                 var query = _context.ProductExportReceipts
                     .AsNoTracking()
                     .Include(r => r.SaleOrder)
@@ -70,25 +71,12 @@ namespace httt.Areas.Sales.Controllers
                     query = query.Where(r => r.Createddate.HasValue && r.Createddate.Value.Date == parsedDate.Date);
                 }
 
-                // 4. QUY TẮC ĐỐI VỚI ĐƠN HÀNG/PHIẾU ĐÃ HỦY:
-                // Nếu người dùng KHÔNG chọn lọc 'cancelled', mặc định LOẠI BỎ các phiếu bị hủy hoặc thuộc đơn hàng bị hủy
-                if (string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
-                {
-                    query = query.Where(r => r.Status == "Cancelled" || r.Status == "Đã hủy" 
-                                          || (r.SaleOrder != null && (r.SaleOrder.Status == "Cancelled" || r.SaleOrder.Status == "Đã hủy")));
-                }
-                else
-                {
-                    query = query.Where(r => r.Status != "Cancelled" && r.Status != "Đã hủy"
-                                          && (r.SaleOrder == null || (r.SaleOrder.Status != "Cancelled" && r.SaleOrder.Status != "Đã hủy")));
-                }
-
                 var allSlips = await query
                     .OrderByDescending(r => r.Createddate)
-                    .Take(100)
+                    .Take(120)
                     .ToListAsync();
 
-                // 5. LOẠI BỎ BẢN GHI TRÙNG LẶP MÃ PHIẾU
+                // 4. LOẠI BỎ BẢN GHI TRÙNG LẶP MÃ PHIẾU
                 allSlips = allSlips
                     .GroupBy(s => s.Expreceiptcode ?? ("PX-" + s.Exportreceiptid))
                     .Select(g => g.OrderByDescending(x => x.ProductExportReceiptDetails?.Count ?? 0)
@@ -96,20 +84,22 @@ namespace httt.Areas.Sales.Controllers
                                   .First())
                     .ToList();
 
+                // Lưu danh sách toàn bộ phiếu vào ViewBag để view thống kê đúng 4 thẻ (kể cả các đơn đã hủy)
                 ViewBag.AllSlips = allSlips;
 
-                // 6. LỌC THEO TRẠNG THÁI CỤ THỂ
+                // 5. LỌC THEO TRẠNG THÁI (STATUS) ĐƯỢC CHỌN
                 var filteredSlips = allSlips.AsEnumerable();
 
-                if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(status))
                 {
                     var st = status.Trim().ToLower();
 
                     if (st == "completed")
                     {
                         filteredSlips = filteredSlips.Where(s => 
-                            string.Equals(s.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
-                            s.Status == "Đã hoàn thành" || s.Status == "Đã xong");
+                            (string.Equals(s.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                             s.Status == "Đã hoàn thành" || s.Status == "Đã xong") &&
+                            s.SaleOrder?.Status != "Cancelled" && s.SaleOrder?.Status != "Đã hủy");
                     }
                     else if (st == "ready" || st == "exported")
                     {
@@ -118,13 +108,14 @@ namespace httt.Areas.Sales.Controllers
                              string.Equals(s.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
                              s.Status == "Tán thành" || s.Status == "Đã duyệt" || s.Status == "Đã xuất kho") &&
                             !string.Equals(s.Status, "Completed", StringComparison.OrdinalIgnoreCase) &&
-                            s.Status != "Đã xong");
+                            s.Status != "Đã xong" &&
+                            s.SaleOrder?.Status != "Cancelled" && s.SaleOrder?.Status != "Đã hủy");
                     }
                     else if (st == "rejected")
                     {
                         filteredSlips = filteredSlips.Where(s => 
-                            string.Equals(s.Status, "Rejected", StringComparison.OrdinalIgnoreCase) ||
-                            s.Status == "Từ chối");
+                            (string.Equals(s.Status, "Rejected", StringComparison.OrdinalIgnoreCase) || s.Status == "Từ chối") &&
+                            s.SaleOrder?.Status != "Cancelled" && s.SaleOrder?.Status != "Đã hủy");
                     }
                     else if (st == "waiting" || st == "pending")
                     {
@@ -133,7 +124,17 @@ namespace httt.Areas.Sales.Controllers
                             !string.Equals(s.Status, "Exported", StringComparison.OrdinalIgnoreCase) &&
                             !string.Equals(s.Status, "Approved", StringComparison.OrdinalIgnoreCase) &&
                             !string.Equals(s.Status, "Rejected", StringComparison.OrdinalIgnoreCase) &&
-                            s.Status != "Đã xong" && s.Status != "Đã xuất kho" && s.Status != "Từ chối");
+                            !string.Equals(s.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
+                            s.Status != "Đã xong" && s.Status != "Đã xuất kho" && s.Status != "Từ chối" && s.Status != "Đã hủy" &&
+                            s.SaleOrder?.Status != "Cancelled" && s.SaleOrder?.Status != "Đã hủy");
+                    }
+                    else if (st == "cancelled")
+                    {
+                        // Lọc các phiếu bị hủy hoặc thuộc đơn hàng bị hủy (Không hiệu lực)
+                        filteredSlips = filteredSlips.Where(s => 
+                            string.Equals(s.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
+                            s.Status == "Đã hủy" ||
+                            (s.SaleOrder != null && (string.Equals(s.SaleOrder.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) || s.SaleOrder.Status == "Đã hủy")));
                     }
                 }
 
@@ -172,9 +173,9 @@ namespace httt.Areas.Sales.Controllers
                         throw new InvalidOperationException("Không tìm thấy phiếu xuất kho hợp lệ.");
                     }
 
-                    if (receipt.SaleOrder != null && (receipt.SaleOrder.Status == "Cancelled" || receipt.SaleOrder.Status == "Đã hủy"))
+                    if (receipt.SaleOrder != null && (string.Equals(receipt.SaleOrder.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) || receipt.SaleOrder.Status == "Đã hủy"))
                     {
-                        throw new InvalidOperationException("Đơn hàng này đã bị hủy, không thể duyệt xuất kho!");
+                        throw new InvalidOperationException("Đơn hàng này đã bị hủy bỏ, phiếu xuất không còn hiệu lực để duyệt!");
                     }
 
                     expReceiptCode = receipt.Expreceiptcode ?? $"PX-{receipt.Exportreceiptid}";

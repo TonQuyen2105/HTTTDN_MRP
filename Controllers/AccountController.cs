@@ -213,16 +213,26 @@ namespace httt.Controllers
             var user = await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == cleanUsername);
 
+            const string accountNotFoundError = "Không tìm thấy tài khoản trong phân hệ này hoặc thông tin đăng nhập không chính xác.";
             const string genericError = "Tên đăng nhập hoặc mật khẩu không chính xác.";
 
             if (user == null)
             {
                 RecordFailedAttempt(rateLimitKey);
-                ModelState.AddModelError(string.Empty, genericError);
+                ModelState.AddModelError(string.Empty, accountNotFoundError);
                 return View(viewName, model);
             }
 
-            // 3. Kiểm tra trạng thái tài khoản
+            // 3. Kiểm tra đúng vai trò của phân hệ đăng nhập (nếu tài khoản thuộc phân hệ khác -> báo không tìm thấy tài khoản)
+            var normalizedRole = AppRoles.NormalizeRole(user.Role);
+            if (!string.Equals(normalizedRole, expectedRole, StringComparison.OrdinalIgnoreCase))
+            {
+                RecordFailedAttempt(rateLimitKey);
+                ModelState.AddModelError(string.Empty, accountNotFoundError);
+                return View(viewName, model);
+            }
+
+            // 4. Kiểm tra trạng thái tài khoản
             var isActive = UserAccountRules.StatusKey(user.Status) == UserAccountRules.StatusActive ||
                            string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase) ||
                            string.Equals(user.Status, "true", StringComparison.OrdinalIgnoreCase);
@@ -235,7 +245,7 @@ namespace httt.Controllers
                 return View(viewName, model);
             }
 
-            // 4. Kiểm tra mật khẩu bằng BCrypt (UserAccountService) hoặc PasswordHasher chuẩn
+            // 5. Kiểm tra mật khẩu bằng BCrypt (UserAccountService) hoặc PasswordHasher chuẩn
             bool passwordValid = false;
             if (UserAccountService.VerifyPassword(model.Password, user.Password))
             {
@@ -272,18 +282,6 @@ namespace httt.Controllers
                 return View(viewName, model);
             }
 
-            // 5. Kiểm tra đúng vai trò của phân hệ đăng nhập
-            var normalizedRole = AppRoles.NormalizeRole(user.Role);
-            if (!string.Equals(normalizedRole, expectedRole, StringComparison.OrdinalIgnoreCase))
-            {
-                var targetLoginUrl = AppRoles.GetLoginUrlForRole(normalizedRole);
-                var userRoleDisplay = AppRoles.GetDisplayName(normalizedRole);
-                ModelState.AddModelError(
-                    string.Empty,
-                    $"Tài khoản '{user.Username}' thuộc {userRoleDisplay}, không thuộc {portalDisplayName}. Vui lòng chuyển sang trang đăng nhập tương ứng ({targetLoginUrl}).");
-                return View(viewName, model);
-            }
-
             // 6. Đăng nhập thành công -> Xóa bộ đếm thất bại
             _cache.Remove(rateLimitKey);
 
@@ -302,7 +300,8 @@ namespace httt.Controllers
                 claims.Add(new Claim(ClaimTypes.Role, user.Role.Trim()));
             }
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var portalScheme = AppRoles.GetSchemeForRole(normalizedRole);
+            var claimsIdentity = new ClaimsIdentity(claims, portalScheme);
             var authProperties = new AuthenticationProperties
             {
                 IsPersistent = model.RememberMe,
@@ -313,11 +312,11 @@ namespace httt.Controllers
             };
 
             await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
+                portalScheme,
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            _logger.LogInformation("Đăng nhập thành công vào {Portal}: UserID={UserID}, Username={Username}, Role={Role}", portalDisplayName, user.UserID, user.Username, normalizedRole);
+            _logger.LogInformation("Đăng nhập thành công vào {Portal} (Scheme={Scheme}): UserID={UserID}, Username={Username}, Role={Role}", portalDisplayName, portalScheme, user.UserID, user.Username, normalizedRole);
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) &&
                 Url.IsLocalUrl(model.ReturnUrl) &&
@@ -329,7 +328,7 @@ namespace httt.Controllers
             return Redirect(defaultRedirectUrl);
         }
 
-        // ── ĐĂNG XUẤT THEO PHÂN HỆ (TỰ ĐỘNG QUAY VỀ ĐÚNG TRANG ĐĂNG NHẬP CỦA PHÂN HỆ ĐÓ) ────
+        // ── ĐĂNG XUẤT THEO PHÂN HỆ (CHỈ XÓA COOKIE CỦA PHÂN HỆ ĐÓ, GIỮ NGUYÊN CÁC TAB CÒN LẠI) ────
         [HttpPost("/Account/Logout")]
         [HttpPost("/Sales/Account/Logout")]
         [HttpPost("/Productions/Account/Logout")]
@@ -337,10 +336,10 @@ namespace httt.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout(string? area = null)
         {
-            var redirectLoginUrl = ResolveLogoutRedirectUrl(area);
+            var (portalScheme, redirectLoginUrl) = ResolveLogoutTarget(area);
             var username = User?.Identity?.Name ?? "unknown";
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            _logger.LogInformation("Người dùng {Username} đã đăng xuất -> chuyển tới {RedirectUrl}", username, redirectLoginUrl);
+            await HttpContext.SignOutAsync(portalScheme);
+            _logger.LogInformation("Người dùng {Username} đã đăng xuất khỏi {Scheme} -> chuyển tới {RedirectUrl}", username, portalScheme, redirectLoginUrl);
             return Redirect(redirectLoginUrl);
         }
 
@@ -352,32 +351,35 @@ namespace httt.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> LogoutGet(string? area = null)
         {
-            var redirectLoginUrl = ResolveLogoutRedirectUrl(area);
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var (portalScheme, redirectLoginUrl) = ResolveLogoutTarget(area);
+            await HttpContext.SignOutAsync(portalScheme);
             return Redirect(redirectLoginUrl);
         }
 
-        private string ResolveLogoutRedirectUrl(string? area)
+        private (string Scheme, string LoginUrl) ResolveLogoutTarget(string? area)
         {
             // 1. Ưu tiên tham số area hoặc đường dẫn URL trực tiếp (/Sales/Account/Logout, v.v.)
             var requestPath = HttpContext.Request.Path.Value ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(area))
             {
-                if (area.Equals("Admin", StringComparison.OrdinalIgnoreCase)) return "/Admin/Account/Login";
-                if (area.Equals("Sales", StringComparison.OrdinalIgnoreCase)) return "/Sales/Account/Login";
-                if (area.Equals("Warehouse", StringComparison.OrdinalIgnoreCase)) return "/Warehouse/Account/Login";
+                if (area.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                    return (AppRoles.AdminScheme, "/Admin/Account/Login");
+                if (area.Equals("Sales", StringComparison.OrdinalIgnoreCase))
+                    return (AppRoles.SalesScheme, "/Sales/Account/Login");
+                if (area.Equals("Warehouse", StringComparison.OrdinalIgnoreCase))
+                    return (AppRoles.WarehouseScheme, "/Warehouse/Account/Login");
                 if (area.Equals("Productions", StringComparison.OrdinalIgnoreCase) || area.Equals("Production", StringComparison.OrdinalIgnoreCase))
-                    return "/Productions/Account/Login";
+                    return (AppRoles.ProductionScheme, "/Productions/Account/Login");
             }
 
             if (requestPath.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
-                return "/Admin/Account/Login";
+                return (AppRoles.AdminScheme, "/Admin/Account/Login");
             if (requestPath.StartsWith("/Sales", StringComparison.OrdinalIgnoreCase))
-                return "/Sales/Account/Login";
+                return (AppRoles.SalesScheme, "/Sales/Account/Login");
             if (requestPath.StartsWith("/Warehouse", StringComparison.OrdinalIgnoreCase))
-                return "/Warehouse/Account/Login";
+                return (AppRoles.WarehouseScheme, "/Warehouse/Account/Login");
             if (requestPath.StartsWith("/Productions", StringComparison.OrdinalIgnoreCase))
-                return "/Productions/Account/Login";
+                return (AppRoles.ProductionScheme, "/Productions/Account/Login");
 
             // 2. Kiểm tra Referer header xem người dùng vừa bấm Đăng xuất từ Area nào
             var referer = HttpContext.Request.Headers.Referer.ToString();
@@ -385,24 +387,24 @@ namespace httt.Controllers
             {
                 var refPath = refUri.AbsolutePath;
                 if (refPath.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
-                    return "/Admin/Account/Login";
+                    return (AppRoles.AdminScheme, "/Admin/Account/Login");
                 if (refPath.StartsWith("/Sales", StringComparison.OrdinalIgnoreCase))
-                    return "/Sales/Account/Login";
+                    return (AppRoles.SalesScheme, "/Sales/Account/Login");
                 if (refPath.StartsWith("/Warehouse", StringComparison.OrdinalIgnoreCase) ||
                     refPath.StartsWith("/Areas/Warehouse", StringComparison.OrdinalIgnoreCase))
-                    return "/Warehouse/Account/Login";
+                    return (AppRoles.WarehouseScheme, "/Warehouse/Account/Login");
                 if (refPath.StartsWith("/Productions", StringComparison.OrdinalIgnoreCase))
-                    return "/Productions/Account/Login";
+                    return (AppRoles.ProductionScheme, "/Productions/Account/Login");
             }
 
             // 3. Cuối cùng dựa vào Role hiện tại trong Cookie
             var role = User?.FindFirst(ClaimTypes.Role)?.Value;
             if (!string.IsNullOrWhiteSpace(role))
             {
-                return AppRoles.GetLoginUrlForRole(role);
+                return (AppRoles.GetSchemeForRole(role), AppRoles.GetLoginUrlForRole(role));
             }
 
-            return "/Productions/Account/Login";
+            return (AppRoles.ProductionScheme, "/Productions/Account/Login");
         }
 
         [HttpGet("/Account/AccessDenied")]

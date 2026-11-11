@@ -85,7 +85,7 @@ namespace httt.Constants
             {
                 Admin => "/Admin/Dashboard",
                 Production => "/Productions/Home/Index",
-                Warehouse => "/Warehouse/Home/Index",
+                Warehouse => "/Warehouse/Dashboard",
                 Sales => "/Sales/Home/Index",
                 _ => "/Productions/Home/Index"
             };
@@ -118,7 +118,8 @@ namespace httt.Constants
             if (localUrl.StartsWith("/Productions", StringComparison.OrdinalIgnoreCase))
                 return role == Production;
 
-            if (localUrl.StartsWith("/Warehouse", StringComparison.OrdinalIgnoreCase))
+            if (localUrl.StartsWith("/Warehouse", StringComparison.OrdinalIgnoreCase) ||
+                localUrl.StartsWith("/Areas/Warehouse", StringComparison.OrdinalIgnoreCase))
                 return role == Warehouse;
 
             if (localUrl.StartsWith("/Sales", StringComparison.OrdinalIgnoreCase))

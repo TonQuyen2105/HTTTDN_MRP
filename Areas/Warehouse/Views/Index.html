@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kho hàng - Hệ thống MRP Dược phẩm</title>
+    <!-- Stylesheet chính của phân hệ Kho hàng -->
+    <link rel="stylesheet" href="./Shared/warehouse.css?v=20261108_14" />
+</head>
+<body>
+    <!-- Vùng Mount Header Component -->
+    <div id="wh-header-mount"></div>
+
+    <!-- Vùng Thân: Sidebar Component + Main Content Component -->
+    <div class="wh-body">
+        <div id="wh-sidebar-mount"></div>
+        <main class="wh-main" id="wh-main-mount"></main>
+    </div>
+
+    <!-- MVC Scripts (Model -> Reusable View Components -> Controller) -->
+    <script src="../Models/warehouseData.js?v=20261111_04"></script>
+    <script src="./Shared/components.js?v=20261111_04"></script>
+    <script src="../Controllers/warehouseController.js?v=20261111_04"></script>
+</body>
+</html>
+

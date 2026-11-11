@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace httt.Models;
 
@@ -51,6 +52,14 @@ public class ProductionRequest
     /// </summary>
     [ForeignKey(nameof(AssignedTo))]
     public virtual UserAccount? AssignedUser { get; set; }
+
+    [NotMapped]
+    [JsonIgnore]
+    public virtual UserAccount? AssignedToUser
+    {
+        get => AssignedUser;
+        set => AssignedUser = value;
+    }
 
     [NotMapped]
     public int ProducedQuantity { get; set; }

@@ -46,6 +46,7 @@ public class UserAccount
     }
 
     [Required]
+    [MaxLength(50)]
     [Column("username")]
     public string Username { get; set; } = string.Empty;
 
@@ -55,16 +56,20 @@ public class UserAccount
     public string Password { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(100)]
     [Column("fullname")]
     public string FullName { get; set; } = string.Empty;
 
+    [MaxLength(20)]
     [Column("phone")]
     public string? Phone { get; set; }
 
     [Required]
+    [MaxLength(20)]
     [Column("role")]
     public string Role { get; set; } = UserAccountRoles.Employee;
 
+    [MaxLength(20)]
     [Column("status")]
     public string Status { get; set; } = UserAccountStatus.Active;
 

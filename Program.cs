@@ -1,10 +1,14 @@
 using System;
+using System.IO;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Npgsql;
 using httt.Areas.Admin.Services;
 using httt.Constants;
@@ -45,7 +49,7 @@ static void ConfigureNpgsql(DbContextOptionsBuilder options, string connectionSt
         npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 2,
+                maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(2),
                 errorCodesToAdd: null);
 
@@ -161,10 +165,25 @@ builder.Services.AddControllersWithViews(options =>
 {
     // Protect every unsafe MVC request by default. Individual POST actions still
     // declare ValidateAntiForgeryToken explicitly to make the contract obvious.
-    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
 });
 builder.Services.AddAuthorization();
 builder.Services.AddMemoryCache();
+
+// ── Swagger & API Explorer (phân hệ Warehouse) ────────────────────────────
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "MRP Warehouse & Production Web API",
+        Version = "v1",
+        Description = "Hệ thống Web API quản lý kho nguyên vật liệu, thành phẩm, nhà cung cấp và báo cáo tồn kho MRP."
+    });
+    // Chỉ hiển thị các controller API có [ApiController], ẩn các Controller View MVC thông thường
+    c.DocInclusionPredicate((docName, apiDesc) =>
+        apiDesc.ActionDescriptor.EndpointMetadata.OfType<ApiControllerAttribute>().Any());
+});
 
 // ── Application Services ──────────────────────────────────────────────────
 builder.Services.AddScoped<UserAccountService>();
@@ -322,7 +341,33 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "MRP Warehouse Web API v1");
+    c.RoutePrefix = "swagger";
+    c.DocumentTitle = "MRP Warehouse API Documentation";
+});
+
+app.UseStaticFiles();
+
+// Cho phép phục vụ trực tiếp các file HTML, CSS, JS trong thư mục Areas (VD: /Areas/Warehouse/Views/Index.html)
+var areasPath = Path.Combine(builder.Environment.ContentRootPath, "Areas");
+if (Directory.Exists(areasPath))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(areasPath),
+        RequestPath = "/Areas",
+        OnPrepareResponse = ctx =>
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+            ctx.Context.Response.Headers.Append("Expires", "0");
+        }
+    });
+}
+
 app.UseRouting();
 
 // Xác thực & Phân quyền
@@ -361,18 +406,29 @@ app.MapAreaControllerRoute(
     pattern: "Productions/{action=Index}/{id?}",
     defaults: new { controller = "Home" });
 
-// 5.3 Route ngắn cho các Area: /Admin, /Warehouse, /Sales
+// 5.3 Route cho phân hệ Warehouse (/Warehouse/Dashboard, /Warehouse/Home/Index...)
+app.MapAreaControllerRoute(
+    name: "warehouse_area",
+    areaName: "Warehouse",
+    pattern: "Warehouse/{controller=Dashboard}/{action=Index}/{id?}");
+
+// 5.4 Route ngắn cho các Area: /Admin, /Warehouse, /Sales
 app.MapControllerRoute(
     name: "areas_short",
     pattern: "{area:exists}/{action=Index}/{id?}",
     defaults: new { controller = "Home" });
 
-// 5.4 Route chuẩn cho các Area: /{area:exists}/{controller=Home}/{action=Index}/{id?}
+// 5.5 Route chuẩn cho các Area: /{area:exists}/{controller=Home}/{action=Index}/{id?}
 app.MapControllerRoute(
-    name: "areas",
+    name: "areas_home",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
-// 5.5 Route mặc định (chuyển hướng người dùng vào trang đăng nhập hoặc trang chính phân hệ)
+// 5.6 Route chuẩn cho các Area dùng Dashboard controller
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}")
+    .WithStaticAssets();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")

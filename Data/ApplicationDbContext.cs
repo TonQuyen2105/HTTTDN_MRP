@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using httt.Models;
+using httt.Areas.Warehouse.Models;
 
 namespace httt.Data;
 
@@ -12,29 +13,30 @@ public class ApplicationDbContext : DbContext
 
     // ── Core & MRP ───────────────────────────────────────────────────────
     public DbSet<UserAccount> UserAccounts { get; set; } = null!;
-    public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<Supplier> Suppliers { get; set; } = null!;
     public DbSet<Ingredient> Ingredients { get; set; } = null!;
+    public DbSet<Product> Products { get; set; } = null!;
     public DbSet<Bom> Boms { get; set; } = null!;
     public DbSet<ProductionRequest> ProductionRequests { get; set; } = null!;
+    public DbSet<ProductionLog> ProductionLogs { get; set; } = null!;
+    public DbSet<ImportReceipt> ImportReceipts { get; set; } = null!;
+    public DbSet<ImportReceiptDetail> ImportReceiptDetails { get; set; } = null!;
     public DbSet<MaterialReceipt> MaterialReceipts { get; set; } = null!;
     public DbSet<MaterialReceiptDetail> MaterialReceiptDetails { get; set; } = null!;
     public DbSet<ProductReceipt> ProductReceipts { get; set; } = null!;
     public DbSet<ProductReceiptDetail> ProductReceiptDetails { get; set; } = null!;
-    public DbSet<Supplier> Suppliers { get; set; } = null!;
-    public DbSet<ProductionLog> ProductionLogs { get; set; } = null!;
-    public DbSet<WipInventory> WipInventories { get; set; } = null!;
-    public DbSet<SaleOrder> SaleOrders { get; set; } = null!;
-    public DbSet<SaleOrderDetail> SaleOrderDetails { get; set; } = null!;
     public DbSet<ProductExportReceipt> ProductExportReceipts { get; set; } = null!;
     public DbSet<ProductExportReceiptDetail> ProductExportReceiptDetails { get; set; } = null!;
+    public DbSet<SaleOrder> SaleOrders { get; set; } = null!;
+    public DbSet<SaleOrderDetail> SaleOrderDetails { get; set; } = null!;
+    public DbSet<WipInventory> WipInventories { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         // Always address the real tables, regardless of pooled connection search_path
-        // or session-local temporary tables with the same names. This changes SQL
-        // mapping only; it does not create or alter database objects.
+        // or session-local temporary tables with the same names.
         modelBuilder.HasDefaultSchema("public");
 
         // Tài khoản người dùng
@@ -90,6 +92,10 @@ public class ApplicationDbContext : DbContext
                   .HasColumnType("numeric(18,2)")
                   .HasPrecision(18, 2);
 
+            entity.Property(p => p.MaterialCost)
+                  .HasColumnType("numeric(18,2)")
+                  .HasPrecision(18, 2);
+
             entity.Property(p => p.Unit)
                   .HasMaxLength(20);
 
@@ -120,6 +126,10 @@ public class ApplicationDbContext : DbContext
                   .HasColumnType("numeric(18,2)")
                   .HasPrecision(18, 2);
 
+            entity.Property(i => i.Cost)
+                  .HasColumnType("numeric(18,2)")
+                  .HasPrecision(18, 2);
+
             entity.Property(i => i.Unit)
                   .HasMaxLength(20);
 
@@ -136,6 +146,9 @@ public class ApplicationDbContext : DbContext
         // Định mức BOM
         modelBuilder.Entity<Bom>(entity =>
         {
+            entity.ToTable("bom", "public");
+            entity.HasKey(b => b.BomId);
+
             entity.Property(b => b.BomName)
                   .HasMaxLength(100)
                   .IsRequired();
@@ -165,6 +178,12 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(r => r.AssignedUser)
                   .WithMany()
                   .HasForeignKey(r => r.AssignedTo)
+                  .HasConstraintName("fk_productionrequest_assignedto")
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(r => r.Manager)
+                  .WithMany()
+                  .HasForeignKey(r => r.ManagerId)
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(r => r.Product)
@@ -176,15 +195,34 @@ public class ApplicationDbContext : DbContext
         // Nhật ký sản xuất
         modelBuilder.Entity<ProductionLog>(entity =>
         {
+            entity.ToTable("production_log", "public");
+            entity.HasKey(l => l.LogId);
             entity.HasIndex(l => l.OperationKey).IsUnique();
             entity.HasOne(l => l.ProductionRequest).WithMany().HasForeignKey(l => l.RequestId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(l => l.Product).WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(l => l.Creator).WithMany().HasForeignKey(l => l.CreatedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Phiếu nhập mua hàng (ImportReceipt & ImportReceiptDetail)
+        modelBuilder.Entity<ImportReceipt>(entity =>
+        {
+            entity.ToTable("importreceipt", "public");
+            entity.HasKey(r => r.IpReceiptId);
+            entity.Property(r => r.Status).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<ImportReceiptDetail>(entity =>
+        {
+            entity.ToTable("importreceiptdetail", "public");
+            entity.HasKey(d => new { d.IpReceiptId, d.IngrId });
+        });
+
         // Phiếu xuất kho vật tư
         modelBuilder.Entity<MaterialReceipt>(entity =>
         {
+            entity.ToTable("materialreceipt", "public");
+            entity.HasKey(m => m.ExpReceiptId);
+
             entity.Property(m => m.Status)
                   .HasMaxLength(50);
 
@@ -195,6 +233,7 @@ public class ApplicationDbContext : DbContext
         // Khóa chính và quan hệ cho chi tiết xuất kho vật tư
         modelBuilder.Entity<MaterialReceiptDetail>(entity =>
         {
+            entity.ToTable("materialreceiptdetail", "public");
             entity.HasKey(d => new { d.ExpReceiptId, d.IngrId });
 
             entity.HasOne<MaterialReceipt>()
@@ -239,7 +278,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(d => d.Quantity)
                   .HasColumnType("integer");
 
-            entity.Property(d => d.UnitPrice)
+            entity.Property(d => d.Cost)
                   .HasColumnType("numeric(18,2)");
 
             entity.Property(d => d.Note)
@@ -262,6 +301,9 @@ public class ApplicationDbContext : DbContext
         // Nhà cung cấp
         modelBuilder.Entity<Supplier>(entity =>
         {
+            entity.ToTable("supplier", "public");
+            entity.HasKey(s => s.SupplierId);
+
             entity.Property(s => s.SupplierName)
                   .HasMaxLength(100)
                   .IsRequired();
@@ -313,20 +355,14 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(o => o.OrderDate).HasDatabaseName("ix_saleorder_orderdate");
             entity.HasIndex(o => o.Status).HasDatabaseName("ix_saleorder_status");
             entity.Property(o => o.TotalAmount).HasColumnType("numeric(18,2)");
-
-            entity.HasOne(o => o.UserAccount)
-                  .WithMany()
-                  .HasForeignKey(o => o.ApprovedBy)
-                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SaleOrderDetail>(entity =>
         {
             entity.ToTable("saleorderdetail", "public");
-            entity.HasKey(d => d.SaleOrderDetailId);
+            entity.HasKey(d => new { d.OrderId, d.ProductId });
             entity.Property(d => d.Quantity).HasColumnType("integer");
             entity.Property(d => d.UnitPrice).HasColumnType("numeric(18,2)");
-            entity.Property(d => d.TotalAmount).HasColumnType("numeric(18,2)");
 
             entity.HasOne(d => d.SaleOrder)
                   .WithMany()
@@ -344,8 +380,6 @@ public class ApplicationDbContext : DbContext
         {
             entity.ToTable("productexportreceipt", "public");
             entity.HasKey(r => r.ExportReceiptId);
-            entity.Property(r => r.TotalAmount).HasColumnType("numeric(18,2)");
-            entity.Property(r => r.CreatedDate).HasColumnType("timestamp with time zone");
 
             entity.HasOne(r => r.ApprovedByUser)
                   .WithMany()
@@ -356,9 +390,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ProductExportReceiptDetail>(entity =>
         {
             entity.ToTable("productexportreceiptdetail", "public");
-            entity.HasKey(d => d.ExportReceiptDetailId);
+            entity.HasKey(d => new { d.ExportReceiptId, d.ProductId });
             entity.Property(d => d.Quantity).HasColumnType("integer");
-            entity.Property(d => d.UnitPrice).HasColumnType("numeric(18,2)");
+            entity.Property(d => d.Price).HasColumnType("numeric(18,2)");
 
             entity.HasOne(d => d.ProductExportReceipt)
                   .WithMany()

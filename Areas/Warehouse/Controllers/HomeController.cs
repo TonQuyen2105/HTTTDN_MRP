@@ -10,11 +10,7 @@ namespace httt.Areas.Warehouse.Controllers
     {
         public IActionResult Index()
         {
-            ViewBag.UserName = User.Identity?.Name ?? "Thủ kho";
-            ViewBag.FullName = User.FindFirst("FullName")?.Value ?? ViewBag.UserName;
-            ViewBag.Role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? AppRoles.Warehouse;
-            ViewBag.RoleDisplayName = AppRoles.GetDisplayName(ViewBag.Role);
-            return View();
+            return Redirect("/Areas/Warehouse/Views/Index.html");
         }
     }
 }

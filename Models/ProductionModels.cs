@@ -176,6 +176,9 @@ public class Supplier
     [MaxLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]
     [Column("mail")]
     public string? Mail { get; set; }
+
+    [Column("import_cost")]
+    public decimal? ImportCost { get; set; } = 0;
 }
 
 public class MarkProducedGoodsRequest

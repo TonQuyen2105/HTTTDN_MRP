@@ -39,8 +39,15 @@ public class ProductReceiptDetail
     [Column("quantity")]
     public int Quantity { get; set; }
 
-    [Column("unitprice")]
-    public decimal? UnitPrice { get; set; }
+    [Column("cost")]
+    public decimal? Cost { get; set; }
+
+    [NotMapped]
+    public decimal? UnitPrice
+    {
+        get => Cost;
+        set => Cost = value;
+    }
 
     [MaxLength(50, ErrorMessage = "Trạng thái tối đa 50 ký tự.")]
     [Column("status")]

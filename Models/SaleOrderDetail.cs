@@ -6,9 +6,7 @@ namespace httt.Models;
 [Table("saleorderdetail", Schema = "public")]
 public class SaleOrderDetail
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("saleorderdetailid")]
+    [NotMapped]
     public int SaleOrderDetailId { get; set; }
 
     [Column("orderid")]
@@ -18,7 +16,7 @@ public class SaleOrderDetail
     public virtual SaleOrder? SaleOrder { get; set; }
 
     [Column("productid")]
-    public int? ProductId { get; set; }
+    public int ProductId { get; set; }
 
     [ForeignKey(nameof(ProductId))]
     public virtual Product? Product { get; set; }
@@ -27,8 +25,8 @@ public class SaleOrderDetail
     public int Quantity { get; set; }
 
     [Column("unitprice")]
-    public decimal UnitPrice { get; set; }
+    public decimal? UnitPrice { get; set; }
 
-    [Column("totalamount")]
+    [NotMapped]
     public decimal TotalAmount { get; set; }
 }

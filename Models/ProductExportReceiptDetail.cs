@@ -6,9 +6,7 @@ namespace httt.Models;
 [Table("productexportreceiptdetail", Schema = "public")]
 public class ProductExportReceiptDetail
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("exportreceiptdetailid")]
+    [NotMapped]
     public int ExportReceiptDetailId { get; set; }
 
     [Column("exportreceiptid")]
@@ -18,7 +16,7 @@ public class ProductExportReceiptDetail
     public virtual ProductExportReceipt? ProductExportReceipt { get; set; }
 
     [Column("productid")]
-    public int? ProductId { get; set; }
+    public int ProductId { get; set; }
 
     [ForeignKey(nameof(ProductId))]
     public virtual Product? Product { get; set; }
@@ -26,6 +24,23 @@ public class ProductExportReceiptDetail
     [Column("quantity")]
     public int Quantity { get; set; }
 
-    [Column("unitprice")]
-    public decimal UnitPrice { get; set; }
+    [Column("price")]
+    public decimal? Price { get; set; }
+
+    [NotMapped]
+    public decimal UnitPrice
+    {
+        get => Price ?? 0m;
+        set => Price = value;
+    }
+
+    [MaxLength(50)]
+    [Column("status")]
+    public string? Status { get; set; }
+
+    [Column("note")]
+    public string? Note { get; set; }
+
+    [Column("createddate")]
+    public DateTime? CreatedDate { get; set; }
 }

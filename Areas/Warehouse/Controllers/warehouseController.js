@@ -42,6 +42,7 @@ const WarehouseController = (function (Model, View) {
         if (Model.initData) {
             try {
                 await Model.initData();
+                renderHeaderOnly();
                 renderMainOnly();
             } catch (err) {
                 console.error('Lỗi khởi tạo dữ liệu kho:', err);
@@ -1439,12 +1440,21 @@ const WarehouseController = (function (Model, View) {
 
                     actionEl.disabled = true;
                     try {
-                        const res = await Model.createProductionRequestApi({
+                        let currentUser = Model.getCurrentUser ? Model.getCurrentUser() : null;
+                        if ((!currentUser || !currentUser.userId) && Model.fetchCurrentUserApi) {
+                            currentUser = await Model.fetchCurrentUserApi();
+                        }
+
+                        const payload = {
                             requestCode,
                             items,
-                            status: 'Pending',
-                            managerId: 24
-                        });
+                            status: 'Pending'
+                        };
+                        if (currentUser && currentUser.userId) {
+                            payload.managerId = currentUser.userId;
+                        }
+
+                        const res = await Model.createProductionRequestApi(payload);
                         Model.closePrModal();
                         renderMainOnly();
                         if (typeof WhNotification !== 'undefined' && WhNotification.toast) {

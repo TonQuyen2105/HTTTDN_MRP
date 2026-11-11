@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,43 @@ public class ProductionRequestApiController : ControllerBase
     public ProductionRequestApiController(ApplicationDbContext context)
     {
         _context = context;
+    }
+
+    private int? GetCurrentLoggedInUserId()
+    {
+        var rawId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(rawId, out var uid) && uid > 0 ? uid : null;
+    }
+
+    /// <summary>
+    /// GET /api/production-requests/current-user : Lấy thông tin tài khoản hiện đang đăng nhập
+    /// </summary>
+    [HttpGet("current-user")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var currentUserId = GetCurrentLoggedInUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized(new { message = "Chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+        }
+
+        var user = await _context.UserAccounts.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.UserId == currentUserId.Value);
+        if (user == null)
+        {
+            return NotFound(new { message = $"Không tìm thấy tài khoản có ID {currentUserId.Value}." });
+        }
+
+        return Ok(new
+        {
+            userId = user.UserId,
+            employeeCode = $"NV{user.UserId:D4}",
+            username = user.Username,
+            fullName = !string.IsNullOrWhiteSpace(user.FullName) ? user.FullName : user.Username,
+            role = user.Role ?? "Warehouse",
+            phone = user.Phone ?? "",
+            status = user.Status ?? "Active"
+        });
     }
 
     /// <summary>
@@ -260,9 +298,15 @@ public class ProductionRequestApiController : ControllerBase
             return BadRequest(new { message = "Vui lòng chọn sản phẩm cần sản xuất." });
         }
 
-        // Lấy ManagerId mặc định nếu chưa truyền
-        int managerId = dto.ManagerId ?? 5;
-        var manager = await _context.UserAccounts.FindAsync(managerId);
+        // Lấy ManagerId từ tài khoản hiện đang đăng nhập (ưu tiên Claims thay vì giá trị cố định)
+        int? loggedInUserId = GetCurrentLoggedInUserId();
+        int managerId = loggedInUserId ?? dto.ManagerId ?? 0;
+        var manager = managerId > 0 ? await _context.UserAccounts.FindAsync(managerId) : null;
+        if (manager == null && dto.ManagerId.HasValue && dto.ManagerId.Value > 0)
+        {
+            manager = await _context.UserAccounts.FindAsync(dto.ManagerId.Value);
+            if (manager != null) managerId = manager.UserID;
+        }
         if (manager == null)
         {
             var firstUser = await _context.UserAccounts.FirstOrDefaultAsync();
@@ -303,6 +347,7 @@ public class ProductionRequestApiController : ControllerBase
             success = true,
             message = $"Tạo yêu cầu sản xuất {baseCode} cho {createdRequests.Count} sản phẩm thành công.",
             requestCode = baseCode,
+            managerId,
             count = createdRequests.Count,
             requestId = firstCreated?.RequestId ?? 0,
             requestIds = createdRequests.Select(r => r.RequestId).ToList()
@@ -442,9 +487,9 @@ public class ProductionRequestApiController : ControllerBase
             return NotFound(new { message = $"Không tìm thấy lệnh sản xuất có ID {id}." });
         }
 
-        // Người tiếp nhận: lấy từ dto.ReceiverId, nếu không có lấy mặc định 9 (DS. Phan Thanh Hà) hoặc user đầu tiên
-        int receiverId = dto?.ReceiverId ?? 9;
-        var user = await _context.UserAccounts.FindAsync(receiverId);
+        // Người tiếp nhận: ưu tiên từ dto.ReceiverId hoặc tài khoản đang đăng nhập
+        int receiverId = dto?.ReceiverId ?? GetCurrentLoggedInUserId() ?? 0;
+        var user = receiverId > 0 ? await _context.UserAccounts.FindAsync(receiverId) : null;
         if (user == null)
         {
             user = await _context.UserAccounts.FirstOrDefaultAsync();
@@ -507,7 +552,8 @@ public class ProductionRequestApiController : ControllerBase
             }
             else if (!req.AssignedTo.HasValue)
             {
-                req.AssignedTo = 9; // Mặc định người tiếp nhận
+                req.AssignedTo = GetCurrentLoggedInUserId()
+                    ?? await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserId).FirstOrDefaultAsync();
             }
         }
 

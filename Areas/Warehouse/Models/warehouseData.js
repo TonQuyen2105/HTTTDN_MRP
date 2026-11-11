@@ -170,7 +170,6 @@ const WarehouseModel = (function () {
             docType: 'inbound-command',
             title: 'Lệnh nhập kho',
             commandNo: '',
-            dueDate: '',
             statusText: '',
             employeeName: '',
             description: '',
@@ -182,7 +181,6 @@ const WarehouseModel = (function () {
             docType: 'outbound-command',
             title: 'Lệnh xuất kho',
             commandNo: '',
-            dueDate: '',
             statusText: '',
             employeeName: '',
             description: '',
@@ -279,14 +277,7 @@ const WarehouseModel = (function () {
         },
         isUserDropdownOpen: false,
         previousMenuId: 'tong-quan',
-        currentUser: {
-            userId: 9,
-            username: 'thanhha',
-            fullName: 'DS. Phan Thanh Hà',
-            role: 'Employee',
-            phone: '0904 112 334',
-            status: 'Active'
-        }
+        currentUser: null
     };
 
     // =========================================================================
@@ -447,6 +438,18 @@ const WarehouseModel = (function () {
         return data;
     }
 
+    function isReturnRefundProductReceipt(r) {
+        if (!r) return false;
+        const code = String(r.voucherNo || r.orderNo || r.receiptCode || '').trim().toUpperCase();
+        const source = String(r.source || '').trim().toLowerCase();
+        const note = String(r.note || '').trim().toLowerCase();
+        return code.startsWith('HOAN-')
+            || source.includes('hoàn hàng')
+            || source.includes('hoàn lại')
+            || note.includes('hoàn lại số lượng đã xuất')
+            || note.includes('hoàn lại kho');
+    }
+
     async function fetchProductDetailApi(id) {
         try {
             const numId = parseInt(String(id).replace(/\D/g, ''), 10) || id;
@@ -456,6 +459,7 @@ const WarehouseModel = (function () {
 
             let receipts = (data.importReceipts || data.productReceipts || [])
                 .filter(r => {
+                    if (isReturnRefundProductReceipt(r)) return false;
                     if (r && r.isDisposed) return true;
                     const st = String(r && (r.rawStatus || r.status) || '').trim().toLowerCase();
                     return st === 'approved' || st === 'approve' || st === 'đã nhập kho' || st === 'đã hủy';
@@ -654,14 +658,15 @@ const WarehouseModel = (function () {
             if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             const data = await res.json();
             if (Array.isArray(data)) {
-                // Điều kiện: status = ['Approve', 'Pending', 'Rejected'] và receiptcode khác NULL
+                // Điều kiện: phải có requestId, status = ['Approve', 'Pending', 'Rejected'] và receiptcode khác NULL
                 inboundDatasets.inboundCommands = data.filter(r => {
+                    const hasRequestId = r.requestId !== null && r.requestId !== undefined && Number(r.requestId) > 0;
                     const st = (r.status || r.rawStatus || r.orderStatus || '').toLowerCase();
                     const hasValidCode = r.receiptCode && String(r.receiptCode).trim() !== '';
                     const isAllowedStatus = st === 'pending' || st === 'chờ nhập kho' ||
                                             st === 'approve' || st === 'approved' || st === 'đã nhập kho' ||
                                             st === 'reject' || st === 'rejected' || st === 'từ chối';
-                    return hasValidCode && isAllowedStatus;
+                    return hasRequestId && hasValidCode && isAllowedStatus;
                 });
             }
             return inboundDatasets.inboundCommands;
@@ -833,6 +838,7 @@ const WarehouseModel = (function () {
         // Khởi tạo và nạp dữ liệu ban đầu từ Supabase
         async initData() {
             await Promise.allSettled([
+                this.fetchCurrentUserApi().catch(e => console.warn('Lỗi tải tài khoản hiện tại:', e)),
                 fetchProductsApi().catch(e => console.warn('Lỗi tải sản phẩm:', e)),
                 fetchIngredientsApi().catch(e => console.warn('Lỗi tải NVL:', e)),
                 fetchSuppliersApi().catch(e => console.warn('Lỗi tải NCC:', e)),
@@ -1247,7 +1253,6 @@ const WarehouseModel = (function () {
                     { key: 'quantityFormatted', label: 'SL tồn', width: '90px' },
                     { key: 'costFormatted', label: 'Giá bán (VNĐ)', width: '125px', align: 'right' },
                     { key: 'materialCostFormatted', label: 'Giá vốn (VNĐ)', width: '125px', align: 'right' },
-                    { key: 'expiredDate', label: 'Hạn sử dụng', width: '115px' },
                     { key: 'description', label: 'Mô tả / Tiêu chuẩn' },
                     { key: 'action', label: 'Thao tác', isActionDelete: true, width: '90px', align: 'center' }
                 ];
@@ -1309,8 +1314,6 @@ const WarehouseModel = (function () {
                             title: `Lệnh nhập kho thành phẩm ${cmdRow.orderNo}`,
                             commandNo: cmdRow.orderNo,
                             commandNoLabel: 'Số lệnh / Số phiếu',
-                            dueDate: cmdRow.deliveryDate || cmdRow.dueDate || cmdRow.orderDate,
-                            dueDateLabel: 'Hạn nhập kho',
                             statusText: cmdRow.orderStatus || 'Chờ nhập kho',
                             rawStatus: cmdRow.status,
                             employeeCode: cmdRow.employeeCode || 'NV0005',
@@ -1342,8 +1345,6 @@ const WarehouseModel = (function () {
                             title: `Lệnh xuất nguyên vật liệu ${cmdRow.orderNo}`,
                             commandNo: cmdRow.orderNo,
                             commandNoLabel: 'Số lệnh / Số phiếu',
-                            dueDate: cmdRow.deliveryDue || cmdRow.dueDate || cmdRow.orderDate,
-                            dueDateLabel: 'Hạn xuất kho',
                             statusText: cmdRow.orderStatus || 'Chờ xuất kho',
                             rawStatus: cmdRow.status,
                             employeeCode: cmdRow.employeeCode || 'NV0005',
@@ -2125,7 +2126,6 @@ const WarehouseModel = (function () {
                     { key: 'creatorName', label: 'Người lập phiếu', width: '150px' },
                     { key: 'supplierCode', label: 'Mã nhà cung cấp', width: '130px' },
                     { key: 'supplierName', label: 'Nhà cung cấp', width: '250px' },
-                    { key: 'warehouse', label: 'Kho nhập', width: '210px' },
                     { key: 'status', label: 'Trạng thái', isBadge: true, width: '130px' },
                     { key: 'action', label: 'Thao tác', isActionImportReceipt: true, width: '190px' }
                 ];
@@ -2136,7 +2136,6 @@ const WarehouseModel = (function () {
                     { key: 'orderDate', label: 'Ngày lệnh', width: '110px' },
                     { key: 'supplier', label: 'Người lập', width: '130px' },
                     { key: 'productName', label: 'Tên hàng hóa' },
-                    { key: 'deliveryDate', label: 'Hạn nhập kho', width: '115px' },
                     { key: 'description', label: 'Diễn giải' },
                     { key: 'status', label: 'Tình trạng', isBadge: true, width: '120px' },
                     { key: 'action', label: 'Thao tác', isActionInboundProduct: true, width: '110px', align: 'center' }
@@ -2740,25 +2739,35 @@ const WarehouseModel = (function () {
             return data;
         },
 
+        async fetchCurrentUserApi() {
+            try {
+                const res = await fetch('/api/warehouse/production-requests/current-user');
+                if (!res.ok) throw new Error(`Lỗi tải thông tin tài khoản (${res.status})`);
+                const data = await res.json();
+                if (data && data.userId) {
+                    state.currentUser = {
+                        userId: data.userId,
+                        employeeCode: data.employeeCode || '',
+                        username: data.username || '',
+                        fullName: data.fullName || data.username || '',
+                        role: data.role || 'Warehouse',
+                        phone: data.phone || '',
+                        status: data.status || 'Active'
+                    };
+                }
+                return state.currentUser;
+            } catch (err) {
+                console.warn('Không tải được thông tin người dùng đang đăng nhập:', err);
+                return state.currentUser;
+            }
+        },
+
         async fetchAssignableUsersApi() {
             try {
                 const res = await fetch('/api/production-requests/assignable-users');
                 if (!res.ok) throw new Error(`Lỗi tải danh sách nhân sự (${res.status})`);
                 const data = await res.json();
                 state.assignableUsers = Array.isArray(data) ? data : [];
-                if (state.assignableUsers.length > 0) {
-                    const u = state.assignableUsers.find(item => item.userId === 9) || state.assignableUsers[0];
-                    if (u) {
-                        state.currentUser = {
-                            userId: u.userId,
-                            username: u.username,
-                            fullName: u.fullName,
-                            role: u.role || 'Employee',
-                            phone: u.phone || '',
-                            status: 'Active'
-                        };
-                    }
-                }
                 return state.assignableUsers;
             } catch (err) {
                 console.error('Lỗi nạp nhân sự phân công:', err);
@@ -2793,12 +2802,15 @@ const WarehouseModel = (function () {
         },
 
         async receiveProductionRequest(requestId) {
-            const currentUsr = state.currentUser || { userId: 9 };
+            let currentUsr = state.currentUser;
+            if ((!currentUsr || !currentUsr.userId) && this.fetchCurrentUserApi) {
+                currentUsr = await this.fetchCurrentUserApi();
+            }
             const numId = parseInt(String(requestId).replace(/\D/g, ''), 10) || requestId;
             const res = await fetch(`/api/warehouse/production-requests/${numId}/receive`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ receiverId: currentUsr.userId })
+                body: JSON.stringify({ receiverId: currentUsr?.userId || null })
             });
             const resText = await res.text();
             let data = {};

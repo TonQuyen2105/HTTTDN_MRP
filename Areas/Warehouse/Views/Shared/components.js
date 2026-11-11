@@ -454,7 +454,7 @@ const WarehouseComponents = (function () {
                             type="button"
                             class="wh-avatar-btn ${state.isUserDropdownOpen ? 'active' : ''}"
                             data-action="toggle-user-dropdown"
-                            title="Tài khoản cá nhân: ${escapeHtml(state.currentUser?.fullName || 'DS. Phan Thanh Hà')}"
+                            title="Tài khoản cá nhân: ${escapeHtml(state.currentUser?.fullName || 'Tài khoản Kho')}"
                         >
                             <img src="${avatarSvg}" alt="User Avatar" />
                         </button>
@@ -472,11 +472,11 @@ const WarehouseComponents = (function () {
         if (!state.isUserDropdownOpen) return '';
 
         const user = state.currentUser || {
-            userId: 9,
-            username: 'thanhha',
-            fullName: 'DS. Phan Thanh Hà',
-            role: 'Employee',
-            phone: '0904 112 334',
+            userId: '-',
+            username: 'warehouse',
+            fullName: 'Tài khoản Kho',
+            role: 'Warehouse',
+            phone: '',
             status: 'Active'
         };
 
@@ -937,9 +937,6 @@ const WarehouseComponents = (function () {
                             <h2 class="wh-voucher-title">${escapeHtml(order.title)}</h2>
                         </div>
                         <div class="wh-voucher-topbar-right">
-                            <button type="button" class="wh-voucher-win-btn" title="Phím tắt">${Icons.keyboard}</button>
-                            <button type="button" class="wh-voucher-win-btn" title="Tùy chỉnh">${Icons.settings}</button>
-                            <button type="button" class="wh-voucher-win-btn" title="Hướng dẫn">${Icons.helpCircle}</button>
                             <button type="button" class="wh-voucher-win-btn" data-action="close-voucher-modal" title="Đóng (Esc)">${Icons.closeX}</button>
                         </div>
                     </div>
@@ -1179,9 +1176,6 @@ const WarehouseComponents = (function () {
                         </div>
 
                         <div class="wh-voucher-topbar-right">
-                            <button type="button" class="wh-voucher-win-btn" title="Phím tắt">${Icons.keyboard}</button>
-                            <button type="button" class="wh-voucher-win-btn" title="Tùy chỉnh">${Icons.settings}</button>
-                            <button type="button" class="wh-voucher-win-btn" title="Hướng dẫn">${Icons.helpCircle}</button>
                             <button type="button" class="wh-voucher-win-btn" data-action="close-voucher-modal" title="Đóng (Esc)">${Icons.closeX}</button>
                         </div>
                     </div>
@@ -1238,13 +1232,6 @@ const WarehouseComponents = (function () {
                                                 ${Icons.docFile}
                                             </span>
                                         ` : ''}
-                                    </div>
-                                </div>
-                                <div class="wh-form-group">
-                                    <label class="wh-form-label">${escapeHtml(cmd.dueDateLabel || (isOutbound ? 'Hạn xuất kho' : 'Hạn nhập kho'))}</label>
-                                    <div class="wh-input-group">
-                                        <input type="text" class="wh-input-control is-readonly" value="${escapeHtml(cmd.dueDate)}" readonly disabled />
-                                        <button type="button" class="wh-input-addon-btn" title="Chọn hạn" disabled>${Icons.calendar}</button>
                                     </div>
                                 </div>
                                 <div class="wh-form-group">
@@ -1742,9 +1729,6 @@ const WarehouseComponents = (function () {
                         </div>
 
                         <div class="wh-voucher-topbar-right">
-                            <button type="button" class="wh-voucher-win-btn" title="Phím tắt">${Icons.keyboard}</button>
-                            <button type="button" class="wh-voucher-win-btn" title="Tùy chỉnh mẫu phiếu">${Icons.settings}</button>
-                            <button type="button" class="wh-voucher-win-btn" title="Hướng dẫn">${Icons.helpCircle}</button>
                             <button type="button" class="wh-voucher-win-btn" data-action="close-voucher-modal" title="Đóng (Esc)">${Icons.closeX}</button>
                         </div>
                     </div>
@@ -2370,18 +2354,6 @@ const WarehouseComponents = (function () {
                 <span>${escapeHtml(config.addButtonLabel || 'Thêm')}</span>
                </button>`
             : '';
-
-        const splitLayoutBtnHtml = config.hideSplitLayout
-            ? ''
-            : `<button type="button" class="wh-dg-icon-btn" title="Chế độ hiển thị chia khung">
-                ${Icons.splitLayout}
-               </button>`;
-
-        const settingsBtnHtml = config.hideSettings
-            ? ''
-            : `<button type="button" class="wh-dg-icon-btn" title="Tùy chỉnh cột">
-                ${Icons.settings}
-               </button>`;
 
         const checkboxHeaderHtml = config.showCheckbox
             ? `<th class="wh-dg-checkbox-col">
@@ -3051,8 +3023,6 @@ const WarehouseComponents = (function () {
                             <button type="button" class="wh-dg-icon-btn" data-action="refresh-datagrid" title="Tải lại dữ liệu">
                                 ${Icons.refresh}
                             </button>
-                            ${splitLayoutBtnHtml}
-                            ${settingsBtnHtml}
                             ${addBtnHtml}
                         </div>
                     </div>
@@ -3134,8 +3104,19 @@ const WarehouseComponents = (function () {
 
         const isWideModal = !canEdit;
         const isApprovedProductReceipt = (r) => {
-            if (r && r.isDisposed) return true;
-            const st = String(r && (r.rawStatus || r.status) || '').trim().toLowerCase();
+            if (!r) return false;
+            const code = String(r.voucherNo || r.orderNo || r.receiptCode || '').trim().toUpperCase();
+            const source = String(r.source || '').trim().toLowerCase();
+            const note = String(r.note || '').trim().toLowerCase();
+            if (code.startsWith('HOAN-') ||
+                source.includes('hoàn hàng') ||
+                source.includes('hoàn lại') ||
+                note.includes('hoàn lại số lượng đã xuất') ||
+                note.includes('hoàn lại kho')) {
+                return false;
+            }
+            if (r.isDisposed) return true;
+            const st = String(r.rawStatus || r.status || '').trim().toLowerCase();
             return st === 'approved' || st === 'approve' || st === 'đã nhập kho' || st === 'đã hủy';
         };
         const rawReceipts = isProduct
@@ -4607,7 +4588,7 @@ const WarehouseComponents = (function () {
                     </div>
                 </div>
 
-                <!-- 4 Thẻ KPI Tóm tắt Chỉ số Kho -->
+                <!-- 3 Thẻ KPI Tóm tắt Chỉ số Kho -->
                 <div class="wh-report-kpi-grid">
                     <!-- KPI 1: Tồn kho hiện tại -->
                     <div class="wh-report-kpi-card is-stock">
@@ -4653,22 +4634,6 @@ const WarehouseComponents = (function () {
                             </div>
                             <div class="wh-report-kpi-sub">
                                 NVL xuất sản xuất & Thành phẩm xuất bán hàng
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- KPI 4: Lưu kho tại xưởng (WIP) -->
-                    <div class="wh-report-kpi-card is-wip">
-                        <div class="wh-report-kpi-icon-box" style="background:#f3e8ff; color:#9333ea;">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                        </div>
-                        <div class="wh-report-kpi-content">
-                            <div class="wh-report-kpi-title">Lưu kho tại xưởng (WIP)</div>
-                            <div class="wh-report-kpi-number" style="color:#9333ea;">
-                                ${(summary.totalWipQty || 0).toLocaleString('vi-VN')}
-                            </div>
-                            <div class="wh-report-kpi-sub">
-                                Bán thành phẩm & NVL đang lưu trên chuyền
                             </div>
                         </div>
                     </div>
@@ -4904,11 +4869,11 @@ const WarehouseComponents = (function () {
      */
     function renderEmployeeProfile(user, tasks) {
         user = user || {
-            userId: 9,
-            username: 'thanhha',
-            fullName: 'DS. Phan Thanh Hà',
-            role: 'Employee',
-            phone: '0904 112 334',
+            userId: '-',
+            username: 'warehouse',
+            fullName: 'Tài khoản Kho',
+            role: 'Warehouse',
+            phone: '',
             status: 'Active'
         };
 

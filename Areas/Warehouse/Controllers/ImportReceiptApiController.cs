@@ -230,17 +230,6 @@ public class ImportReceiptApiController : ControllerBase
             });
         }
 
-        // Kiểm tra độ dài ĐVT (cột unit trong DB tối đa 20 ký tự)
-        var invalidUnitItem = dto.Items.FirstOrDefault(i => !string.IsNullOrWhiteSpace(i.Unit) && i.Unit.Trim().Length > 20);
-        if (invalidUnitItem != null)
-        {
-            return BadRequest(new
-            {
-                success = false,
-                message = "Đơn vị tính (ĐVT) của nguyên vật liệu tối đa 20 ký tự."
-            });
-        }
-
         string finalStatus = (dto.Status == "Reject" || dto.IsReject) ? "Reject" : "Approve";
 
         int? currentUserId = GetCurrentLoggedInUserId();
@@ -294,10 +283,6 @@ public class ImportReceiptApiController : ControllerBase
             if (finalStatus == "Approve" && ingr != null)
             {
                 ingr.Quantity = (ingr.Quantity ?? 0) + validQty;
-                if (!string.IsNullOrWhiteSpace(it.Unit))
-                {
-                    ingr.Unit = it.Unit.Trim();
-                }
                 int months = (ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0) ? ingr.ShelfLifeMonths.Value : 12;
                 expDate = now.AddMonths(months);
             }

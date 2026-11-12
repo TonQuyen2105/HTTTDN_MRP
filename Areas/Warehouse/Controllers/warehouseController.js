@@ -16,6 +16,17 @@ const WarehouseController = (function (Model, View) {
     let headerMount = null;
     let sidebarMount = null;
     let mainMount = null;
+    let navRequestToken = 0;
+
+    function isInputModalOpen() {
+        const state = Model.getState ? Model.getState() : {};
+        return Boolean(
+            document.getElementById('wh-vthh-form') ||
+            document.getElementById('wh-supplier-form') ||
+            document.getElementById('wh-pr-form') ||
+            (state.activeVoucherModal === 'inbound' && state.activeVoucherMode === 'create')
+        );
+    }
 
     function escapeHtml(str) {
         return String(str || '')
@@ -40,10 +51,13 @@ const WarehouseController = (function (Model, View) {
 
         // Nạp dữ liệu thật ban đầu từ Supabase qua API
         if (Model.initData) {
+            const initToken = navRequestToken;
             try {
                 await Model.initData();
                 renderHeaderOnly();
-                renderMainOnly();
+                if (initToken === navRequestToken && !isInputModalOpen()) {
+                    renderMainOnly();
+                }
             } catch (err) {
                 console.error('Lỗi khởi tạo dữ liệu kho:', err);
             }
@@ -274,6 +288,7 @@ const WarehouseController = (function (Model, View) {
 
                 case 'go-overview': {
                     e.preventDefault();
+                    navRequestToken++;
                     Model.setActiveMenu('tong-quan');
                     syncSidebarDomState();
                     renderMainOnly();
@@ -284,36 +299,55 @@ const WarehouseController = (function (Model, View) {
                     e.preventDefault();
                     const menuId = actionEl.getAttribute('data-menu-id');
                     if (menuId) {
+                        const reqToken = ++navRequestToken;
                         Model.setActiveMenu(menuId);
                         syncSidebarDomState();
                         renderMainOnly();
                         if (menuId === 'danh-muc-vthh') {
-                            await Model.loadProducts();
-                            await Model.loadIngredients();
-                            renderMainOnly();
+                            await Promise.all([
+                                Model.loadProducts(),
+                                Model.loadIngredients()
+                            ]);
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (menuId === 'xuat-kho') {
                             await Promise.all([
                                 Model.fetchMaterialReceiptsApi(),
                                 Model.fetchProductExportsApi()
                             ]);
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (menuId === 'yeu-cau-san-xuat') {
                             await Promise.all([
                                 Model.fetchProductionRequestsApi(),
                                 Model.fetchAssignableUsersApi(),
                                 Model.loadProducts ? Model.loadProducts() : null
                             ]);
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (menuId === 'nhap-kho') {
-                            await Model.fetchProductReceiptsApi();
-                            await Model.fetchImportReceiptsApi();
-                            renderMainOnly();
+                            await Promise.all([
+                                Model.fetchProductReceiptsApi(),
+                                Model.fetchImportReceiptsApi(),
+                                Model.fetchIngredientsApi ? Model.fetchIngredientsApi() : null,
+                                Model.fetchSuppliersApi ? Model.fetchSuppliersApi() : null
+                            ]);
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (menuId === 'nha-cung-cap') {
                             await Model.fetchSuppliersApi();
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (menuId === 'bao-cao') {
                             await Model.fetchReportDataApi();
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         }
                     }
                     break;
@@ -344,6 +378,7 @@ const WarehouseController = (function (Model, View) {
                     const pageType = actionEl.getAttribute('data-page-type');
                     const tabId = actionEl.getAttribute('data-tab-id');
                     if (pageType && tabId) {
+                        const reqToken = ++navRequestToken;
                         Model.setOperationTab(pageType, tabId);
                         renderMainOnly();
                         if (pageType === 'danh-muc-vthh') {
@@ -352,21 +387,31 @@ const WarehouseController = (function (Model, View) {
                             } else {
                                 await Model.loadIngredients();
                             }
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (pageType === 'xuat-kho') {
                             if (tabId === 'lenh-xuat-kho') {
                                 await Model.fetchMaterialReceiptsApi();
                             } else if (tabId === 'xuat-kho-tab') {
                                 await Model.fetchProductExportsApi();
                             }
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         } else if (pageType === 'nhap-kho') {
                             if (tabId === 'lenh-nhap-kho') {
                                 await Model.fetchProductReceiptsApi();
                             } else {
-                                await Model.fetchImportReceiptsApi();
+                                await Promise.all([
+                                    Model.fetchImportReceiptsApi(),
+                                    Model.fetchIngredientsApi ? Model.fetchIngredientsApi() : null,
+                                    Model.fetchSuppliersApi ? Model.fetchSuppliersApi() : null
+                                ]);
                             }
-                            renderMainOnly();
+                            if (reqToken === navRequestToken && !isInputModalOpen()) {
+                                renderMainOnly();
+                            }
                         }
                     }
                     break;
@@ -390,10 +435,24 @@ const WarehouseController = (function (Model, View) {
                         Model.setOperationTab('xuat-kho', 'xuat-kho-tab');
                     }
                     const mode = (docNo || receiptId) ? 'view' : 'create';
-                    if (vType === 'inbound' && Model.fetchCurrentUserApi) {
-                        const curUser = Model.getCurrentUser ? Model.getCurrentUser() : null;
-                        if (!curUser || !curUser.userId) {
-                            await Model.fetchCurrentUserApi();
+                    if (vType === 'inbound') {
+                        const preloadTasks = [];
+                        if (Model.fetchCurrentUserApi) {
+                            const curUser = Model.getCurrentUser ? Model.getCurrentUser() : null;
+                            if (!curUser || !curUser.userId) {
+                                preloadTasks.push(Model.fetchCurrentUserApi());
+                            }
+                        }
+                        if (mode === 'create') {
+                            if (Model.fetchIngredientsApi) {
+                                preloadTasks.push(Model.fetchIngredientsApi());
+                            }
+                            if (Model.fetchSuppliersApi) {
+                                preloadTasks.push(Model.fetchSuppliersApi());
+                            }
+                        }
+                        if (preloadTasks.length > 0) {
+                            await Promise.all(preloadTasks);
                         }
                     }
                     Model.openVoucherModal(vType, receiptId || docNo, mode);
@@ -1008,10 +1067,19 @@ const WarehouseController = (function (Model, View) {
                             WhNotification.alert('Vui lòng nhập tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'), { type: 'warning' });
                             return;
                         }
+                        if (!newItem.unit || !newItem.unit.trim()) {
+                            WhNotification.alert('Vui lòng nhập đơn vị tính (ĐVT)!', { type: 'warning' });
+                            return;
+                        }
+                        if (newItem.unit.trim().length > 20) {
+                            WhNotification.alert('Đơn vị tính (ĐVT) tối đa 20 ký tự!', { type: 'warning' });
+                            return;
+                        }
                         if (itemType === 'ingredient') {
-                            const priceVal = parseFloat(String(newItem.price || '').replace(/,/g, ''));
-                            if (isNaN(priceVal) || priceVal <= 0) {
-                                WhNotification.alert('Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0!', { type: 'warning' });
+                            const rawPrice = String(newItem.price ?? '').trim();
+                            const priceVal = parseFloat(rawPrice.replace(/,/g, ''));
+                            if (!rawPrice || isNaN(priceVal) || priceVal <= 0) {
+                                WhNotification.alert('Vui lòng nhập đơn giá nguyên vật liệu hợp lệ lớn hơn 0 (không được bỏ trống hoặc bằng 0)!', { type: 'warning' });
                                 return;
                             }
                         }
@@ -1066,15 +1134,47 @@ const WarehouseController = (function (Model, View) {
                     if (itemType && itemId && Model.openVthhModal) {
                         Model.openVthhModal(itemType, itemId, 'edit');
                         renderMainOnly();
+                        const initialValues = {};
+                        const initialForm = document.getElementById('wh-vthh-form');
+                        if (initialForm) {
+                            initialForm.querySelectorAll('input[name], textarea[name], select[name]').forEach(el => {
+                                if (el.name) initialValues[el.name] = el.value;
+                            });
+                        }
+                        const restoreDirtyFields = () => {
+                            const curModal = Model.getState ? Model.getState().vthhModal : null;
+                            if (!curModal || curModal.mode !== 'edit' || String(curModal.itemId) !== String(itemId)) {
+                                return;
+                            }
+                            const dirtyChanges = {};
+                            const prevForm = document.getElementById('wh-vthh-form');
+                            if (prevForm) {
+                                prevForm.querySelectorAll('input[name], textarea[name], select[name]').forEach(el => {
+                                    if (el.name && el.name in initialValues && el.value !== initialValues[el.name]) {
+                                        dirtyChanges[el.name] = el.value;
+                                    }
+                                });
+                            }
+                            renderMainOnly();
+                            const newForm = document.getElementById('wh-vthh-form');
+                            if (newForm) {
+                                Object.keys(dirtyChanges).forEach(fieldName => {
+                                    const fieldEl = newForm.querySelector(`[name="${fieldName}"]`);
+                                    if (fieldEl && !fieldEl.readOnly && !fieldEl.disabled) {
+                                        fieldEl.value = dirtyChanges[fieldName];
+                                    }
+                                });
+                            }
+                        };
                         if (itemType === 'ingredient' && Model.fetchIngredientDetailApi) {
                             try {
                                 await Model.fetchIngredientDetailApi(itemId);
-                                renderMainOnly();
+                                restoreDirtyFields();
                             } catch (_) {}
                         } else if (itemType === 'product' && Model.fetchProductDetailApi) {
                             try {
                                 await Model.fetchProductDetailApi(itemId);
-                                renderMainOnly();
+                                restoreDirtyFields();
                             } catch (_) {}
                         }
                     }
@@ -1107,6 +1207,26 @@ const WarehouseController = (function (Model, View) {
                         if (updatedFields[nameKey] !== undefined && !updatedFields[nameKey].trim()) {
                             WhNotification.alert('Vui lòng không để trống tên ' + (itemType === 'product' ? 'sản phẩm!' : 'nguyên vật liệu!'), { type: 'warning' });
                             return;
+                        }
+                        if (itemType === 'ingredient') {
+                            const unitInputEl = formEl.querySelector('input[name="unit"]');
+                            if (unitInputEl && !unitInputEl.readOnly && !unitInputEl.disabled) {
+                                const unitVal = String(updatedFields.unit ?? unitInputEl.value ?? '').trim();
+                                if (!unitVal) {
+                                    WhNotification.alert('Vui lòng không để trống đơn vị tính (ĐVT)!', { type: 'warning' });
+                                    return;
+                                }
+                                if (unitVal.length > 20) {
+                                    WhNotification.alert('Đơn vị tính (ĐVT) tối đa 20 ký tự!', { type: 'warning' });
+                                    return;
+                                }
+                            }
+                            const rawPrice = String(updatedFields.price ?? '').trim();
+                            const priceVal = parseFloat(rawPrice.replace(/,/g, ''));
+                            if (!rawPrice || isNaN(priceVal) || priceVal <= 0) {
+                                WhNotification.alert('Vui lòng nhập đơn giá nguyên vật liệu hợp lệ lớn hơn 0 (không được bỏ trống hoặc bằng 0)!', { type: 'warning' });
+                                return;
+                            }
                         }
                         const origHtml = actionEl.innerHTML;
                         try {
@@ -2305,16 +2425,6 @@ const WarehouseController = (function (Model, View) {
                 return;
             }
 
-            if (action === 'change-inbound-item-unit') {
-                const rowId = target.getAttribute('data-row-id');
-                const cleaned = String(target.value || '').trim();
-                target.value = cleaned;
-                if (Model.changeInboundNewItemUnit) {
-                    Model.changeInboundNewItemUnit(rowId, cleaned);
-                }
-                return;
-            }
-
             if (action === 'change-pr-item-product') {
                 const rowId = target.getAttribute('data-row-id');
                 if (rowId && Model.changePrItemProduct) {
@@ -2514,14 +2624,6 @@ const WarehouseController = (function (Model, View) {
                             totalAmtEl.textContent = totalAmt.toLocaleString('vi-VN') + ' đ';
                         }
                     }
-                }
-                return;
-            }
-
-            if (inputAction === 'change-inbound-item-unit') {
-                const rowId = target.getAttribute('data-row-id');
-                if (Model.changeInboundNewItemUnit) {
-                    Model.changeInboundNewItemUnit(rowId, target.value);
                 }
                 return;
             }

@@ -22,9 +22,9 @@
             ord.Status == "Đã xong" || 
             ord.Status == "Đã hoàn thành") return true;
 
-        if (receiptStatusDict.ContainsKey(ord.Orderid))
+        if (receiptStatusDict.ContainsKey(ord.OrderId))
         {
-            var st = receiptStatusDict[ord.Orderid];
+            var st = receiptStatusDict[ord.OrderId];
             if (string.Equals(st, "Completed", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(st, "Exported", StringComparison.OrdinalIgnoreCase) || 
                 st == "Đã xuất kho" || 
@@ -38,7 +38,7 @@
     {
         if (CheckOrderIsDone(ord)) return false;
 
-        string receiptStatus = receiptStatusDict.ContainsKey(ord.Orderid) ? receiptStatusDict[ord.Orderid] : "Chưa gửi";
+        string receiptStatus = receiptStatusDict.ContainsKey(ord.OrderId) ? receiptStatusDict[ord.OrderId] : "Chưa gửi";
         
         // Nếu kho từ chối xuất (Rejected) -> Đơn không còn ở nhóm Chờ xuất kho
         if (string.Equals(receiptStatus, "Rejected", StringComparison.OrdinalIgnoreCase) || receiptStatus == "Từ chối")
@@ -79,7 +79,7 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/order.css" asp-append-version="true" />
     <style>
-        /* Nút icon hủy đơn hình vuông bo góc, tinh gọn & hiện đại */
+        /* Nút icon hủy đơn hình vuông bo góc */
         .order-id-group {
             display: inline-flex;
             align-items: center;
@@ -283,12 +283,13 @@
                         <p>Lọc đơn hàng theo từ khóa hoặc tạo đơn giả lập từ các thành phẩm đã có công thức BOM.</p>
                     </div>
 
-                    <form method="get" action="/Sales/Orders" class="order-filter-form">
+                    <!-- FORM TÌM KIẾM CHÍNH (KHI NHẤN ENTER SẼ SUBMIT FORM NÀY VÀO NÚT LỌC DỮ LIỆU) -->
+                    <form method="get" action="/Sales/Orders" class="order-filter-form" id="searchFilterForm">
                         <input type="hidden" name="tab" value="sales" />
 
                         <div class="order-filter-field">
                             <label for="keyword">Mã đơn / Tên nhà thuốc</label>
-                            <input id="keyword" type="text" name="keyword" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập mã đơn hoặc tên nhà thuốc..." />
+                            <input id="keyword" type="text" name="keyword" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập mã đơn hoặc tên nhà thuốc..." autocomplete="off" />
                         </div>
 
                         <div class="order-filter-field">
@@ -309,16 +310,28 @@
                         </div>
 
                         <div class="order-filter-actions">
-                            <a href="/Sales/Order/GenerateMockOrders" class="order-btn-generate" onclick="this.style.pointerEvents='none'; this.innerHTML='Đang tạo đơn...';" title="Tạo 1 đơn hàng mới từ các thành phẩm đã có công thức BOM">
+                            <!-- NÚT LỌC LÀ NÚT SUBMIT DUY NHẤT TRONG FORM (ENTER SẼ CHẠY VÀO ĐÂY) -->
+                            <button type="submit" class="order-btn-primary">Lọc dữ liệu</button>
+
+                            <!-- NÚT TẠO ĐƠN MẪU DẠNG LIÊN KẾT AN TOÀN -->
+                            <button type="button" class="order-btn-generate" onclick="generateMockOrder(this)" title="Tạo 1 đơn hàng mới từ các thành phẩm đã có công thức BOM">
                                 Tạo mới 1 đơn hàng
-                            </a>
-                            <button type="submit" formaction="/Sales/Order/ResetOrders" formmethod="post" class="order-btn-danger" onclick="if(!confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ đơn hàng đã tạo?')) return false; this.style.pointerEvents='none'; this.innerHTML='Đang reset...';">
+                            </button>
+
+                            <!-- NÚT RESET DÙNG TYPE=BUTTON, KHÔNG THỂ BỊ ENTER KÍCH HOẠT NHẦM -->
+                            <button type="button" class="order-btn-danger" onclick="triggerResetOrders(this)">
                                 Reset đơn hàng
                             </button>
-                            <button type="submit" class="order-btn-primary">Lọc dữ liệu</button>
+
+                            <!-- NÚT XÓA LỌC -->
                             <a href="/Sales/Orders?tab=sales" class="order-btn-reset">Xóa lọc</a>
                         </div>
                     </form>
+
+                    <!-- FORM ẨN DÙNG CHO HÀNH ĐỘNG RESET BẢO VỆ VỚI PHƯƠNG THỨC POST -->
+                    <form id="hiddenResetForm" method="post" action="/Sales/Order/ResetOrders" style="display: none;"></form>
+                    <!-- FORM ẨN DÙNG CHO TẠO ĐƠN GIẢ LẬP VỚI PHƯƠNG THỨC POST -->
+                    <form id="hiddenGenerateForm" method="post" action="/Sales/Order/GenerateMockOrders" style="display: none;"></form>
                 </section>
 
                 <section class="order-list-section">
@@ -343,9 +356,9 @@
                             </p>
                             @if (currentFilterStatus != "Cancelled")
                             {
-                                <a href="/Sales/Order/GenerateMockOrders" class="order-btn-generate" style="display: inline-block; text-decoration: none;">
+                                <button type="button" class="order-btn-generate" onclick="generateMockOrder(this)" style="display: inline-block;">
                                     + Tạo mới 1 đơn hàng
-                                </a>
+                                </button>
                             }
                         </div>
                     }
@@ -356,19 +369,19 @@
                             var isDone = CheckOrderIsDone(order);
                             var isCancelled = string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã hủy";
                             var isWaitingExport = !isCancelled && CheckOrderIsWaitingExport(order);
-                            var isWarehouseApproved = !isCancelled && CheckWarehouseApproved(order.Orderid);
-                            var isShortage = shortageDict.ContainsKey(order.Orderid) ? shortageDict[order.Orderid] : false;
+                            var isWarehouseApproved = !isCancelled && CheckWarehouseApproved(order.OrderId);
+                            var isShortage = shortageDict.ContainsKey(order.OrderId) ? shortageDict[order.OrderId] : false;
                             
-                            string receiptStatus = receiptStatusDict.ContainsKey(order.Orderid) ? receiptStatusDict[order.Orderid] : "Chưa gửi";
+                            string receiptStatus = receiptStatusDict.ContainsKey(order.OrderId) ? receiptStatusDict[order.OrderId] : "Chưa gửi";
                             bool isRejected = string.Equals(receiptStatus, "Rejected", StringComparison.OrdinalIgnoreCase) || receiptStatus == "Từ chối";
                             bool isHoldingOrder = string.Equals(order.Status, "Holding", StringComparison.OrdinalIgnoreCase) || order.Status == "Đã giữ chốt số lượng";
 
-                            <article class="order-card @(isCancelled ? "card-theme-cancelled" : (isDone ? "card-completed" : ""))" id="order-card-@order.Orderid">
+                            <article class="order-card @(isCancelled ? "card-theme-cancelled" : (isDone ? "card-completed" : ""))" id="order-card-@order.OrderId">
                                 <div class="order-card-top">
                                     <div class="order-id-group">
                                         <span class="order-id-label">MÃ ĐƠN HÀNG</span>
-                                        <a href="/Sales/Order/Details/@order.Orderid" class="order-id">
-                                            @(order.Ordercode ?? ("DH-" + order.Orderid))
+                                        <a href="/Sales/Order/Details/@order.OrderId" class="order-id">
+                                            @(order.OrderCode ?? ("DH-" + order.OrderId))
                                         </a>
 
                                         <!-- NÚT ICON HỦY ĐƠN SVG HIỆN ĐẠI -->
@@ -376,7 +389,7 @@
                                         {
                                             <button type="button" 
                                                     class="btn-cancel-order" 
-                                                    onclick="cancelSingleOrder(@order.Orderid, '@(order.Ordercode ?? ("DH-" + order.Orderid))')" 
+                                                    onclick="cancelSingleOrder(@order.OrderId, '@(order.OrderCode ?? ("DH-" + order.OrderId))')" 
                                                     title="Hủy đơn hàng này (Giữ nguyên phiếu xuất kho)">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                                                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -453,14 +466,14 @@
                                                     <span style="font-size: 11px; font-weight: 700; color: #DC2626; background: #FEE2E2; padding: 3px 8px; border-radius: 4px;">
                                                         ✕ Kho từ chối xuất
                                                     </span>
-                                                    <a href="/Sales/CreateOrder?orderId=@order.Orderid" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 600;">
+                                                    <a href="/Sales/CreateOrder?orderId=@order.OrderId" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 600;">
                                                         Lập lại phiếu xuất
                                                     </a>
                                                 </div>
                                             }
                                             else if (isWarehouseApproved && !isDone)
                                             {
-                                                <button type="button" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 700; background: #166534; color: #FFF; border: none; border-radius: 4px; cursor: pointer;" onclick="quickCompleteOrder(@order.Orderid)">
+                                                <button type="button" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 700; background: #166534; color: #FFF; border: none; border-radius: 4px; cursor: pointer;" onclick="quickCompleteOrder(@order.OrderId)">
                                                     ✔ Xác nhận ĐÃ XONG
                                                 </button>
                                             }
@@ -472,7 +485,7 @@
                                             }
                                             else
                                             {
-                                                <a href="/Sales/CreateOrder?orderId=@order.Orderid" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 600;">
+                                                <a href="/Sales/CreateOrder?orderId=@order.OrderId" class="btn-view-detail" style="font-size: 11px; padding: 4px 10px; font-weight: 600;">
                                                     Lập phiếu xuất kho
                                                 </a>
                                             }
@@ -483,14 +496,14 @@
                                 <div class="order-card-body">
                                     <div class="order-pharmacy">
                                         <span class="pharmacy-code">Khách hàng / Nhà thuốc</span>
-                                        <h3>@order.Customername</h3>
-                                        <p>@order.Shippingaddress (SĐT: @order.Customerphone)</p>
+                                        <h3>@order.CustomerName</h3>
+                                        <p>@order.ShippingAddress (SĐT: @order.CustomerPhone)</p>
                                     </div>
 
                                     <div class="order-card-meta">
                                         <div>
                                             <span class="meta-label">Ngày đặt</span>
-                                            <strong>@(order.Orderdate.HasValue ? order.Orderdate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
+                                            <strong>@(order.OrderDate.HasValue ? order.OrderDate.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong>
                                         </div>
                                         <div>
                                             <span class="meta-label">Số mặt hàng</span>
@@ -498,7 +511,7 @@
                                         </div>
                                         <div class="order-total">
                                             <span class="meta-label">Tổng tiền</span>
-                                            <strong>@((order.Totalamount ?? 0).ToString("N0")) đ</strong>
+                                            <strong>@((order.TotalAmount ?? 0).ToString("N0")) đ</strong>
                                         </div>
                                     </div>
 
@@ -507,7 +520,7 @@
                                         <div class="order-items-detail">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                                 <span class="meta-label">DANH MỤC THÀNH PHẨM ĐẶT MUA:</span>
-                                                <a href="/Sales/Order/Details/@order.Orderid" class="btn-view-detail">
+                                                <a href="/Sales/Order/Details/@order.OrderId" class="btn-view-detail">
                                                     Chi tiết & Đối chiếu kho
                                                 </a>
                                             </div>
@@ -515,9 +528,9 @@
                                                 @foreach (var detail in order.SaleOrderDetails)
                                                 {
                                                     var inStock = detail.Product?.Quantity ?? 0;
-                                                    var prodName = detail.Product?.Productname ?? $"Sản phẩm #{detail.Productid}";
+                                                    var prodName = detail.Product?.ProductName ?? $"Sản phẩm #{detail.ProductId}";
                                                     var prodUnit = detail.Product?.Unit ?? "Hộp";
-                                                    var uPrice = detail.Unitprice ?? 0;
+                                                    var uPrice = detail.UnitPrice ?? 0;
                                                     var itemTotal = uPrice * detail.Quantity;
 
                                                     <li>
@@ -549,8 +562,8 @@
                         <input type="hidden" name="tab" value="supplier" />
 
                         <div class="order-filter-field" style="grid-column: span 2;">
-                            <label for="keyword">Tên nhà cung cấp / SĐT / Email / Địa chỉ</label>
-                            <input id="keyword" type="text" name="keyword" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập tên nhà cung cấp..." />
+                            <label for="supplierKeyword">Tên nhà cung cấp / SĐT / Email / Địa chỉ</label>
+                            <input id="supplierKeyword" type="text" name="keyword" value="@Context.Request.Query["keyword"]" class="form-control" placeholder="Nhập tên nhà cung cấp..." autocomplete="off" />
                         </div>
 
                         <div class="order-filter-actions">
@@ -581,7 +594,7 @@
                                     <div class="order-id-group">
                                         <span class="order-id-label">MÃ ĐỐI TÁC CUNG ỨNG</span>
                                         <span class="order-id" style="cursor: default;">
-                                            NCC-@supplier.Supplierid.ToString("D4")
+                                            NCC-@supplier.SupplierId.ToString("D4")
                                         </span>
                                     </div>
                                     <div class="order-card-actions">
@@ -593,7 +606,7 @@
                                 <div class="order-card-body">
                                     <div class="order-pharmacy">
                                         <span class="pharmacy-code">Công ty / Nhà máy sản xuất</span>
-                                        <h3>@supplier.Suppliername</h3>
+                                        <h3>@supplier.SupplierName</h3>
                                         <p>@(string.IsNullOrWhiteSpace(supplier.Address) ? "Chưa cập nhật địa chỉ trụ sở" : supplier.Address)</p>
                                     </div>
 
@@ -628,6 +641,23 @@
 
 @section Scripts {
     <script>
+        // KÍCH HOẠT TẠO ĐƠN GIẢ LẬP AN TOÀN
+        function generateMockOrder(btn) {
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = 'Đang tạo đơn...';
+            document.getElementById('hiddenGenerateForm').submit();
+        }
+
+        // KÍCH HOẠT RESET ĐƠN HÀNG (CÓ HỎI XÁC NHẬN, KHÔNG BỊ ENTER KÍCH HOẠT)
+        function triggerResetOrders(btn) {
+            if (!confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ đơn hàng đã tạo?\n- Toàn bộ đơn hàng và phiếu xuất kho sẽ bị xóa sạch khỏi CSDL!')) {
+                return;
+            }
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = 'Đang reset...';
+            document.getElementById('hiddenResetForm').submit();
+        }
+
         // HÀM HỦY ĐƠN HÀNG THỦ CÔNG
         async function cancelSingleOrder(orderId, orderCode) {
             if (!confirm(`Bạn có chắc chắn muốn HỦY đơn hàng ${orderCode}?\n- Đơn hàng sẽ được chuyển sang trạng thái ĐÃ HỦY (Cancelled).\n- Trạng thái các phiếu xuất kho liên quan sẽ được GIỮ NGUYÊN.`)) {
@@ -652,6 +682,7 @@
             }
         }
 
+        // HÀM DUYỆT ĐƠN HOÀN TẤT
         async function quickCompleteOrder(orderId) {
             if (!confirm("Xác nhận cập nhật đơn hàng này thành ĐÃ XONG (Completed)?")) return;
 

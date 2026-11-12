@@ -1766,14 +1766,14 @@ const WarehouseComponents = (function () {
 
                             <div class="wh-vtable-wrap">
                                 ${isInbound ? (isCreate ? `
-                                    <!-- BẢNG TẠO MỚI NGUYÊN VẬT LIỆU (Có dropdown chọn NVL, thêm dòng, xóa từng dòng) -->
+                                    <!-- BẢNG TẠO MỚI PHIẾU NHẬP NGUYÊN VẬT LIỆU (ĐVT tự động lấy từ NVL, thêm dòng, xóa từng dòng) -->
                                     <table class="wh-vtable">
                                         <thead>
                                             <tr>
                                                 <th style="width: 45px; text-align: center;">#</th>
                                                 <th style="width: 140px;">${Icons.pin}Mã NVL</th>
                                                 <th>Tên nguyên vật liệu <span class="wh-req">*</span></th>
-                                                <th style="width: 75px; text-align: center;">ĐVT</th>
+                                                <th style="width: 110px; text-align: center;">ĐVT</th>
                                                 <th style="width: 115px;" class="wh-text-right">SL nhập <span class="wh-req">*</span></th>
                                                 <th style="width: 135px;" class="wh-text-right">Giá nguyên liệu</th>
                                                 <th style="width: 150px;" class="wh-text-right">Thành tiền</th>
@@ -1827,7 +1827,18 @@ const WarehouseComponents = (function () {
                                                             </select>
                                                         </td>
                                                         <td style="text-align: center;">
-                                                            <span class="wh-cell-text" data-cell="unit" data-row-id="${row.id}">${escapeHtml(row.unit || '-')}</span>
+                                                            <input
+                                                                type="text"
+                                                                class="wh-input-control is-readonly wh-table-input"
+                                                                data-cell="unit"
+                                                                data-row-id="${row.id}"
+                                                                value="${escapeHtml(row.unit && row.unit !== '-' ? row.unit : '')}"
+                                                                placeholder="Tự động"
+                                                                readonly
+                                                                disabled
+                                                                style="text-align: center; font-weight: 500;"
+                                                                title="Đơn vị tính tự động lấy theo đơn vị tính đã định sẵn của nguyên vật liệu"
+                                                            />
                                                         </td>
                                                         <td class="wh-text-right">
                                                             <input
@@ -3126,6 +3137,8 @@ const WarehouseComponents = (function () {
             ? (item.productReceipts || item.importReceipts || []).filter(isApprovedProductReceipt)
             : (item.importReceipts || []);
         const receipts = Array.isArray(rawReceipts) ? rawReceipts : [];
+        const hasIngrImportReceipts = !isProduct && (Boolean(item.hasImportReceipts) || receipts.some(r => !r.isDraft));
+        const canEditIngrUnit = isCreate || (isEdit && !hasIngrImportReceipts);
         const totalImportQty = receipts.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
         const totalImportAmount = receipts.reduce((sum, r) => sum + (Number(r.amount) || ((Number(r.quantity) || 0) * (Number(r.cost) || 0))), 0);
 
@@ -3491,7 +3504,7 @@ const WarehouseComponents = (function () {
                                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #166534; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;">
                                         <span style="font-size: 16px; line-height: 1;">💡</span>
                                         <div>
-                                            <strong>Quy tắc tạo mới thành phẩm:</strong> Nhập <strong>Tên sản phẩm</strong> và <strong>Đơn vị tính (ĐVT)</strong>. Trường <strong>Giá vốn</strong> được khóa cố định (0 đ) và sẽ tự động lấy giá cao nhất từ các <strong>Phiếu nhập kho thành phẩm</strong>.
+                                            <strong>Quy tắc tạo mới thành phẩm:</strong> Nhập <strong>Tên sản phẩm</strong> và <strong>Đơn vị tính (ĐVT)</strong>. Trường <strong>Giá bán</strong> (mặc định 0 đ) và <strong>Giá vốn</strong> được khóa cố định; giá vốn sẽ tự động lấy giá cao nhất từ các <strong>Phiếu nhập kho thành phẩm</strong>.
                                         </div>
                                     </div>
                                 ` : ''}
@@ -3499,7 +3512,7 @@ const WarehouseComponents = (function () {
                                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #1e40af; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;">
                                         <span style="font-size: 16px; line-height: 1;">ℹ️</span>
                                         <div>
-                                            <strong>Lưu ý:</strong> Trường <strong>Giá vốn</strong> được khóa cố định và tự động lấy theo <strong>giá cao nhất từ các phiếu nhập kho thành phẩm</strong> của sản phẩm này.
+                                            <strong>Lưu ý:</strong> Trường <strong>Giá bán</strong> (mặc định 0 đ) và <strong>Giá vốn</strong> được khóa cố định không cho chỉnh sửa; giá vốn tự động lấy theo <strong>giá cao nhất từ các phiếu nhập kho thành phẩm</strong> của sản phẩm này.
                                         </div>
                                     </div>
                                 ` : ''}
@@ -3611,18 +3624,31 @@ const WarehouseComponents = (function () {
 
                                     <div class="wh-form-group">
                                         <label class="wh-form-label">
-                                            Giá bán (VNĐ)
+                                            Giá bán (VNĐ) <span class="wh-lock-hint" title="${isCreate ? 'Giá bán mặc định 0 đ khi thêm mới' : 'Giá bán sản phẩm được khóa không cho chỉnh sửa'}">${Icons.lock} Khóa${isCreate ? ' (Mặc định 0)' : ''}</span>
                                         </label>
-                                        <input
-                                            type="number"
-                                            name="cost"
-                                            class="wh-input-control"
-                                            min="0"
-                                            step="1000"
-                                            placeholder="VD: 50000"
-                                            value="${item.cost !== undefined && item.cost !== null ? item.cost : ''}"
-                                            style="font-weight: 600; color: #1e293b;"
-                                        />
+                                        ${isCreate ? `
+                                            <input
+                                                type="text"
+                                                name="cost"
+                                                class="wh-input-control is-readonly"
+                                                value="0 đ"
+                                                readonly
+                                                tabindex="-1"
+                                                title="Giá bán sản phẩm được khóa với giá trị mặc định 0"
+                                                style="font-weight: 600; color: #64748b;"
+                                            />
+                                        ` : `
+                                            <input
+                                                type="text"
+                                                name="cost"
+                                                class="wh-input-control is-readonly"
+                                                value="${item.costFormatted ? `${item.costFormatted} đ` : (item.cost ? `${Number(item.cost).toLocaleString('vi-VN')} đ` : '0 đ')}"
+                                                readonly
+                                                tabindex="-1"
+                                                title="Giá bán sản phẩm được khóa không cho chỉnh sửa"
+                                                style="font-weight: 600; color: #1e293b;"
+                                            />
+                                        `}
                                     </div>
 
                                     <div class="wh-form-group">
@@ -3684,7 +3710,7 @@ const WarehouseComponents = (function () {
                                         <div style="grid-column: 1 / -1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #166534; display: flex; align-items: flex-start; gap: 8px;">
                                             <span style="font-size: 16px; line-height: 1;">💡</span>
                                             <div>
-                                                <strong>Quy tắc thêm mới nguyên vật liệu:</strong> Nhập <strong>Tên nguyên vật liệu</strong> và <strong>Đơn giá</strong> (VNĐ) gốc lớn hơn 0 để khởi tạo mã mới trong hệ thống. Các thông tin còn lại (ĐVT, số lượng tồn kho = 0, giá nhập = 0 đ, mô tả) sẽ được khóa cố định và tự động cập nhật khi lập và duyệt <strong>Phiếu nhập kho</strong>.
+                                                <strong>Quy tắc thêm mới nguyên vật liệu:</strong> Nhập đầy đủ <strong>Tên nguyên vật liệu</strong>, <strong>Đơn vị tính (ĐVT)</strong> và <strong>Đơn giá</strong> (VNĐ) gốc lớn hơn 0 (không được bỏ trống các trường đang mở). Các thông tin còn lại (số lượng tồn kho = 0, giá nhập = 0 đ, mô tả) sẽ được khóa cố định và cập nhật từ <strong>Phiếu nhập kho</strong>.
                                             </div>
                                         </div>
                                     ` : ''}
@@ -3712,6 +3738,7 @@ const WarehouseComponents = (function () {
                                             class="wh-input-control"
                                             value="${escapeHtml(item.ingrName || '')}"
                                             placeholder="VD: Paracetamol BP tinh khiết..."
+                                            maxlength="100"
                                             required
                                             ${isCreate ? 'autofocus' : ''}
                                         />
@@ -3719,17 +3746,31 @@ const WarehouseComponents = (function () {
 
                                     <div class="wh-form-group">
                                         <label class="wh-form-label">
-                                            Đơn vị tính (ĐVT) <span class="wh-lock-hint" title="${isCreate ? 'Cập nhật từ phiếu nhập' : 'Đơn vị tính cố định'}">${Icons.lock} Khóa</span>
+                                            Đơn vị tính (ĐVT) ${canEditIngrUnit
+                                                ? `<span class="wh-req">*</span>${isEdit ? ` <span class="wh-hint" style="font-size:11px;color:#15803d;font-weight:normal;">(Chưa có phiếu nhập - được phép sửa)</span>` : ''}`
+                                                : `<span class="wh-lock-hint" title="Nguyên vật liệu đã có phiếu nhập kho nên không được sửa đơn vị tính">${Icons.lock} Khóa (Đã có phiếu nhập)</span>`}
                                         </label>
-                                        <input
-                                            type="text"
-                                            name="unit"
-                                            class="wh-input-control is-readonly"
-                                            value="${escapeHtml(item.unit || '')}"
-                                            readonly
-                                            tabindex="-1"
-                                            placeholder="(Bỏ trống - Cập nhật từ phiếu nhập)"
-                                        />
+                                        ${canEditIngrUnit ? `
+                                            <input
+                                                type="text"
+                                                name="unit"
+                                                class="wh-input-control"
+                                                value="${escapeHtml(item.unit || '')}"
+                                                placeholder="VD: kg, g, lít, chai, hộp..."
+                                                maxlength="20"
+                                                required
+                                            />
+                                        ` : `
+                                            <input
+                                                type="text"
+                                                name="unit"
+                                                class="wh-input-control is-readonly"
+                                                value="${escapeHtml(item.unit || '')}"
+                                                readonly
+                                                tabindex="-1"
+                                                title="Không được sửa đơn vị tính vì nguyên vật liệu đã có phiếu nhập kho"
+                                            />
+                                        `}
                                     </div>
 
                                     <div class="wh-form-group">
@@ -3837,8 +3878,8 @@ const WarehouseComponents = (function () {
                             ${isCreate ? `
                                 <span class="wh-vthh-lock-notice">
                                     ${itemType === 'ingredient'
-                                        ? '* Điền Tên nguyên vật liệu và Đơn giá (> 0) để tạo mới. Giá nhập và các thông tin còn lại sẽ cập nhật từ phiếu nhập kho.'
-                                        : '* Điền Tên sản phẩm và Đơn vị tính (ĐVT) để tạo mới. Trường Giá vốn được khóa và sẽ cập nhật từ phiếu nhập kho thành phẩm.'}
+                                        ? '* Điền đầy đủ Tên nguyên vật liệu, Đơn vị tính (ĐVT) và Đơn giá (> 0) — không được bỏ trống các trường đang mở.'
+                                        : '* Điền Tên sản phẩm và Đơn vị tính (ĐVT) để tạo mới. Trường Giá bán (mặc định 0 đ) và Giá vốn được khóa cố định.'}
                                 </span>
                             ` : (isEdit ? `
                                 <span class="wh-vthh-lock-notice">
@@ -4427,7 +4468,7 @@ const WarehouseComponents = (function () {
                                             ${t.outQty > 0 ? `-${Number(t.outQty).toLocaleString('vi-VN')}` : '-'}
                                         </td>
                                         <td style="text-align: right; color: #475569;">
-                                            ${t.cost ? `${Number(t.cost).toLocaleString('vi-VN')} đ` : '-'}
+                                            ${(t.cost !== null && t.cost !== undefined) ? `${Number(t.cost).toLocaleString('vi-VN')} đ` : '-'}
                                         </td>
                                         <td style="text-align: center;">
                                             <span class="wh-action-status-badge ${t.status === 'Completed' || t.status === 'Approve' || t.status === 'Approved' || t.status === 'Đã xuất kho' || t.status === 'Đã nhập kho' ? 'is-approved' : (t.status === 'Rejected' || t.status === 'Reject' || t.status === 'Từ chối' || t.status === 'Đã hủy' ? 'is-rejected' : '')}" style="${t.status === 'Approved' || t.status === 'Approve' || t.status === 'Đã xuất kho' || t.status === 'Đã nhập kho' || t.status === 'Completed' ? 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:600; padding:3px 8px; border-radius:4px; display:inline-flex;' : (t.status === 'Đã hủy' || t.status === 'Rejected' || t.status === 'Reject' || t.status === 'Từ chối' ? 'background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; font-weight:600; padding:3px 8px; border-radius:4px; display:inline-flex;' : '')}">

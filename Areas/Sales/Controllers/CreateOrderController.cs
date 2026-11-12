@@ -102,7 +102,7 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // API: Lập phiếu yêu cầu xuất kho (Và tạo lại phiếu mới nếu phiếu trước đó bị Kho từ chối)
+        // API: Lập phiếu yêu cầu xuất kho (Không ràng buộc tồn kho & Tự động đồng bộ Sequence PostgreSQL)
         [HttpPost("RequestExportSlip")]
         public async Task<IActionResult> RequestExportSlip([FromQuery] int orderId)
         {
@@ -149,27 +149,21 @@ namespace httt.Areas.Sales.Controllers
                     }
                 }
 
-                // Kiểm tra tồn kho trước khi cho phép gửi phiếu sang Kho
-                foreach (var item in order.SaleOrderDetails)
-                {
-                    int currentStock = item.Product?.Quantity ?? 0;
-                    if (item.Quantity > currentStock)
-                    {
-                        string prodName = item.Product?.ProductName ?? $"SP #{item.ProductId}";
-                        return Json(new
-                        {
-                            success = false,
-                            message = $"Không thể lập phiếu xuất: Sản phẩm '{prodName}' thiếu tồn kho (Cần {item.Quantity}, Tồn kho {currentStock})."
-                        });
-                    }
-                }
-
                 int? currentUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
                 int? requestedByUserId = currentUserId
                     ?? order.CreatedBy
                     ?? (await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserId).FirstOrDefaultAsync());
 
                 string receiptCode = $"PXTP{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
+
+                // Đồng bộ lại Sequence khóa chính trên PostgreSQL để tránh lỗi 23505 duplicate key
+                await _context.Database.ExecuteSqlRawAsync(@"
+                    SELECT setval(
+                        pg_get_serial_sequence('productexportreceipt', 'exportreceiptid'),
+                        COALESCE((SELECT MAX(exportreceiptid) FROM productexportreceipt), 0) + 1,
+                        false
+                    );
+                ");
 
                 // 1. Tạo bản ghi vào bảng ProductExportReceipt
                 var newReceipt = new ProductExportReceipt
@@ -179,7 +173,7 @@ namespace httt.Areas.Sales.Controllers
                     RequestedBy = requestedByUserId,
                     ApprovedBy = null,
                     CreatedDate = DateTime.UtcNow,
-                    Status = "Peding",
+                    Status = "Pending"
                 };
 
                 _context.ProductExportReceipts.Add(newReceipt);
@@ -188,6 +182,31 @@ namespace httt.Areas.Sales.Controllers
                 // 2. Lưu danh sách thuốc vào bảng ProductExportReceiptDetail
                 if (order.SaleOrderDetails != null && order.SaleOrderDetails.Any())
                 {
+                    // Đồng bộ Sequence cho bảng chi tiết phiếu xuất (nếu tồn tại serial sequence)
+                    await _context.Database.ExecuteSqlRawAsync(@"
+                        DO $$
+                        DECLARE
+                            seq_name text;
+                            pk_col text;
+                        BEGIN
+                            SELECT a.attname INTO pk_col
+                            FROM pg_index i
+                            JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                            WHERE i.indrelid = 'productexportreceiptdetail'::regclass AND i.indisprimary
+                            LIMIT 1;
+
+                            IF pk_col IS NOT NULL THEN
+                                seq_name := pg_get_serial_sequence('productexportreceiptdetail', pk_col);
+                                IF seq_name IS NOT NULL THEN
+                                    EXECUTE format(
+                                        'SELECT setval(%L, COALESCE((SELECT MAX(%I) FROM productexportreceiptdetail), 0) + 1, false)',
+                                        seq_name, pk_col
+                                    );
+                                END IF;
+                            END IF;
+                        END $$;
+                    ");
+
                     foreach (var item in order.SaleOrderDetails)
                     {
                         var receiptDetail = new ProductExportReceiptDetail

@@ -39,6 +39,12 @@ public class IngredientApiController : ControllerBase
         }
 
         var dbItems = await query.OrderBy(i => i.IngrId).ToListAsync();
+        var ingrIdsWithReceipts = (await _context.ImportReceiptDetails
+            .AsNoTracking()
+            .Select(d => d.IngrId)
+            .Distinct()
+            .ToListAsync())
+            .ToHashSet();
 
         var list = dbItems.Select(i => new
         {
@@ -58,7 +64,8 @@ public class IngredientApiController : ControllerBase
             shelfLifeMonths = i.ShelfLifeMonths ?? 0,
             expiredDate = (i.ShelfLifeMonths != null && i.ShelfLifeMonths > 0)
                 ? DateTime.Now.AddMonths(i.ShelfLifeMonths.Value).ToString("dd/MM/yyyy")
-                : "31/12/2028"
+                : "31/12/2028",
+            hasImportReceipts = ingrIdsWithReceipts.Contains(i.IngrId)
         }).ToList();
 
         return Ok(list);
@@ -165,6 +172,7 @@ public class IngredientApiController : ControllerBase
             expiredDate = (item.ShelfLifeMonths != null && item.ShelfLifeMonths > 0)
                 ? DateTime.Now.AddMonths(item.ShelfLifeMonths.Value).ToString("dd/MM/yyyy")
                 : "31/12/2028",
+            hasImportReceipts = receiptDetails.Count > 0,
             importReceipts = receiptDetails
         });
     }
@@ -262,6 +270,17 @@ public class IngredientApiController : ControllerBase
             return BadRequest(new { message = "Tên nguyên vật liệu không được để trống." });
         }
 
+        if (string.IsNullOrWhiteSpace(dto.Unit))
+        {
+            return BadRequest(new { message = "Đơn vị tính (ĐVT) không được để trống." });
+        }
+
+        string cleanUnit = dto.Unit.Trim();
+        if (cleanUnit.Length > 20)
+        {
+            return BadRequest(new { message = "Đơn vị tính (ĐVT) tối đa 20 ký tự." });
+        }
+
         // Ràng buộc: đơn giá không được bằng 0
         if (!dto.Price.HasValue || dto.Price.Value <= 0)
         {
@@ -272,7 +291,7 @@ public class IngredientApiController : ControllerBase
         {
             IngrName = dto.IngrName.Trim(),
             Quantity = dto.Quantity >= 0 ? dto.Quantity : 0,
-            Unit = !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : "",
+            Unit = cleanUnit,
             Price = dto.Price.Value,
             Cost = dto.Cost.HasValue && dto.Cost.Value >= 0 ? dto.Cost.Value : 0,
             ImageUrl = dto.ImageUrl?.Trim(),
@@ -301,7 +320,8 @@ public class IngredientApiController : ControllerBase
             shelfLifeMonths = ingredient.ShelfLifeMonths ?? 0,
             expiredDate = (ingredient.ShelfLifeMonths != null && ingredient.ShelfLifeMonths > 0)
                 ? DateTime.Now.AddMonths(ingredient.ShelfLifeMonths.Value).ToString("dd/MM/yyyy")
-                : "31/12/2028"
+                : "31/12/2028",
+            hasImportReceipts = false
         });
     }
 
@@ -311,29 +331,68 @@ public class IngredientApiController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateIngredient(int id, [FromBody] IngredientDto dto)
     {
-        var rows = await _context.Ingredients
-            .Where(i => i.IngrId == id)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(i => i.IngrName, i => !string.IsNullOrWhiteSpace(dto.IngrName) ? dto.IngrName.Trim() : i.IngrName)
-                .SetProperty(i => i.Quantity, i => dto.Quantity.HasValue && dto.Quantity.Value >= 0 ? dto.Quantity.Value : i.Quantity)
-                .SetProperty(i => i.Unit, i => !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : i.Unit)
-                .SetProperty(i => i.Price, i => dto.Price.HasValue && dto.Price.Value >= 0 ? dto.Price.Value : i.Price)
-                .SetProperty(i => i.Cost, i => dto.Cost.HasValue && dto.Cost.Value >= 0 ? dto.Cost.Value : i.Cost)
-                .SetProperty(i => i.ImageUrl, i => dto.ImageUrl != null ? dto.ImageUrl.Trim() : i.ImageUrl)
-                .SetProperty(i => i.Description, i => dto.Description != null ? dto.Description.Trim() : i.Description)
-                .SetProperty(i => i.ShelfLifeMonths, i => dto.ShelfLifeMonths.HasValue && dto.ShelfLifeMonths.Value >= 0 ? dto.ShelfLifeMonths.Value : i.ShelfLifeMonths));
-
-        if (rows == 0)
+        var existing = await _context.Ingredients.FirstOrDefaultAsync(i => i.IngrId == id);
+        if (existing == null)
         {
             return NotFound(new { message = $"Không tìm thấy nguyên vật liệu có ID {id}." });
         }
+
+        if (dto.IngrName != null && string.IsNullOrWhiteSpace(dto.IngrName))
+        {
+            return BadRequest(new { message = "Tên nguyên vật liệu không được để trống." });
+        }
+
+        if (dto.Price.HasValue && dto.Price.Value <= 0)
+        {
+            return BadRequest(new { message = "Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0." });
+        }
+
+        bool hasImportReceipt = await _context.ImportReceiptDetails.AsNoTracking().AnyAsync(d => d.IngrId == id);
+        if (dto.Unit != null)
+        {
+            string incomingUnit = dto.Unit.Trim();
+            string currentUnit = (existing.Unit ?? "").Trim();
+
+            if (!string.Equals(incomingUnit, currentUnit, StringComparison.Ordinal))
+            {
+                if (hasImportReceipt)
+                {
+                    return BadRequest(new { message = $"Nguyên vật liệu NVL{id:D3} đã có phiếu nhập kho nên không được sửa đơn vị tính." });
+                }
+                if (string.IsNullOrWhiteSpace(incomingUnit))
+                {
+                    return BadRequest(new { message = "Đơn vị tính (ĐVT) không được để trống." });
+                }
+                if (incomingUnit.Length > 20)
+                {
+                    return BadRequest(new { message = "Đơn vị tính (ĐVT) tối đa 20 ký tự." });
+                }
+                existing.Unit = incomingUnit;
+            }
+            else if (!hasImportReceipt && string.IsNullOrWhiteSpace(incomingUnit))
+            {
+                return BadRequest(new { message = "Đơn vị tính (ĐVT) không được để trống." });
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.IngrName)) existing.IngrName = dto.IngrName.Trim();
+        if (dto.Quantity.HasValue && dto.Quantity.Value >= 0) existing.Quantity = dto.Quantity.Value;
+        if (dto.Price.HasValue && dto.Price.Value > 0) existing.Price = dto.Price.Value;
+        if (dto.Cost.HasValue && dto.Cost.Value >= 0) existing.Cost = dto.Cost.Value;
+        if (dto.ImageUrl != null) existing.ImageUrl = dto.ImageUrl.Trim();
+        if (dto.Description != null) existing.Description = dto.Description.Trim();
+        if (dto.ShelfLifeMonths.HasValue && dto.ShelfLifeMonths.Value >= 0) existing.ShelfLifeMonths = dto.ShelfLifeMonths.Value;
+
+        await _context.SaveChangesAsync();
 
         return Ok(new
         {
             success = true,
             message = "Cập nhật nguyên vật liệu thành công.",
             id = id,
-            ingrCode = $"NVL{id:D3}"
+            ingrCode = $"NVL{id:D3}",
+            unit = existing.Unit ?? "",
+            hasImportReceipts = hasImportReceipt
         });
     }
 

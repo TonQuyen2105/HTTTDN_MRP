@@ -304,6 +304,14 @@ public class ProductionHandoverService
 
         string ik = string.IsNullOrWhiteSpace(req.IdempotencyKey) ? Guid.NewGuid().ToString("N") : req.IdempotencyKey.Trim();
 
+        var strategy = _context.Database.CreateExecutionStrategy();
+        try
+        {
+            return await strategy.ExecuteAsync<(bool Success, string Message, string? ReceiptCode, int ReceiptId)>(async () =>
+            {
+            // Read fresh state on every attempt. Keep the same key to recover
+            // a committed receipt if its acknowledgement was lost.
+            _context.ChangeTracker.Clear();
         // 2. Kiểm tra Idempotency trước khi mở Transaction để tránh xử lý trùng lặp
         var existingSlip = await _context.ProductReceipts
             .Include(r => r.Details)
@@ -329,8 +337,6 @@ public class ProductionHandoverService
 
         // 3. ReadCommitted + khóa đơn: đọc lại số lượng sau khi chờ thao tác trước hoàn tất.
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
-        try
-        {
             // Khóa dòng yêu cầu sản xuất để tuần tự hóa các thao tác đồng thời trên cùng 1 yêu cầu
             await _context.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT requestid FROM public.productionrequest WHERE requestid = {req.RequestId} FOR UPDATE;");
@@ -505,10 +511,10 @@ public class ProductionHandoverService
             string msg = $"Đã lập và gửi phiếu bàn giao {receiptCode} ({req.Quantity:N0} {unit}) thành công sang Kho! Số lượng còn có thể bàn giao tiếp: {remainingAfter:N0} {unit}.";
 
             return (true, msg, receiptCode, newReceipt.ProductReceiptId);
+            });
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             _logger.LogError(ex, "Lỗi ngoại lệ khi tạo phiếu bàn giao cho đơn {RequestId}", req.RequestId);
             return (false, "Lỗi xử lý cơ sở dữ liệu: " + ex.Message, null, 0);
         }

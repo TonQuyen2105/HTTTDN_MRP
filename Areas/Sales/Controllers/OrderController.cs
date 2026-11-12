@@ -35,6 +35,9 @@ namespace httt.Areas.Sales.Controllers
             {
                 string activeTab = string.IsNullOrWhiteSpace(tab) ? "sales" : tab.ToLower();
                 ViewBag.ActiveTab = activeTab;
+                ViewBag.Keyword = keyword ?? string.Empty;
+                ViewBag.Status = status ?? string.Empty;
+                ViewBag.Date = date ?? string.Empty;
 
                 if (activeTab == "supplier")
                 {
@@ -85,8 +88,7 @@ namespace httt.Areas.Sales.Controllers
                     .ThenByDescending(o => o.OrderId)
                     .ToListAsync();
 
-                // ĐỒNG BỘ TRẠNG THÁI CHÍNH XÁC:
-                // Chỉ đồng bộ Completed khi phiếu xuất THỰC SỰ ĐÃ LÀ Completed (Không tự ép khi phiếu mới chỉ Approved/Exported)
+                // ĐỒNG BỘ TRẠNG THÁI CHÍNH XÁC
                 bool needSaveSync = false;
                 foreach (var ord in allOrders)
                 {
@@ -171,16 +173,17 @@ namespace httt.Areas.Sales.Controllers
                 }
                 ViewBag.OrderShortageDict = orderShortageDict;
 
-                // 4. Lọc hiển thị danh sách theo bộ lọc tìm kiếm
+                // 4. Lọc hiển thị danh sách theo bộ lọc tìm kiếm (Keyword, Status, Date)
                 IEnumerable<SaleOrder> filteredOrders = allOrders;
 
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     var kw = keyword.Trim().ToLower();
                     filteredOrders = filteredOrders.Where(o =>
-                        (o.OrderCode != null && o.OrderCode.ToLower().Contains(kw)) ||
-                        (o.CustomerName != null && o.CustomerName.ToLower().Contains(kw)) ||
-                        (o.CustomerPhone != null && o.CustomerPhone.Contains(kw))
+                        (!string.IsNullOrEmpty(o.OrderCode) && o.OrderCode.ToLower().Contains(kw)) ||
+                        (!string.IsNullOrEmpty(o.CustomerName) && o.CustomerName.ToLower().Contains(kw)) ||
+                        (!string.IsNullOrEmpty(o.CustomerPhone) && o.CustomerPhone.Contains(kw)) ||
+                        (!string.IsNullOrEmpty(o.ShippingAddress) && o.ShippingAddress.ToLower().Contains(kw))
                     );
                 }
 
@@ -250,7 +253,6 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // Helper: Kiểm tra đơn đã xong (Chỉ xong khi đơn là Completed hoặc phiếu xuất thực sự Completed)
         private static bool IsOrderDone(SaleOrder o, Dictionary<int, string> receiptStatusDict)
         {
             if (string.Equals(o.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
@@ -265,7 +267,6 @@ namespace httt.Areas.Sales.Controllers
             return false;
         }
 
-        // Helper: Kiểm tra đơn đang chờ xuất kho HỢP LỆ
         private static bool IsOrderWaitingExport(SaleOrder o, Dictionary<int, string> receiptStatusDict)
         {
             if (IsOrderDone(o, receiptStatusDict)) return false;
@@ -294,7 +295,6 @@ namespace httt.Areas.Sales.Controllers
                 || o.Status == "Đã gửi yêu cầu duyệt";
         }
 
-        // API: HỦY 1 ĐƠN HÀNG THỦ CÔNG (GIỮ NGUYÊN TRẠNG THÁI PHIẾU XUẤT KHO)
         [HttpPost("CancelOrder")]
         public async Task<IActionResult> CancelOrder([FromQuery] int orderId)
         {
@@ -328,7 +328,6 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // TRANG CHI TIẾT ĐƠN HÀNG & TỒN KHẢ DỤNG
         [HttpGet("Details/{id}")]
         public async Task<IActionResult> Details(int id)
         {
@@ -397,7 +396,6 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // API: CHỐT GIỮ HOẶC HỦY GIỮ SỐ LƯỢNG TỒN KHO
         [HttpPost("ToggleOrderHold/{id}")]
         public async Task<IActionResult> ToggleOrderHold(int id)
         {
@@ -501,7 +499,6 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // API: DUYỆT ĐƠN HÀNG THÀNH ĐÃ XONG (COMPLETED)
         [HttpPost("CompleteOrder")]
         public async Task<IActionResult> CompleteOrder([FromQuery] int orderId)
         {
@@ -544,8 +541,6 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // TẠO 1 ĐƠN HÀNG GIẢ LẬP
-        [HttpGet("GenerateMockOrders")]
         [HttpPost("GenerateMockOrders")]
         public async Task<IActionResult> GenerateMockOrders()
         {
@@ -645,9 +640,8 @@ namespace httt.Areas.Sales.Controllers
             }
         }
 
-        // XÓA TOÀN BỘ ĐƠN HÀNG ĐỂ RESET DỮ LIỆU
         [HttpPost("ResetOrders")]
-        [HttpGet("ResetOrders")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetOrders()
         {
             try

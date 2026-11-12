@@ -313,7 +313,7 @@ public class ProductApiController : ControllerBase
             ProductName = dto.ProductName.Trim(),
             Quantity = dto.Quantity >= 0 ? dto.Quantity : 0,
             Unit = !string.IsNullOrWhiteSpace(dto.Unit) ? dto.Unit.Trim() : "Hộp",
-            Cost = dto.Cost >= 0 ? dto.Cost : 0, // Giá bán
+            Cost = 0, // Giá bán được khóa mặc định 0 khi thêm mới
             MaterialCost = 0, // Giá vốn khóa khi thêm mới, tự động cập nhật từ phiếu nhập thành phẩm
             ImageUrl = dto.ImageUrl?.Trim(),
             Description = dto.Description?.Trim(),
@@ -372,7 +372,11 @@ public class ProductApiController : ControllerBase
         if (dto.Description != null) existing.Description = dto.Description.Trim();
         if (dto.ShelfLifeMonths.HasValue && dto.ShelfLifeMonths.Value >= 0) existing.ShelfLifeMonths = dto.ShelfLifeMonths.Value;
 
-        if (dto.Cost.HasValue && dto.Cost.Value >= 0) existing.Cost = dto.Cost.Value; // Giá bán
+        // Giá bán được khóa (mặc định 0 nếu chưa thiết lập), không cho chỉnh sửa
+        if (!existing.Cost.HasValue || existing.Cost.Value < 0)
+        {
+            existing.Cost = 0;
+        }
         if (dto.MaterialCost.HasValue && dto.MaterialCost.Value >= 0) existing.MaterialCost = dto.MaterialCost.Value; // Giá vốn
 
         // Nếu sản phẩm đã có phiếu nhập thành phẩm, giá vốn luôn đồng bộ bằng giá cao nhất từ các phiếu nhập

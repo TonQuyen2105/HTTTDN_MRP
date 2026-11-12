@@ -49,6 +49,7 @@ public class CreateImportReceiptItemDto
     public int IngrId { get; set; }
     public decimal Quantity { get; set; }
     public decimal? Cost { get; set; }
+    public string? Unit { get; set; }
 }
 
 public class RejectDto

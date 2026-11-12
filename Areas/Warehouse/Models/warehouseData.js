@@ -338,7 +338,8 @@ const WarehouseModel = (function () {
                 imageUrl: i.imageUrl || '',
                 expiredDate: i.expiredDate || '31/12/2028',
                 description: i.description || '',
-                shelfLifeMonths: i.shelfLifeMonths || 0
+                shelfLifeMonths: i.shelfLifeMonths || 0,
+                hasImportReceipts: Boolean(i.hasImportReceipts)
             }));
             return vthhDatasets.ingredients;
         } catch (err) {
@@ -371,6 +372,9 @@ const WarehouseModel = (function () {
                 imageUrl: data.imageUrl || '',
                 description: data.description || '',
                 shelfLifeMonths: data.shelfLifeMonths || 0,
+                hasImportReceipts: data.hasImportReceipts !== undefined
+                    ? Boolean(data.hasImportReceipts)
+                    : (Array.isArray(data.importReceipts) && data.importReceipts.length > 0),
                 importReceipts: (data.importReceipts || []).map(r => ({
                     ipReceiptId: r.ipReceiptId,
                     voucherNo: r.voucherNo,
@@ -917,7 +921,7 @@ const WarehouseModel = (function () {
                     productName: (newItem.productName || '').trim(),
                     quantity: 0,
                     unit: (newItem.unit || '').trim(),
-                    cost: parseFloat(newItem.cost) || 0,
+                    cost: 0, // Giá bán được khóa mặc định 0 khi thêm mới
                     materialCost: 0, // Giá vốn được khóa khi thêm mới, cập nhật từ phiếu nhập kho thành phẩm
                     imageUrl: (newItem.imageUrl || '').trim(),
                     description: (newItem.description || '').trim(),
@@ -952,16 +956,27 @@ const WarehouseModel = (function () {
                 };
                 vthhDatasets.products.unshift(newProd);
             } else {
+                const cleanIngrName = (newItem.ingrName || '').trim();
+                const cleanUnit = (newItem.unit || '').trim();
                 const cleanPrice = typeof newItem.price === 'string' ? (parseFloat(newItem.price.replace(/[^\d.]/g, '')) || 0) : (Number(newItem.price) || 0);
+                if (!cleanIngrName) {
+                    throw new Error('Tên nguyên vật liệu không được để trống.');
+                }
+                if (!cleanUnit) {
+                    throw new Error('Đơn vị tính (ĐVT) không được để trống.');
+                }
+                if (cleanUnit.length > 20) {
+                    throw new Error('Đơn vị tính (ĐVT) tối đa 20 ký tự.');
+                }
                 if (cleanPrice <= 0) {
                     throw new Error('Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0.');
                 }
                 const cleanCost = typeof newItem.cost === 'string' ? (parseFloat(newItem.cost.replace(/[^\d.]/g, '')) || 0) : (Number(newItem.cost) || 0);
 
                 const payload = {
-                    ingrName: (newItem.ingrName || '').trim(),
+                    ingrName: cleanIngrName,
                     quantity: 0,
-                    unit: (newItem.unit || '').trim(),
+                    unit: cleanUnit,
                     price: cleanPrice,
                     cost: cleanCost,
                     imageUrl: (newItem.imageUrl || '').trim(),
@@ -993,7 +1008,8 @@ const WarehouseModel = (function () {
                     imageUrl: saved.imageUrl || '',
                     description: saved.description || payload.description || '',
                     expiredDate: saved.expiredDate || '31/12/2028',
-                    shelfLifeMonths: saved.shelfLifeMonths || 24
+                    shelfLifeMonths: saved.shelfLifeMonths || 24,
+                    hasImportReceipts: Boolean(saved.hasImportReceipts)
                 };
                 vthhDatasets.ingredients.unshift(newIngr);
             }
@@ -1003,13 +1019,10 @@ const WarehouseModel = (function () {
             const isProd = itemType === 'product';
             const numId = parseInt(String(itemId).replace(/\D/g, ''), 10) || itemId;
             if (isProd) {
-                const cleanCost = typeof updatedData.cost === 'string' ? (parseFloat(updatedData.cost.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.cost) || 0);
-
                 const payload = {
                     productName: (updatedData.productName || '').trim(),
                     quantity: parseInt(updatedData.quantity, 10) || 0,
                     unit: (updatedData.unit || 'Hộp').trim(),
-                    cost: cleanCost,
                     imageUrl: (updatedData.imageUrl || '').trim(),
                     description: (updatedData.description || '').trim()
                 };
@@ -1040,13 +1053,21 @@ const WarehouseModel = (function () {
                     }
                 }
             } else {
+                const cleanIngrName = (updatedData.ingrName || '').trim();
                 const cleanPrice = typeof updatedData.price === 'string' ? (parseFloat(updatedData.price.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.price) || 0);
                 const cleanCost = typeof updatedData.cost === 'string' ? (parseFloat(updatedData.cost.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.cost) || 0);
+                if (!cleanIngrName) {
+                    throw new Error('Tên nguyên vật liệu không được để trống.');
+                }
+                if (cleanPrice <= 0) {
+                    throw new Error('Đơn giá nguyên vật liệu không được bằng 0. Vui lòng nhập đơn giá hợp lệ lớn hơn 0.');
+                }
 
+                const existing = vthhDatasets.ingredients.find(i => i.id === numId || i.ingrId === numId || i.ingrCode === String(itemId));
                 const payload = {
-                    ingrName: (updatedData.ingrName || '').trim(),
+                    ingrName: cleanIngrName,
                     quantity: parseFloat(updatedData.quantity) || 0,
-                    unit: (updatedData.unit || '').trim(),
+                    unit: updatedData.unit !== undefined ? (updatedData.unit || '').trim() : (existing?.unit || ''),
                     price: cleanPrice,
                     cost: cleanCost,
                     imageUrl: (updatedData.imageUrl || '').trim(),
@@ -1063,10 +1084,16 @@ const WarehouseModel = (function () {
                 }
                 const saved = await res.json().catch(() => ({}));
                 // Đồng bộ ngay trong bộ nhớ để giao diện cập nhật tức thì
-                const existing = vthhDatasets.ingredients.find(i => i.id === numId || i.ingrId === numId || i.ingrCode === String(itemId));
                 if (existing) {
                     if (payload.ingrName) existing.ingrName = payload.ingrName;
-                    if (updatedData.unit !== undefined) existing.unit = payload.unit;
+                    if (saved.unit !== undefined && saved.unit !== '') {
+                        existing.unit = saved.unit;
+                    } else if (updatedData.unit !== undefined && payload.unit) {
+                        existing.unit = payload.unit;
+                    }
+                    if (saved.hasImportReceipts !== undefined) {
+                        existing.hasImportReceipts = Boolean(saved.hasImportReceipts);
+                    }
                     if (payload.quantity !== undefined) {
                         existing.quantity = payload.quantity;
                         existing.quantityFormatted = payload.quantity.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1235,11 +1262,16 @@ const WarehouseModel = (function () {
                 });
             }
 
+            const dbReceipts = importReceipts.filter(r => !r.isDraft);
             return {
                 isOpen: true,
                 mode,
                 itemType,
-                item: { ...item, importReceipts }
+                item: {
+                    ...item,
+                    hasImportReceipts: Boolean(item.hasImportReceipts) || dbReceipts.length > 0,
+                    importReceipts
+                }
             };
         },
 
@@ -1662,7 +1694,7 @@ const WarehouseModel = (function () {
                 id: nextId,
                 itemCode: '',
                 itemName: '',
-                unit: '-',
+                unit: '',
                 quantity: '',
                 rawPrice: 0,
                 price: 0,
@@ -1690,7 +1722,7 @@ const WarehouseModel = (function () {
             if (!ingrCode) {
                 row.itemCode = '';
                 row.itemName = '';
-                row.unit = '-';
+                row.unit = '';
                 row.rawPrice = 0;
                 row.price = 0;
                 row.expiryDate = '-';
@@ -1711,7 +1743,7 @@ const WarehouseModel = (function () {
             if (ingr) {
                 row.itemCode = ingr.ingrCode;
                 row.itemName = ingr.ingrName;
-                row.unit = ingr.unit || 'kg';
+                row.unit = (ingr.unit || '').trim() || 'kg';
                 row.rawPrice = Number(ingr.price || 0);
                 const importCostPct = Number(state.inboundNewDraft.importCost) || 0;
                 // Công thức: Đơn giá NVL + (Đơn giá NVL * import_cost / 100)
@@ -1722,6 +1754,14 @@ const WarehouseModel = (function () {
                 row.amount = Math.round(qty * (row.price || 0));
             }
             return { success: true };
+        },
+
+        changeInboundNewItemUnit(rowId, newUnit) {
+            if (!state.inboundNewDraft) return null;
+            const row = state.inboundNewDraft.items.find(i => i.id === Number(rowId));
+            if (!row) return null;
+            row.unit = String(newUnit ?? '');
+            return row;
         },
 
         changeInboundNewItemQty(rowId, newQty) {
@@ -1809,7 +1849,8 @@ const WarehouseModel = (function () {
                 return {
                     ingrId: Number(ingrId),
                     quantity: Number(it.quantity) || 1,
-                    cost: Number(it.price) || 0
+                    cost: Number(it.price) || 0,
+                    unit: String(found?.unit || it.unit || 'kg').trim()
                 };
             });
 
@@ -1833,7 +1874,10 @@ const WarehouseModel = (function () {
                 try { resData = JSON.parse(resText); } catch (_) { resData = { message: resText }; }
                 if (!res.ok) throw new Error(resData.message || `Lỗi máy chủ (${res.status})`);
 
-                await fetchImportReceiptsApi();
+                await Promise.all([
+                    fetchImportReceiptsApi(),
+                    fetchIngredientsApi()
+                ]);
                 this.closeVoucherModal();
                 return { success: true, isDraft: false, voucherNo: resData.voucherNo || draft.voucherNo };
             } catch (err) {
@@ -2530,7 +2574,8 @@ const WarehouseModel = (function () {
                     return {
                         ingrId: Number(ingrId),
                         quantity: Number(it.quantity) || 1,
-                        cost: Number(it.price) || 0
+                        cost: Number(it.price) || 0,
+                        unit: String(found?.unit || it.unit || 'kg').trim() || undefined
                     };
                 });
 
@@ -2559,7 +2604,10 @@ const WarehouseModel = (function () {
                     localStorage.setItem('wh_inbound_drafts', JSON.stringify(state.inboundLocalDrafts));
                 } catch (e) {}
 
-                await fetchImportReceiptsApi();
+                await Promise.all([
+                    fetchImportReceiptsApi(),
+                    fetchIngredientsApi()
+                ]);
                 return {
                     success: true,
                     status: 'Approve',

@@ -390,6 +390,12 @@ const WarehouseController = (function (Model, View) {
                         Model.setOperationTab('xuat-kho', 'xuat-kho-tab');
                     }
                     const mode = (docNo || receiptId) ? 'view' : 'create';
+                    if (vType === 'inbound' && Model.fetchCurrentUserApi) {
+                        const curUser = Model.getCurrentUser ? Model.getCurrentUser() : null;
+                        if (!curUser || !curUser.userId) {
+                            await Model.fetchCurrentUserApi();
+                        }
+                    }
                     Model.openVoucherModal(vType, receiptId || docNo, mode);
                     renderMainOnly();
                     if (vType === 'inbound' && mode === 'view' && (receiptId || docNo)) {
@@ -2299,6 +2305,16 @@ const WarehouseController = (function (Model, View) {
                 return;
             }
 
+            if (action === 'change-inbound-item-unit') {
+                const rowId = target.getAttribute('data-row-id');
+                const cleaned = String(target.value || '').trim();
+                target.value = cleaned;
+                if (Model.changeInboundNewItemUnit) {
+                    Model.changeInboundNewItemUnit(rowId, cleaned);
+                }
+                return;
+            }
+
             if (action === 'change-pr-item-product') {
                 const rowId = target.getAttribute('data-row-id');
                 if (rowId && Model.changePrItemProduct) {
@@ -2498,6 +2514,14 @@ const WarehouseController = (function (Model, View) {
                             totalAmtEl.textContent = totalAmt.toLocaleString('vi-VN') + ' đ';
                         }
                     }
+                }
+                return;
+            }
+
+            if (inputAction === 'change-inbound-item-unit') {
+                const rowId = target.getAttribute('data-row-id');
+                if (Model.changeInboundNewItemUnit) {
+                    Model.changeInboundNewItemUnit(rowId, target.value);
                 }
                 return;
             }

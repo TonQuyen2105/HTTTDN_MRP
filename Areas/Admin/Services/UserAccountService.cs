@@ -18,7 +18,7 @@ public class UserAccountCreateDto
     public string Password { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }
-    public string Role { get; set; } = "Employee";
+    public string Role { get; set; } = "Production";
 }
 
 /// <summary>
@@ -692,7 +692,7 @@ public class UserAccountService
                 Password = HashPassword(dto.Password),
                 FullName = dto.FullName.Trim(),
                 Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim(),
-                Role = UserAccountRules.NormalizeRole(dto.Role) ?? "Employee",
+                Role = UserAccountRules.NormalizeRole(dto.Role) ?? "Production",
                 Status = UserAccountRules.StatusActive
             });
 

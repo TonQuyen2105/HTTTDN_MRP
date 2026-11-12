@@ -1,3 +1,4 @@
+@using httt.Areas.Admin.Services
 @model httt.Models.UserAccount
 @{
     ViewData["Title"] = "Hồ sơ cá nhân";
@@ -32,7 +33,7 @@
                     <p class="mb-3 text-muted" style="margin-bottom: 1rem;">@Model.Username</p>
 
                     <div class="d-flex justify-content-center flex-wrap gap-2 mb-3">
-                        <span class="adm-badge @(Model.Role == "Admin" ? "adm-badge--admin" : Model.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                        <span class="adm-badge @(Model.Role == "Admin" ? "adm-badge--admin" : Model.Role == "Production" ? "adm-badge--production" : Model.Role == "Warehouse" ? "adm-badge--warehouse" : "adm-badge--sales")">
                             @Model.Role
                         </span>
                         <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
@@ -52,7 +53,7 @@
         </div>
 
         <div class="col-lg-8">
-            <div class="adm-card h-100">
+            <div class="adm-card">
                 <div class="adm-card-header">
                     <h2 class="adm-card-title">
                         <i class="fa-solid fa-id-card me-2 text-primary" aria-hidden="true"></i>
@@ -96,7 +97,7 @@
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-semibold mb-2">Vai trò</label>
                                 <div class="rounded-3 px-3 py-2 border bg-light-subtle" style="min-height: 3rem; display: flex; align-items: center;">
-                                    <span class="adm-badge @(Model.Role == "Admin" ? "adm-badge--admin" : Model.Role == "Manager" ? "adm-badge--manager" : "adm-badge--employee")">
+                                    <span class="adm-badge @(Model.Role == "Admin" ? "adm-badge--admin" : Model.Role == "Production" ? "adm-badge--production" : Model.Role == "Warehouse" ? "adm-badge--warehouse" : "adm-badge--sales")">
                                         @Model.Role
                                     </span>
                                 </div>
@@ -115,7 +116,7 @@
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-semibold mb-2">Quyền truy cập</label>
                                 <div class="form-control-plaintext rounded-3 px-3 py-2 border bg-light-subtle" style="min-height: 3rem; color: #0f172a; font-weight: 600;">
-                                    @(Model.Role == "Admin" ? "Toàn quyền quản trị" : Model.Role == "Manager" ? "Quản lý phân quyền" : "Người dùng nội bộ")
+                                    @(Model.Role == "Admin" ? "Toàn quyền quản trị" : Model.Role == "Production" ? "Phân hệ Sản xuất & MRP" : Model.Role == "Warehouse" ? "Phân hệ Kho dược phẩm" : "Phân hệ Bán hàng & Phân phối")
                                 </div>
                             </div>
                         </div>
@@ -129,6 +130,73 @@
                     </form>
                 </div>
             </div>
+
+            <div class="adm-card mt-4">
+                <div class="adm-card-header">
+                    <h2 class="adm-card-title">
+                        <i class="fa-solid fa-key me-2 text-primary" aria-hidden="true"></i>
+                        Đổi mật khẩu cá nhân
+                    </h2>
+                </div>
+                <div class="adm-card-body">
+                    <form id="changePasswordForm" asp-area="Admin" asp-controller="Account" asp-action="ChangePassword" method="post" class="needs-validation">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-4">
+                            <div class="col-md-12">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="currentPassword" name="currentPassword"
+                                           placeholder="Mật khẩu hiện tại" autocomplete="current-password" required />
+                                    <label for="currentPassword">
+                                        <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Mật khẩu hiện tại
+                                    </label>
+                                    <div class="invalid-feedback">Vui lòng nhập mật khẩu hiện tại.</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="newPassword" name="newPassword"
+                                           placeholder="Mật khẩu mới"
+                                           minlength="@UserAccountRules.MinPasswordLength"
+                                           maxlength="@UserAccountRules.PasswordMaxBytes"
+                                           pattern="@UserAccountRules.PasswordPattern"
+                                           autocomplete="new-password" required />
+                                    <label for="newPassword">
+                                        <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>Mật khẩu mới
+                                    </label>
+                                    <div class="invalid-feedback">@UserAccountRules.MsgPassword</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                           placeholder="Xác nhận mật khẩu mới"
+                                           minlength="@UserAccountRules.MinPasswordLength"
+                                           maxlength="@UserAccountRules.PasswordMaxBytes"
+                                           autocomplete="new-password" required />
+                                    <label for="confirmPassword">
+                                        <i class="fa-solid fa-check-double me-1" aria-hidden="true"></i>Xác nhận mật khẩu mới
+                                    </label>
+                                    <div class="invalid-feedback">Mật khẩu xác nhận phải trùng khớp với mật khẩu mới.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4">
+                            <small class="text-muted">
+                                <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>
+                                @UserAccountRules.MsgPassword
+                            </small>
+                            <button type="submit" class="adm-btn adm-btn--primary" id="changePasswordSubmit">
+                                <i class="fa-solid fa-key me-1" aria-hidden="true"></i>
+                                Cập nhật mật khẩu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -136,15 +204,42 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const profileForm = document.getElementById('profileForm');
-        if (!profileForm) return;
+        if (profileForm) {
+            profileForm.addEventListener('submit', function (event) {
+                if (!event.target.checkValidity()) {
+                    event.preventDefault();
+                    event.target.reportValidity();
+                }
+            });
+        }
 
-        profileForm.addEventListener('submit', function (event) {
-            if (!event.target.checkValidity()) {
-                event.preventDefault();
-                event.target.reportValidity();
-                return;
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        const newPwd = document.getElementById('newPassword');
+        const confirmPwd = document.getElementById('confirmPassword');
+
+        function syncPasswordMatch() {
+            if (!newPwd || !confirmPwd) return;
+            if (confirmPwd.value && newPwd.value !== confirmPwd.value) {
+                confirmPwd.setCustomValidity('Mật khẩu xác nhận không khớp với mật khẩu mới.');
+            } else {
+                confirmPwd.setCustomValidity('');
             }
-        });
+        }
+
+        if (newPwd && confirmPwd) {
+            newPwd.addEventListener('input', syncPasswordMatch);
+            confirmPwd.addEventListener('input', syncPasswordMatch);
+        }
+
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', function (event) {
+                syncPasswordMatch();
+                if (!event.target.checkValidity()) {
+                    event.preventDefault();
+                    event.target.reportValidity();
+                }
+            });
+        }
     });
 </script>
 

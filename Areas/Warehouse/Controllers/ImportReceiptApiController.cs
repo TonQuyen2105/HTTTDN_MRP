@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,20 @@ public class ImportReceiptApiController : ControllerBase
         _context = context;
     }
 
+    private int? GetCurrentLoggedInUserId()
+    {
+        var rawId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(rawId, out var uid) && uid > 0 ? uid : null;
+    }
+
+    private static (string Code, string Name) ResolveEmployeeDisplay(UserAccount? user, UserAccount? fallbackUser = null)
+    {
+        var target = user ?? fallbackUser;
+        if (target == null) return ("", "");
+        var name = !string.IsNullOrWhiteSpace(target.FullName) ? target.FullName : target.Username;
+        return ($"NV{target.UserId:D4}", name);
+    }
+
     /// <summary>
     /// GET /api/warehouse/import-receipts : Lấy danh sách phiếu nhập mua hàng
     /// </summary>
@@ -43,6 +58,9 @@ public class ImportReceiptApiController : ControllerBase
 
         var receipts = await _context.ImportReceipts.AsNoTracking().OrderByDescending(r => r.CreatedDate).ToListAsync();
         var suppliers = await _context.Suppliers.AsNoTracking().ToDictionaryAsync(s => s.SupplierId, s => s.SupplierName);
+        var users = await _context.UserAccounts.AsNoTracking().ToDictionaryAsync(u => u.UserId);
+        var currentUserId = GetCurrentLoggedInUserId();
+        UserAccount? loggedInUser = (currentUserId.HasValue && users.TryGetValue(currentUserId.Value, out var curU)) ? curU : null;
 
         var list = receipts.Select(r =>
         {
@@ -51,6 +69,8 @@ public class ImportReceiptApiController : ControllerBase
             string code = r.IpReceiptCode ?? $"PNK{r.IpReceiptId:D5}";
             string st = (r.Status == "Reject") ? "Reject" : "Approve";
             string stType = (st == "Reject") ? "danger" : "success";
+            UserAccount? creator = (r.CreatedBy.HasValue && users.TryGetValue(r.CreatedBy.Value, out var crU)) ? crU : null;
+            var (empCode, empName) = ResolveEmployeeDisplay(creator, loggedInUser);
 
             return new
             {
@@ -66,8 +86,10 @@ public class ImportReceiptApiController : ControllerBase
                 status = st,
                 orderStatus = st,
                 statusType = stType,
-                creatorName = "Nguyễn Tiến Huy",
-                employeeCode = "NV0005"
+                createdBy = creator?.UserId ?? r.CreatedBy ?? loggedInUser?.UserId,
+                creatorName = empName,
+                employeeName = empName,
+                employeeCode = empCode
             };
         }).ToList();
 
@@ -79,7 +101,9 @@ public class ImportReceiptApiController : ControllerBase
                 r.supplierName.ToLower().Contains(kw) ||
                 r.supplierCode.ToLower().Contains(kw) ||
                 r.warehouse.ToLower().Contains(kw) ||
-                r.status.ToLower().Contains(kw)
+                r.status.ToLower().Contains(kw) ||
+                r.creatorName.ToLower().Contains(kw) ||
+                r.employeeCode.ToLower().Contains(kw)
             ).ToList();
         }
 
@@ -137,6 +161,20 @@ public class ImportReceiptApiController : ControllerBase
         string st = (receipt.Status == "Reject") ? "Reject" : "Approve";
         string stType = (st == "Reject") ? "danger" : "success";
 
+        UserAccount? creator = receipt.CreatedBy.HasValue
+            ? await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == receipt.CreatedBy.Value)
+            : null;
+        UserAccount? loggedInUser = null;
+        if (creator == null)
+        {
+            var currentUserId = GetCurrentLoggedInUserId();
+            if (currentUserId.HasValue)
+            {
+                loggedInUser = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == currentUserId.Value);
+            }
+        }
+        var (empCode, empName) = ResolveEmployeeDisplay(creator, loggedInUser);
+
         return Ok(new
         {
             id = receipt.IpReceiptId,
@@ -153,8 +191,10 @@ public class ImportReceiptApiController : ControllerBase
             status = st,
             orderStatus = st,
             statusType = stType,
-            employeeCode = "NV0005",
-            employeeName = "Nguyễn Tiến Huy",
+            createdBy = creator?.UserId ?? loggedInUser?.UserId ?? receipt.CreatedBy,
+            employeeCode = empCode,
+            employeeName = empName,
+            creatorName = empName,
             totalQuantity = items.Sum(i => i.quantity),
             totalAmount = items.Sum(i => i.amount),
             items
@@ -190,15 +230,37 @@ public class ImportReceiptApiController : ControllerBase
             });
         }
 
+        // Kiểm tra độ dài ĐVT (cột unit trong DB tối đa 20 ký tự)
+        var invalidUnitItem = dto.Items.FirstOrDefault(i => !string.IsNullOrWhiteSpace(i.Unit) && i.Unit.Trim().Length > 20);
+        if (invalidUnitItem != null)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "Đơn vị tính (ĐVT) của nguyên vật liệu tối đa 20 ký tự."
+            });
+        }
+
         string finalStatus = (dto.Status == "Reject" || dto.IsReject) ? "Reject" : "Approve";
 
-        int? createdBy = dto.CreatedBy;
-        bool isValidUser = createdBy.HasValue && createdBy > 0 && await _context.UserAccounts.AnyAsync(u => u.UserId == createdBy.Value);
-        if (!isValidUser)
+        int? currentUserId = GetCurrentLoggedInUserId();
+        UserAccount? creatorUser = currentUserId.HasValue
+            ? await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == currentUserId.Value)
+            : null;
+        if (creatorUser == null && dto.CreatedBy.HasValue && dto.CreatedBy.Value > 0)
         {
-            createdBy = await _context.UserAccounts.AsNoTracking().Select(u => (int?)u.UserId).FirstOrDefaultAsync()
-                        ?? await _context.ImportReceipts.AsNoTracking().Where(r => r.CreatedBy.HasValue).Select(r => r.CreatedBy).FirstOrDefaultAsync();
+            creatorUser = await _context.UserAccounts.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == dto.CreatedBy.Value);
         }
+        if (creatorUser == null)
+        {
+            creatorUser = await _context.UserAccounts.AsNoTracking()
+                .Where(u => u.Role == "Warehouse" || u.Role == "Kho")
+                .OrderBy(u => u.UserId)
+                .FirstOrDefaultAsync()
+                ?? await _context.UserAccounts.AsNoTracking().OrderBy(u => u.UserId).FirstOrDefaultAsync();
+        }
+        int? createdBy = creatorUser?.UserId;
+        var (createdEmpCode, createdEmpName) = ResolveEmployeeDisplay(creatorUser);
 
         var receipt = new ImportReceipt
         {
@@ -232,6 +294,10 @@ public class ImportReceiptApiController : ControllerBase
             if (finalStatus == "Approve" && ingr != null)
             {
                 ingr.Quantity = (ingr.Quantity ?? 0) + validQty;
+                if (!string.IsNullOrWhiteSpace(it.Unit))
+                {
+                    ingr.Unit = it.Unit.Trim();
+                }
                 int months = (ingr.ShelfLifeMonths.HasValue && ingr.ShelfLifeMonths.Value > 0) ? ingr.ShelfLifeMonths.Value : 12;
                 expDate = now.AddMonths(months);
             }
@@ -264,7 +330,11 @@ public class ImportReceiptApiController : ControllerBase
                 : "Đã lưu phiếu vào CSDL với trạng thái Reject.",
             status = finalStatus,
             ipReceiptId = receipt.IpReceiptId,
-            voucherNo = receipt.IpReceiptCode
+            voucherNo = receipt.IpReceiptCode,
+            createdBy = receipt.CreatedBy,
+            employeeCode = createdEmpCode,
+            employeeName = createdEmpName,
+            creatorName = createdEmpName
         });
     }
 

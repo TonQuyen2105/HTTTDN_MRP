@@ -48,18 +48,19 @@
                         var roleClass = u.Role switch
                         {
                             "Admin" => "adm-badge--admin",
-                            "Manager" => "adm-badge--manager",
                             "Production" => "adm-badge--production",
-                            "Warehouse" or "Kho" => "adm-badge--warehouse",
-                            "Sales" or "BanHang" => "adm-badge--sales",
-                            _ => "adm-badge--employee"
+                            "Warehouse" => "adm-badge--warehouse",
+                            "Sales" => "adm-badge--sales",
+                            _ => "adm-badge--production"
                         };
                         var isActive = u.Status == UserAccountRules.StatusActive;
                         var protectedReason = u.IsSelf
                             ? "Không thể thao tác lên chính tài khoản đang đăng nhập"
                             : u.IsLastActiveAdmin ? "Đây là Admin đang hoạt động duy nhất của hệ thống" : null;
                         var avatarBg = u.Role == "Admin" ? "linear-gradient(135deg,#6366f1,#818cf8)"
-                            : u.Role == "Manager" ? "linear-gradient(135deg,#06b6d4,#67e8f9)"
+                            : u.Role == "Production" ? "linear-gradient(135deg,#f59e0b,#fbbf24)"
+                            : u.Role == "Warehouse" ? "linear-gradient(135deg,#8b5cf6,#a78bfa)"
+                            : u.Role == "Sales" ? "linear-gradient(135deg,#10b981,#34d399)"
                             : "linear-gradient(135deg,#94a3b8,#cbd5e1)";
 
                         <tr data-id="@u.UserId"

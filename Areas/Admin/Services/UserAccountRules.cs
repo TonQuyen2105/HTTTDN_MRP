@@ -42,13 +42,17 @@ public static class UserAccountRules
 
     // ── Danh mục hợp lệ ───────────────────────────────────────────────────
     public const string AdminRole = "Admin";
+    public const string SalesRole = "Sales";
+    public const string WarehouseRole = "Warehouse";
+    public const string ProductionRole = "Production";
+
     public const string StatusActive = "Active";
     public const string StatusBlocked = "Blocked";
     public const string StatusDisabled = "Disabled";
 
     public static readonly string[] Roles =
     [
-        "Admin", "Manager", "Employee", "Production", "Warehouse", "Sales", "Kho", "BanHang"
+        "Admin", "Sales", "Warehouse", "Production"
     ];
 
     public static readonly string[] Statuses = [StatusActive, StatusBlocked, StatusDisabled];
@@ -65,9 +69,17 @@ public static class UserAccountRules
     public static string? NormalizeRole(string? role)
     {
         var value = role?.Trim();
-        return string.IsNullOrEmpty(value)
-            ? null
-            : Roles.FirstOrDefault(r => r.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value)) return null;
+
+        var matched = Roles.FirstOrDefault(r => r.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (matched != null) return matched;
+
+        // Tự động ánh xạ các alias cũ về đúng 4 vai trò chuẩn
+        if (value.Equals("Kho", StringComparison.OrdinalIgnoreCase)) return WarehouseRole;
+        if (value.Equals("BanHang", StringComparison.OrdinalIgnoreCase) || value.Equals("Bán hàng", StringComparison.OrdinalIgnoreCase)) return SalesRole;
+        if (value.Equals("Manager", StringComparison.OrdinalIgnoreCase) || value.Equals("Employee", StringComparison.OrdinalIgnoreCase) || value.Equals("SanXuat", StringComparison.OrdinalIgnoreCase)) return ProductionRole;
+
+        return null;
     }
 
     /// <summary>Trả về status chuẩn (Active/Blocked/Disabled), hoặc null nếu không hợp lệ.</summary>

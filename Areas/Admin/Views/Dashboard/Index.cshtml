@@ -10,9 +10,9 @@
         <div>
             <h1 class="adm-page-title" id="dashboardHeading">
                 <i class="fa-solid fa-gauge-high me-2 text-primary" style="font-size: 1.125rem;" aria-hidden="true"></i>
-                Dashboard
+                Dashboard Quản trị Tài khoản
             </h1>
-            <p class="adm-page-subtitle">Tổng quan toàn hệ thống MRP Dược phẩm</p>
+            <p class="adm-page-subtitle">Thống kê tài khoản người dùng, phân quyền vai trò và trạng thái hoạt động hệ thống</p>
         </div>
         <span class="badge rounded-pill px-3 py-2" style="background: rgba(99,102,241,0.12); color: #4f46e5; font-size: 0.8rem; font-weight: 600;">
             <i class="fa-regular fa-clock me-1" aria-hidden="true"></i>
@@ -20,7 +20,10 @@
         </span>
     </div>
 
-    <!-- ── KPI Row 1: Accounts ── -->
+    <!-- ── KPI Row: 4 Thẻ thống kê Tài khoản & Phân quyền (useraccount) ── -->
+    @{
+        var operationalStaffCount = Model.SalesCount + Model.WarehouseCount + Model.ProductionCount;
+    }
     <div class="row g-4 mb-4">
         <div class="col-6 col-xl-3">
             <div class="adm-kpi-card adm-kpi-card--primary h-100">
@@ -38,7 +41,7 @@
                 <div class="adm-kpi-card-body">
                     <div class="adm-kpi-label">Đang hoạt động</div>
                     <div class="adm-kpi-value">@Model.ActiveAccounts</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>Hoạt động</div>
+                    <div class="adm-kpi-delta"><i class="fa-solid fa-circle-check fa-xs me-1" aria-hidden="true"></i>Trạng thái Active</div>
                 </div>
                 <div class="adm-kpi-icon-wrap"><i class="fa-solid fa-user-check fa-xl" aria-hidden="true"></i></div>
             </div>
@@ -47,65 +50,29 @@
         <div class="col-6 col-xl-3">
             <div class="adm-kpi-card adm-kpi-card--warning h-100">
                 <div class="adm-kpi-card-body">
-                    <div class="adm-kpi-label">Sản phẩm trong kho</div>
-                    <div class="adm-kpi-value">@Model.TotalProducts</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-box fa-xs me-1" aria-hidden="true"></i>Thành phẩm</div>
+                    <div class="adm-kpi-label">Tài khoản bị khóa / ngưng</div>
+                    <div class="adm-kpi-value">@Model.LockedAccounts</div>
+                    <div class="adm-kpi-delta"><i class="fa-solid fa-user-lock fa-xs me-1" aria-hidden="true"></i>Blocked / Disabled</div>
                 </div>
-                <div class="adm-kpi-icon-wrap"><i class="fa-solid fa-boxes-stacked fa-xl" aria-hidden="true"></i></div>
+                <div class="adm-kpi-icon-wrap"><i class="fa-solid fa-user-lock fa-xl" aria-hidden="true"></i></div>
             </div>
         </div>
 
         <div class="col-6 col-xl-3">
             <div class="adm-kpi-card adm-kpi-card--info h-100">
                 <div class="adm-kpi-card-body">
-                    <div class="adm-kpi-label">Nguyên liệu</div>
-                    <div class="adm-kpi-value">@Model.TotalIngredients</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-flask fa-xs me-1" aria-hidden="true"></i>Chủng loại</div>
+                    <div class="adm-kpi-label">Nhân sự nghiệp vụ</div>
+                    <div class="adm-kpi-value">@operationalStaffCount</div>
+                    <div class="adm-kpi-delta"><i class="fa-solid fa-id-badge fa-xs me-1" aria-hidden="true"></i>Bán hàng &bull; Kho &bull; Sản xuất</div>
                 </div>
-                <div class="adm-kpi-icon-wrap"><i class="fa-solid fa-flask fa-xl" aria-hidden="true"></i></div>
+                <div class="adm-kpi-icon-wrap"><i class="fa-solid fa-user-gear fa-xl" aria-hidden="true"></i></div>
             </div>
         </div>
     </div>
 
-    <!-- ── KPI Row 2: MRP + Sales ── -->
+    <!-- ── Phân bổ theo vai trò & Tài khoản mới tạo / cập nhật gần đây ── -->
     <div class="row g-4 mb-4">
-        <div class="col-6 col-xl-3">
-            <div class="adm-kpi-card h-100" style="border-top: 3px solid #f59e0b;">
-                <div class="adm-kpi-card-body">
-                    <div class="adm-kpi-label">Lệnh SX chờ duyệt</div>
-                    <div class="adm-kpi-value" style="color: #d97706;">@Model.PendingProductionRequests</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-clock fa-xs me-1" aria-hidden="true"></i>Pending</div>
-                </div>
-                <div class="adm-kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.14); color: #d97706;"><i class="fa-solid fa-industry fa-xl" aria-hidden="true"></i></div>
-            </div>
-        </div>
-
-        <div class="col-6 col-xl-3">
-            <div class="adm-kpi-card h-100" style="border-top: 3px solid #8b5cf6;">
-                <div class="adm-kpi-card-body">
-                    <div class="adm-kpi-label">Đơn hàng tháng này</div>
-                    <div class="adm-kpi-value" style="color: #7c3aed;">@Model.MonthOrders</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-cart-shopping fa-xs me-1" aria-hidden="true"></i>Sale Orders</div>
-                </div>
-                <div class="adm-kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.14); color: #7c3aed;"><i class="fa-solid fa-cart-shopping fa-xl" aria-hidden="true"></i></div>
-            </div>
-        </div>
-
-        <div class="col-6 col-xl-3">
-            <div class="adm-kpi-card h-100" style="border-top: 3px solid #ef4444;">
-                <div class="adm-kpi-card-body">
-                    <div class="adm-kpi-label">Đơn chờ xuất kho</div>
-                    <div class="adm-kpi-value" style="color: #dc2626;">@Model.PendingApprovalOrders</div>
-                    <div class="adm-kpi-delta"><i class="fa-solid fa-triangle-exclamation fa-xs me-1" aria-hidden="true"></i>Chưa duyệt</div>
-                </div>
-                <div class="adm-kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.14); color: #dc2626;"><i class="fa-solid fa-truck-ramp-box fa-xl" aria-hidden="true"></i></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Charts + Activity ── -->
-    <div class="row g-4 mb-4">
-        <!-- Doughnut chart -->
+        <!-- Doughnut chart: Phân bổ theo vai trò -->
         <div class="col-lg-5">
             <div class="adm-card h-100">
                 <div class="adm-card-header">
@@ -119,154 +86,159 @@
                     <div class="adm-chart-container" style="max-width: 300px;">
                         <canvas id="roleChart" aria-label="Biểu đồ tỷ lệ tài khoản theo vai trò" role="img"></canvas>
                     </div>
-                    <!-- Legend summary -->
-                    <div class="d-flex justify-content-center gap-3 mt-3 flex-wrap">
+                    <!-- Legend summary (4 Vai trò chuẩn) -->
+                    <div class="d-flex justify-content-center gap-4 mt-3 flex-wrap">
                         <div class="text-center">
                             <div class="fw-700 fs-5" style="color: #6366f1;">@Model.AdminCount</div>
                             <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Admin</div>
                         </div>
                         <div class="text-center">
-                            <div class="fw-700 fs-5" style="color: #06b6d4;">@Model.ManagerCount</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Manager</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="fw-700 fs-5" style="color: #64748b;">@Model.EmployeeCount</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Employee</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="fw-700 fs-5" style="color: #f59e0b;">@Model.ProductionCount</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Production</div>
+                            <div class="fw-700 fs-5" style="color: #10b981;">@Model.SalesCount</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Sales</div>
                         </div>
                         <div class="text-center">
                             <div class="fw-700 fs-5" style="color: #8b5cf6;">@Model.WarehouseCount</div>
                             <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Warehouse</div>
                         </div>
                         <div class="text-center">
-                            <div class="fw-700 fs-5" style="color: #10b981;">@Model.SalesCount</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Sales</div>
+                            <div class="fw-700 fs-5" style="color: #f59e0b;">@Model.ProductionCount</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Production</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Low-stock warnings -->
+        <!-- Recent Accounts Table -->
         <div class="col-lg-7">
             <div class="adm-card h-100">
                 <div class="adm-card-header">
                     <h2 class="adm-card-title">
-                        <i class="fa-solid fa-triangle-exclamation me-2 text-warning" style="font-size: 0.875rem;" aria-hidden="true"></i>
-                        Cảnh báo tồn kho thấp
+                        <i class="fa-solid fa-table-list me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
+                        Tài khoản mới tạo / cập nhật gần đây
                     </h2>
-                    <span class="adm-badge adm-badge--inactive">@Model.LowStockWarnings.Count mục</span>
+                    <a asp-area="Admin" asp-controller="UserAccount" asp-action="Index"
+                       class="adm-btn adm-btn--outline adm-btn--sm">
+                        <i class="fa-solid fa-arrow-right fa-xs" aria-hidden="true"></i>
+                        Xem tất cả
+                    </a>
                 </div>
                 <div class="adm-card-body--flush">
-                    @if (Model.LowStockWarnings.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="adm-table">
-                                <thead>
-                                    <tr>
-                                        <th>Tên</th>
-                                        <th>Loại</th>
-                                        <th>Tồn kho</th>
-                                        <th>Ngưỡng tối thiểu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in Model.LowStockWarnings.Take(8))
+                    <div class="table-responsive" role="region" aria-label="Danh sách tài khoản gần đây" tabindex="0">
+                        <table class="adm-table">
+                            <caption class="visually-hidden">Tài khoản mới cập nhật cùng vai trò và trạng thái</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tên đăng nhập</th>
+                                    <th scope="col">Họ và tên</th>
+                                    <th scope="col">Vai trò</th>
+                                    <th scope="col">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RecentUsers.Any())
+                                {
+                                    @foreach (var item in Model.RecentUsers)
                                     {
+                                        bool isActive = !string.Equals(item.Status, "Inactive", StringComparison.OrdinalIgnoreCase)
+                                                     && !string.Equals(item.Status, "Blocked", StringComparison.OrdinalIgnoreCase)
+                                                     && !string.Equals(item.Status, "Disabled", StringComparison.OrdinalIgnoreCase)
+                                                     && item.Status != "false" && item.Status != "0";
+                                        string roleBadge = item.Role switch
+                                        {
+                                            "Admin"      => "adm-badge--admin",
+                                            "Production" => "adm-badge--production",
+                                            "Warehouse"  => "adm-badge--warehouse",
+                                            "Sales"      => "adm-badge--sales",
+                                            _            => "adm-badge--production"
+                                        };
                                         <tr>
-                                            <td class="fw-semibold">@item.Name</td>
+                                            <td class="fw-semibold" style="color: #0f172a;">@item.Username</td>
+                                            <td>@item.FullName</td>
+                                            <td><span class="adm-badge @roleBadge">@item.Role</span></td>
                                             <td>
-                                                <span class="adm-badge @(item.Type == "product" ? "adm-badge--admin" : "adm-badge--manager")">
-                                                    @(item.Type == "product" ? "Thành phẩm" : "Nguyên liệu")
+                                                <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
+                                                    <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
+                                                    @(isActive ? "Hoạt động" : "Không hoạt động")
                                                 </span>
                                             </td>
-                                            <td class="text-danger fw-bold">@item.Quantity.ToString("N0")</td>
-                                            <td class="text-muted">@item.Threshold.ToString("N0")</td>
                                         </tr>
                                     }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-muted text-center py-4" style="font-size: 0.95rem;">
-                            <i class="fa-regular fa-circle-check me-2 text-success" aria-hidden="true"></i>Tồn kho đang ở mức an toàn
-                        </div>
-                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-5 text-muted">
+                                            <i class="fa-regular fa-circle-dot fa-2x mb-2 d-block opacity-25" aria-hidden="true"></i>
+                                            Không có dữ liệu
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ── Recent Accounts Table ── -->
-    <div class="adm-card">
+    <!-- ── Sao lưu & Phục hồi Cơ sở dữ liệu ── -->
+    <div class="adm-card mb-4">
         <div class="adm-card-header">
             <h2 class="adm-card-title">
-                <i class="fa-solid fa-table-list me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
-                Tài khoản mới nhất
+                <i class="fa-solid fa-database me-2 text-primary" style="font-size: 0.875rem;" aria-hidden="true"></i>
+                Sao lưu &amp; Phục hồi Cơ sở dữ liệu
             </h2>
-            <a asp-area="Admin" asp-controller="UserAccount" asp-action="Index"
-               class="adm-btn adm-btn--outline adm-btn--sm">
-                <i class="fa-solid fa-arrow-right fa-xs" aria-hidden="true"></i>
-                Xem tất cả
-            </a>
+            <span class="badge rounded-pill px-2 py-1" style="background: rgba(16,185,129,0.12); color: #059669; font-size: 0.7rem; font-weight: 600;">
+                <i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>An toàn dữ liệu
+            </span>
         </div>
-        <div class="adm-card-body--flush">
-            <div class="table-responsive" role="region" aria-label="Danh sách tài khoản gần đây" tabindex="0">
-                <table class="adm-table">
-                    <caption class="visually-hidden">Tài khoản mới cập nhật cùng vai trò và trạng thái</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col">Tên đăng nhập</th>
-                            <th scope="col">Họ và tên</th>
-                            <th scope="col">Vai trò</th>
-                            <th scope="col">Trạng thái</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.RecentUsers.Any())
-                        {
-                            @foreach (var item in Model.RecentUsers)
-                            {
-                                bool isActive = !string.Equals(item.Status, "Inactive", StringComparison.OrdinalIgnoreCase)
-                                             && item.Status != "false" && item.Status != "0";
-                                string roleBadge = item.Role switch
-                                {
-                                    "Admin"      => "adm-badge--admin",
-                                    "Manager"    => "adm-badge--manager",
-                                    "Production" => "adm-badge--production",
-                                    "Warehouse"  => "adm-badge--warehouse",
-                                    "Sales"      => "adm-badge--sales",
-                                    _            => "adm-badge--employee"
-                                };
-                                <tr>
-                                    <td class="fw-semibold" style="color: #0f172a;">@item.Username</td>
-                                    <td>@item.FullName</td>
-                                    <td><span class="adm-badge @roleBadge">@item.Role</span></td>
-                                    <td>
-                                        <span class="adm-badge @(isActive ? "adm-badge--active" : "adm-badge--inactive")">
-                                            <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-circle-xmark") fa-xs" aria-hidden="true"></i>
-                                            @(isActive ? "Hoạt động" : "Không hoạt động")
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-center py-5 text-muted">
-                                    <i class="fa-regular fa-circle-dot fa-2x mb-2 d-block opacity-25" aria-hidden="true"></i>
-                                    Không có dữ liệu
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+        <div class="adm-card-body">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-5">
+                    <div class="p-3 rounded-3 border bg-light-subtle h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="fw-bold mb-1" style="color: #0f172a; font-size: 0.95rem;">
+                                <i class="fa-solid fa-cloud-arrow-down me-1 text-primary" aria-hidden="true"></i>
+                                Sao lưu dữ liệu hệ thống (.json)
+                            </div>
+                            <p class="text-muted mb-3" style="font-size: 0.825rem;">
+                                Xuất toàn bộ dữ liệu hiện tại của cơ sở dữ liệu ra tập tin định dạng chuẩn JSON kèm dấu thời gian để lưu trữ dự phòng.
+                            </p>
+                        </div>
+                        <div>
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="DownloadBackup"
+                               class="adm-btn adm-btn--primary">
+                                <i class="fa-solid fa-download me-1" aria-hidden="true"></i>
+                                Tải bản Sao lưu (.json)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="p-3 rounded-3 border bg-light-subtle h-100">
+                        <div class="fw-bold mb-1" style="color: #0f172a; font-size: 0.95rem;">
+                            <i class="fa-solid fa-cloud-arrow-up me-1 text-success" aria-hidden="true"></i>
+                            Phục hồi CSDL từ bản sao lưu
+                        </div>
+                        <p class="text-muted mb-3" style="font-size: 0.825rem;">
+                            Chọn tập tin sao lưu (<code>.json</code>) đã tải về trước đó để kiểm tra tính toàn vẹn và đồng bộ phục hồi dữ liệu an toàn.
+                        </p>
+                        <form asp-area="Admin" asp-controller="Dashboard" asp-action="RestoreBackup"
+                              method="post" enctype="multipart/form-data"
+                              class="d-flex flex-wrap align-items-center gap-2">
+                            @Html.AntiForgeryToken()
+                            <div class="flex-grow-1">
+                                <input type="file" name="backupFile" accept=".json" class="form-control form-control-sm" required />
+                            </div>
+                            <button type="submit" class="adm-btn adm-btn--outline">
+                                <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>
+                                Phục hồi dữ liệu
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -298,8 +270,8 @@
                         labels: roleLabels,
                         datasets: [{
                             data: roleValues,
-                            backgroundColor: ['#6366f1','#06b6d4','#94a3b8','#f59e0b','#8b5cf6','#10b981'],
-                            borderColor: Array(6).fill('#fff'),
+                            backgroundColor: ['#6366f1','#10b981','#8b5cf6','#f59e0b'],
+                            borderColor: Array(4).fill('#fff'),
                             borderWidth: 3,
                             hoverOffset: 10,
                             borderRadius: 4

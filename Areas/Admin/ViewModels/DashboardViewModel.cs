@@ -10,16 +10,14 @@ public class LowStockItem
 
 public class DashboardViewModel
 {
-    // ── Accounts ─────────────────────────────────────────────────────────
+    // ── Accounts (4 Vai trò chuẩn: Admin, Sales, Warehouse, Production) ───
     public int TotalAccounts { get; set; }
     public int ActiveAccounts { get; set; }
     public int LockedAccounts { get; set; }
     public int AdminCount { get; set; }
-    public int ManagerCount { get; set; }
-    public int EmployeeCount { get; set; }
-    public int ProductionCount { get; set; }
-    public int WarehouseCount { get; set; }
     public int SalesCount { get; set; }
+    public int WarehouseCount { get; set; }
+    public int ProductionCount { get; set; }
 
     // ── Inventory ────────────────────────────────────────────────────────
     public int TotalProducts { get; set; }

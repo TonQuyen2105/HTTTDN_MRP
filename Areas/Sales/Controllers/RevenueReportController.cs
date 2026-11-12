@@ -31,11 +31,11 @@ namespace httt.Areas.Sales.Controllers
 
         public decimal UnitSellingPrice { get; set; }     // Giá bán 1 ĐV (product.cost)
         public decimal UnitBomCost { get; set; }          // Giá vốn NVL 1 ĐV (product.materialcost)
-        public decimal ProfitPerUnit { get; set; }        // Lời trên 1 ĐV = Giá bán - Giá vốn NVL
+        public decimal ProfitPerUnit { get; set; }        // Tiền lời / 1 ĐV = Giá bán - Giá vốn NVL
 
         public decimal TotalSales { get; set; }           // Tổng doanh thu = SL xuất * Giá bán
         public decimal TotalCost { get; set; }            // Tổng giá vốn NVL = SL xuất * materialcost
-        public decimal TotalProfit { get; set; }          // Tổng lợi nhuận = Tổng doanh thu - Tổng giá vốn NVL
+        public decimal TotalProfit { get; set; }          // Tổng tiền lời = Tổng doanh thu - Tổng giá vốn
         public decimal MarginPercent { get; set; }        // Tỷ suất lợi nhuận (%)
         public bool HasBom { get; set; }
         public List<BomItemDetailDto> Ingredients { get; set; } = new();
@@ -70,13 +70,13 @@ namespace httt.Areas.Sales.Controllers
         {
             try
             {
-                // 1. Nạp danh sách sản phẩm (Có sẵn cột cost = Giá bán và materialcost = Giá vốn NVL)
+                // 1. Nạp danh mục sản phẩm (Chứa giá bán: cost, giá vốn NVL: materialcost)
                 var allProducts = await _context.Products
                     .AsNoTracking()
                     .OrderBy(p => p.ProductId)
                     .ToListAsync();
 
-                // 2. Nạp chi tiết công thức BOM từ CSDL (để hiển thị popup xem thành phần nguyên liệu nếu có)
+                // 2. Nạp chi tiết công thức định mức BOM từ CSDL
                 var bomDetailsByProduct = new Dictionary<int, List<BomItemDetailDto>>();
                 try
                 {
@@ -118,43 +118,31 @@ namespace httt.Areas.Sales.Controllers
                 }
                 catch
                 {
-                    // Bỏ qua nếu bảng BOM chưa có chi tiết, vì giá vốn chính đã lấy từ cột Product.Materialcost
+                    // Dự phòng nếu bảng BOM trống, hệ thống sử dụng product.materialcost
                 }
 
-                // 3. Nạp toàn bộ đơn hàng và phiếu xuất kho để thống kê các đơn ĐÃ HOÀN TẤT (Completed)
-                var orders = await _context.SaleOrders
+                // 3. Nạp danh sách đơn hàng
+                var allOrders = await _context.SaleOrders
                     .Include(o => o.SaleOrderDetails)
                         .ThenInclude(d => d.Product)
                     .AsNoTracking()
                     .OrderByDescending(o => o.OrderDate)
                     .ToListAsync();
 
-                var exportReceipts = await _context.ProductExportReceipts
-                    .Include(r => r.ProductExportReceiptDetails)
-                    .AsNoTracking()
-                    .ToListAsync();
+                // ĐIỀU KIỆN CHẶT CHẼ:
+                // Chỉ những đơn có trạng thái "Completed" (hoặc "Đã xong", "Đã hoàn thành") mới được ghi nhận vào doanh thu.
+                // Nếu đơn vẫn ở trạng thái khác (Pending, Holding, PendingApproval, Cancelled) thì TUYỆT ĐỐI KHÔNG tính,
+                // kể cả khi phiếu xuất kho ở trạng thái đã xuất vì đơn hàng vẫn có thể bị hủy hoặc chưa bàn giao xong.
+                var strictlyCompletedOrders = allOrders.Where(o =>
+                    !string.Equals(o.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
+                    o.Status != "Đã hủy" &&
+                    (string.Equals(o.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                     o.Status == "Đã xong" ||
+                     o.Status == "Đã hoàn thành")
+                ).ToList();
 
-                var exportedOrderIds = exportReceipts
-                    .Where(r => r.OrderId.HasValue && (
-                        string.Equals(r.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(r.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
-                        r.Status == "Đã xuất kho" ||
-                        r.Status == "Đã hoàn thành"))
-                    .Select(r => r.OrderId!.Value)
-                    .ToHashSet();
-
-                bool CheckOrderDone(SaleOrder o) =>
-                    string.Equals(o.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
-                    o.Status == "Đã xong" ||
-                    o.Status == "Đã hoàn thành" ||
-                    o.Status == "Đã xuất kho" ||
-                    exportedOrderIds.Contains(o.OrderId);
-
-                var completedOrdersList = orders.Where(CheckOrderDone).ToList();
-
-                // 4. Gom nhóm số lượng đã bán theo từng sản phẩm từ các đơn ĐÃ XONG
-                var soldItemsLookup = completedOrdersList
+                // 4. Tổng hợp số lượng và doanh thu bán theo từng mã sản phẩm
+                var soldItemsLookup = strictlyCompletedOrders
                     .SelectMany(o => o.SaleOrderDetails)
                     .GroupBy(d => d.ProductId)
                     .ToDictionary(
@@ -166,38 +154,7 @@ namespace httt.Areas.Sales.Controllers
                         }
                     );
 
-                // Nếu có phiếu xuất kho trực tiếp không gắn với đơn hàng
-                var standaloneDetails = exportReceipts
-                    .Where(r => !r.OrderId.HasValue && (
-                        string.Equals(r.Status, "Approved", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(r.Status, "Exported", StringComparison.OrdinalIgnoreCase) ||
-                        r.Status == "Đã xuất kho" ||
-                        r.Status == "Đã hoàn thành"))
-                    .SelectMany(r => r.ProductExportReceiptDetails)
-                    .ToList();
-
-                foreach (var sd in standaloneDetails)
-                {
-                    if (soldItemsLookup.TryGetValue(sd.ProductId, out var cur))
-                    {
-                        soldItemsLookup[sd.ProductId] = new
-                        {
-                            SoldQty = cur.SoldQty + sd.Quantity,
-                            Revenue = cur.Revenue + ((sd.Price ?? 0m) * sd.Quantity)
-                        };
-                    }
-                    else
-                    {
-                        soldItemsLookup[sd.ProductId] = new
-                        {
-                            SoldQty = sd.Quantity,
-                            Revenue = (sd.Price ?? 0m) * sd.Quantity
-                        };
-                    }
-                }
-
-                // 5. TÍNH DOANH THU - GIÁ VỐN (MATERIALCOST) - LỢI NHUẬN CHO TỪNG SẢN PHẨM
+                // 5. Tính toán chỉ số tài chính từng sản phẩm
                 var productReports = new List<TopProductReportDto>();
                 decimal grandTotalRevenue = 0m;
                 decimal grandTotalCost = 0m;
@@ -208,10 +165,7 @@ namespace httt.Areas.Sales.Controllers
                         ? bomDetailsByProduct[prod.ProductId]
                         : new List<BomItemDetailDto>();
 
-                    // ĐƠN GIÁ BÁN 1 ĐƠN VỊ (Cột cost trong bảng Product)
                     decimal unitSellingPrice = prod.Cost ?? 0m;
-
-                    // GIÁ VỐN NVL 1 ĐƠN VỊ (Lấy trực tiếp từ cột materialcost trong bảng Product theo đúng yêu cầu)
                     decimal unitMaterialCost = (prod.MaterialCost.HasValue && prod.MaterialCost.Value > 0)
                         ? prod.MaterialCost.Value
                         : (ingredients.Any() ? ingredients.Sum(i => i.SubTotal) : 0m);
@@ -229,10 +183,7 @@ namespace httt.Areas.Sales.Controllers
                         }
                     }
 
-                    // Tổng giá vốn NVL của lượng hàng đã xuất = Số lượng xuất * materialcost
                     decimal totalCost = soldQty * unitMaterialCost;
-
-                    // Lợi nhuận gộp = Doanh thu bán hàng - Giá vốn NVL (materialcost)
                     decimal totalProfit = totalSales - totalCost;
                     decimal profitPerUnit = unitSellingPrice - unitMaterialCost;
                     decimal marginPercent = totalSales > 0
@@ -261,7 +212,6 @@ namespace httt.Areas.Sales.Controllers
                     });
                 }
 
-                // Sắp xếp ưu tiên sản phẩm có doanh số & lợi nhuận cao lên đầu
                 productReports = productReports
                     .OrderByDescending(p => p.TotalSales)
                     .ThenByDescending(p => p.TotalProfit)
@@ -270,17 +220,16 @@ namespace httt.Areas.Sales.Controllers
 
                 decimal grandTotalProfit = grandTotalRevenue - grandTotalCost;
 
-                ViewBag.TotalOrders = orders.Count;
-                ViewBag.CompletedOrders = completedOrdersList.Count;
-                ViewBag.ProcessingOrders = orders.Count - completedOrdersList.Count;
+                ViewBag.TotalOrders = allOrders.Count;
+                ViewBag.CompletedOrders = strictlyCompletedOrders.Count;
+                ViewBag.ProcessingOrders = allOrders.Count - strictlyCompletedOrders.Count;
 
                 ViewBag.RealRevenue = grandTotalRevenue;
                 ViewBag.RealCost = grandTotalCost;
                 ViewBag.RealProfit = grandTotalProfit;
-
                 ViewBag.ProductReports = productReports;
 
-                return View("Index", completedOrdersList);
+                return View("Index", strictlyCompletedOrders);
             }
             catch
             {

@@ -1766,14 +1766,32 @@ const WarehouseComponents = (function () {
 
                             <div class="wh-vtable-wrap">
                                 ${isInbound ? (isCreate ? `
-                                    <!-- BẢNG TẠO MỚI NGUYÊN VẬT LIỆU (Có dropdown chọn NVL, thêm dòng, xóa từng dòng) -->
+                                    <!-- BẢNG TẠO MỚI NGUYÊN VẬT LIỆU (Có dropdown chọn NVL, cho phép đổi ĐVT, thêm dòng, xóa từng dòng) -->
+                                    <datalist id="wh-inbound-unit-options">
+                                        <option value="kg"></option>
+                                        <option value="g"></option>
+                                        <option value="mg"></option>
+                                        <option value="tấn"></option>
+                                        <option value="lít"></option>
+                                        <option value="ml"></option>
+                                        <option value="hộp"></option>
+                                        <option value="lọ"></option>
+                                        <option value="chai"></option>
+                                        <option value="ống"></option>
+                                        <option value="gói"></option>
+                                        <option value="bao"></option>
+                                        <option value="thùng"></option>
+                                        <option value="túi"></option>
+                                        <option value="viên"></option>
+                                        <option value="vỉ"></option>
+                                    </datalist>
                                     <table class="wh-vtable">
                                         <thead>
                                             <tr>
                                                 <th style="width: 45px; text-align: center;">#</th>
                                                 <th style="width: 140px;">${Icons.pin}Mã NVL</th>
                                                 <th>Tên nguyên vật liệu <span class="wh-req">*</span></th>
-                                                <th style="width: 75px; text-align: center;">ĐVT</th>
+                                                <th style="width: 130px; text-align: center;">ĐVT <span class="wh-req">*</span></th>
                                                 <th style="width: 115px;" class="wh-text-right">SL nhập <span class="wh-req">*</span></th>
                                                 <th style="width: 135px;" class="wh-text-right">Giá nguyên liệu</th>
                                                 <th style="width: 150px;" class="wh-text-right">Thành tiền</th>
@@ -1827,7 +1845,18 @@ const WarehouseComponents = (function () {
                                                             </select>
                                                         </td>
                                                         <td style="text-align: center;">
-                                                            <span class="wh-cell-text" data-cell="unit" data-row-id="${row.id}">${escapeHtml(row.unit || '-')}</span>
+                                                            <input
+                                                                type="text"
+                                                                class="wh-input-control wh-table-input"
+                                                                data-action="change-inbound-item-unit"
+                                                                data-row-id="${row.id}"
+                                                                list="wh-inbound-unit-options"
+                                                                value="${escapeHtml(row.unit && row.unit !== '-' ? row.unit : '')}"
+                                                                placeholder="ĐVT..."
+                                                                maxlength="20"
+                                                                style="text-align: center; font-weight: 500;"
+                                                                ${!row.itemCode ? 'disabled' : ''}
+                                                            />
                                                         </td>
                                                         <td class="wh-text-right">
                                                             <input
@@ -3491,7 +3520,7 @@ const WarehouseComponents = (function () {
                                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #166534; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;">
                                         <span style="font-size: 16px; line-height: 1;">💡</span>
                                         <div>
-                                            <strong>Quy tắc tạo mới thành phẩm:</strong> Nhập <strong>Tên sản phẩm</strong> và <strong>Đơn vị tính (ĐVT)</strong>. Trường <strong>Giá vốn</strong> được khóa cố định (0 đ) và sẽ tự động lấy giá cao nhất từ các <strong>Phiếu nhập kho thành phẩm</strong>.
+                                            <strong>Quy tắc tạo mới thành phẩm:</strong> Nhập <strong>Tên sản phẩm</strong> và <strong>Đơn vị tính (ĐVT)</strong>. Trường <strong>Giá bán</strong> (mặc định 0 đ) và <strong>Giá vốn</strong> được khóa cố định; giá vốn sẽ tự động lấy giá cao nhất từ các <strong>Phiếu nhập kho thành phẩm</strong>.
                                         </div>
                                     </div>
                                 ` : ''}
@@ -3499,7 +3528,7 @@ const WarehouseComponents = (function () {
                                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #1e40af; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;">
                                         <span style="font-size: 16px; line-height: 1;">ℹ️</span>
                                         <div>
-                                            <strong>Lưu ý:</strong> Trường <strong>Giá vốn</strong> được khóa cố định và tự động lấy theo <strong>giá cao nhất từ các phiếu nhập kho thành phẩm</strong> của sản phẩm này.
+                                            <strong>Lưu ý:</strong> Trường <strong>Giá bán</strong> (mặc định 0 đ) và <strong>Giá vốn</strong> được khóa cố định không cho chỉnh sửa; giá vốn tự động lấy theo <strong>giá cao nhất từ các phiếu nhập kho thành phẩm</strong> của sản phẩm này.
                                         </div>
                                     </div>
                                 ` : ''}
@@ -3611,18 +3640,31 @@ const WarehouseComponents = (function () {
 
                                     <div class="wh-form-group">
                                         <label class="wh-form-label">
-                                            Giá bán (VNĐ)
+                                            Giá bán (VNĐ) <span class="wh-lock-hint" title="${isCreate ? 'Giá bán mặc định 0 đ khi thêm mới' : 'Giá bán sản phẩm được khóa không cho chỉnh sửa'}">${Icons.lock} Khóa${isCreate ? ' (Mặc định 0)' : ''}</span>
                                         </label>
-                                        <input
-                                            type="number"
-                                            name="cost"
-                                            class="wh-input-control"
-                                            min="0"
-                                            step="1000"
-                                            placeholder="VD: 50000"
-                                            value="${item.cost !== undefined && item.cost !== null ? item.cost : ''}"
-                                            style="font-weight: 600; color: #1e293b;"
-                                        />
+                                        ${isCreate ? `
+                                            <input
+                                                type="text"
+                                                name="cost"
+                                                class="wh-input-control is-readonly"
+                                                value="0 đ"
+                                                readonly
+                                                tabindex="-1"
+                                                title="Giá bán sản phẩm được khóa với giá trị mặc định 0"
+                                                style="font-weight: 600; color: #64748b;"
+                                            />
+                                        ` : `
+                                            <input
+                                                type="text"
+                                                name="cost"
+                                                class="wh-input-control is-readonly"
+                                                value="${item.costFormatted ? `${item.costFormatted} đ` : (item.cost ? `${Number(item.cost).toLocaleString('vi-VN')} đ` : '0 đ')}"
+                                                readonly
+                                                tabindex="-1"
+                                                title="Giá bán sản phẩm được khóa không cho chỉnh sửa"
+                                                style="font-weight: 600; color: #1e293b;"
+                                            />
+                                        `}
                                     </div>
 
                                     <div class="wh-form-group">
@@ -3838,7 +3880,7 @@ const WarehouseComponents = (function () {
                                 <span class="wh-vthh-lock-notice">
                                     ${itemType === 'ingredient'
                                         ? '* Điền Tên nguyên vật liệu và Đơn giá (> 0) để tạo mới. Giá nhập và các thông tin còn lại sẽ cập nhật từ phiếu nhập kho.'
-                                        : '* Điền Tên sản phẩm và Đơn vị tính (ĐVT) để tạo mới. Trường Giá vốn được khóa và sẽ cập nhật từ phiếu nhập kho thành phẩm.'}
+                                        : '* Điền Tên sản phẩm và Đơn vị tính (ĐVT) để tạo mới. Trường Giá bán (mặc định 0 đ) và Giá vốn được khóa cố định.'}
                                 </span>
                             ` : (isEdit ? `
                                 <span class="wh-vthh-lock-notice">
@@ -4427,7 +4469,7 @@ const WarehouseComponents = (function () {
                                             ${t.outQty > 0 ? `-${Number(t.outQty).toLocaleString('vi-VN')}` : '-'}
                                         </td>
                                         <td style="text-align: right; color: #475569;">
-                                            ${t.cost ? `${Number(t.cost).toLocaleString('vi-VN')} đ` : '-'}
+                                            ${(t.cost !== null && t.cost !== undefined) ? `${Number(t.cost).toLocaleString('vi-VN')} đ` : '-'}
                                         </td>
                                         <td style="text-align: center;">
                                             <span class="wh-action-status-badge ${t.status === 'Completed' || t.status === 'Approve' || t.status === 'Approved' || t.status === 'Đã xuất kho' || t.status === 'Đã nhập kho' ? 'is-approved' : (t.status === 'Rejected' || t.status === 'Reject' || t.status === 'Từ chối' || t.status === 'Đã hủy' ? 'is-rejected' : '')}" style="${t.status === 'Approved' || t.status === 'Approve' || t.status === 'Đã xuất kho' || t.status === 'Đã nhập kho' || t.status === 'Completed' ? 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:600; padding:3px 8px; border-radius:4px; display:inline-flex;' : (t.status === 'Đã hủy' || t.status === 'Rejected' || t.status === 'Reject' || t.status === 'Từ chối' ? 'background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; font-weight:600; padding:3px 8px; border-radius:4px; display:inline-flex;' : '')}">

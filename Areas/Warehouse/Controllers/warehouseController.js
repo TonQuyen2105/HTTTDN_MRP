@@ -2305,6 +2305,16 @@ const WarehouseController = (function (Model, View) {
                 return;
             }
 
+            if (action === 'change-inbound-item-unit') {
+                const rowId = target.getAttribute('data-row-id');
+                const cleaned = String(target.value || '').trim();
+                target.value = cleaned;
+                if (Model.changeInboundNewItemUnit) {
+                    Model.changeInboundNewItemUnit(rowId, cleaned);
+                }
+                return;
+            }
+
             if (action === 'change-pr-item-product') {
                 const rowId = target.getAttribute('data-row-id');
                 if (rowId && Model.changePrItemProduct) {
@@ -2504,6 +2514,14 @@ const WarehouseController = (function (Model, View) {
                             totalAmtEl.textContent = totalAmt.toLocaleString('vi-VN') + ' đ';
                         }
                     }
+                }
+                return;
+            }
+
+            if (inputAction === 'change-inbound-item-unit') {
+                const rowId = target.getAttribute('data-row-id');
+                if (Model.changeInboundNewItemUnit) {
+                    Model.changeInboundNewItemUnit(rowId, target.value);
                 }
                 return;
             }

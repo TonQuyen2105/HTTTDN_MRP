@@ -917,7 +917,7 @@ const WarehouseModel = (function () {
                     productName: (newItem.productName || '').trim(),
                     quantity: 0,
                     unit: (newItem.unit || '').trim(),
-                    cost: parseFloat(newItem.cost) || 0,
+                    cost: 0, // Giá bán được khóa mặc định 0 khi thêm mới
                     materialCost: 0, // Giá vốn được khóa khi thêm mới, cập nhật từ phiếu nhập kho thành phẩm
                     imageUrl: (newItem.imageUrl || '').trim(),
                     description: (newItem.description || '').trim(),
@@ -1003,13 +1003,10 @@ const WarehouseModel = (function () {
             const isProd = itemType === 'product';
             const numId = parseInt(String(itemId).replace(/\D/g, ''), 10) || itemId;
             if (isProd) {
-                const cleanCost = typeof updatedData.cost === 'string' ? (parseFloat(updatedData.cost.replace(/[^\d.]/g, '')) || 0) : (Number(updatedData.cost) || 0);
-
                 const payload = {
                     productName: (updatedData.productName || '').trim(),
                     quantity: parseInt(updatedData.quantity, 10) || 0,
                     unit: (updatedData.unit || 'Hộp').trim(),
-                    cost: cleanCost,
                     imageUrl: (updatedData.imageUrl || '').trim(),
                     description: (updatedData.description || '').trim()
                 };
@@ -1662,7 +1659,7 @@ const WarehouseModel = (function () {
                 id: nextId,
                 itemCode: '',
                 itemName: '',
-                unit: '-',
+                unit: '',
                 quantity: '',
                 rawPrice: 0,
                 price: 0,
@@ -1690,7 +1687,7 @@ const WarehouseModel = (function () {
             if (!ingrCode) {
                 row.itemCode = '';
                 row.itemName = '';
-                row.unit = '-';
+                row.unit = '';
                 row.rawPrice = 0;
                 row.price = 0;
                 row.expiryDate = '-';
@@ -1722,6 +1719,14 @@ const WarehouseModel = (function () {
                 row.amount = Math.round(qty * (row.price || 0));
             }
             return { success: true };
+        },
+
+        changeInboundNewItemUnit(rowId, newUnit) {
+            if (!state.inboundNewDraft) return null;
+            const row = state.inboundNewDraft.items.find(i => i.id === Number(rowId));
+            if (!row) return null;
+            row.unit = String(newUnit ?? '');
+            return row;
         },
 
         changeInboundNewItemQty(rowId, newQty) {
@@ -1797,6 +1802,14 @@ const WarehouseModel = (function () {
             if (validItems.length === 0) {
                 return { success: false, message: 'Phiếu nhập phải có ít nhất 1 dòng nguyên vật liệu với số lượng nhập lớn hơn 0!' };
             }
+            const missingUnitItem = validItems.find(it => !String(it.unit || '').trim());
+            if (missingUnitItem) {
+                return { success: false, message: `Vui lòng nhập đơn vị tính (ĐVT) cho nguyên vật liệu '${missingUnitItem.itemName || missingUnitItem.itemCode}'!` };
+            }
+            const longUnitItem = validItems.find(it => String(it.unit || '').trim().length > 20);
+            if (longUnitItem) {
+                return { success: false, message: `Đơn vị tính (ĐVT) của '${longUnitItem.itemName || longUnitItem.itemCode}' tối đa 20 ký tự!` };
+            }
 
             const suppliers = this.getSuppliersList();
             const sup = suppliers.find(s => s.code === draft.supplierCode || s.name === draft.supplierName) || suppliers[0];
@@ -1809,7 +1822,8 @@ const WarehouseModel = (function () {
                 return {
                     ingrId: Number(ingrId),
                     quantity: Number(it.quantity) || 1,
-                    cost: Number(it.price) || 0
+                    cost: Number(it.price) || 0,
+                    unit: String(it.unit || '').trim()
                 };
             });
 
@@ -1833,7 +1847,10 @@ const WarehouseModel = (function () {
                 try { resData = JSON.parse(resText); } catch (_) { resData = { message: resText }; }
                 if (!res.ok) throw new Error(resData.message || `Lỗi máy chủ (${res.status})`);
 
-                await fetchImportReceiptsApi();
+                await Promise.all([
+                    fetchImportReceiptsApi(),
+                    fetchIngredientsApi()
+                ]);
                 this.closeVoucherModal();
                 return { success: true, isDraft: false, voucherNo: resData.voucherNo || draft.voucherNo };
             } catch (err) {
@@ -2530,7 +2547,8 @@ const WarehouseModel = (function () {
                     return {
                         ingrId: Number(ingrId),
                         quantity: Number(it.quantity) || 1,
-                        cost: Number(it.price) || 0
+                        cost: Number(it.price) || 0,
+                        unit: String(it.unit || '').trim() || undefined
                     };
                 });
 
@@ -2559,7 +2577,10 @@ const WarehouseModel = (function () {
                     localStorage.setItem('wh_inbound_drafts', JSON.stringify(state.inboundLocalDrafts));
                 } catch (e) {}
 
-                await fetchImportReceiptsApi();
+                await Promise.all([
+                    fetchImportReceiptsApi(),
+                    fetchIngredientsApi()
+                ]);
                 return {
                     success: true,
                     status: 'Approve',

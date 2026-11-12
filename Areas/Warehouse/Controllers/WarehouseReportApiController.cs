@@ -51,7 +51,7 @@ public class WarehouseReportApiController : ControllerBase
                     inQty = d.Quantity,
                     outQty = 0m,
                     unit = ingr.Unit,
-                    cost = d.Cost ?? 0,
+                    cost = ingr.Cost ?? 0,
                     status = r?.Status ?? "Approve"
                 };
             }).ToList();
@@ -72,7 +72,7 @@ public class WarehouseReportApiController : ControllerBase
                     inQty = 0m,
                     outQty = d.Quantity,
                     unit = ingr.Unit,
-                    cost = d.UnitCost ?? 0,
+                    cost = ingr.Cost ?? 0,
                     status = isDisposal ? "Đã hủy" : (r?.Status ?? "Approved")
                 };
             }).ToList();
@@ -117,7 +117,7 @@ public class WarehouseReportApiController : ControllerBase
                         inQty = (decimal)d.Quantity,
                         outQty = 0m,
                         unit = prod.Unit,
-                        cost = (d.Cost.HasValue && d.Cost.Value > 0) ? d.Cost.Value : (prod.MaterialCost ?? prod.Cost ?? 0),
+                        cost = prod.Cost ?? 0,
                         status = r.Status ?? "Approved"
                     };
                 }).ToList();
@@ -145,7 +145,7 @@ public class WarehouseReportApiController : ControllerBase
                         inQty = 0m,
                         outQty = (decimal)d.Quantity,
                         unit = prod.Unit,
-                        cost = d.Price ?? prod.MaterialCost ?? prod.Cost ?? 0,
+                        cost = prod.Cost ?? 0,
                         status = isDisposal ? "Đã hủy" : (r.Status ?? "Approved")
                     };
                 }).ToList();
@@ -296,7 +296,7 @@ public class WarehouseReportApiController : ControllerBase
                 decimal outQ = ingrOutGroup.GetValueOrDefault(ingr.IngrId, 0);
                 decimal wipQ = ingrWipGroup.GetValueOrDefault(ingr.IngrId, 0);
                 decimal openStock = Math.Max(0, curStock - inQ + outQ);
-                decimal unitPrice = ingr.Price ?? 0;
+                decimal unitPrice = ingr.Cost ?? 0;
                 decimal totalVal = curStock * unitPrice;
                 string status = curStock == 0 ? "danger" : (curStock <= 100 ? "warning" : "safe");
                 string statusLabel = curStock == 0 ? "Hết hàng" : (curStock <= 100 ? "Sắp hết" : "An toàn");

@@ -1161,6 +1161,11 @@ namespace httt.Areas.Productions.Controllers
                     });
                 }
 
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync<IActionResult>(async () =>
+                {
+                // Retry from fresh database state; OperationKey prevents duplicate production.
+                _context.ChangeTracker.Clear();
                 // Khóa đơn trước khi đọc tiến độ để các lần ghi nhận cùng đơn chạy tuần tự.
                 await using var transaction = await _context.Database.BeginTransactionAsync();
                 var orders = await _context.ProductionRequests
@@ -1461,16 +1466,13 @@ namespace httt.Areas.Productions.Controllers
                         totalProduced = newTotalProduced
                     });
                 }
-                catch (Exception ex)
+                catch
                 {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, "Lỗi cơ sở dữ liệu khi lưu đồng bộ sản xuất cho đơn {RequestId}", req.RequestId);
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Đã xảy ra lỗi khi lưu kết quả ghi nhận sản lượng vào hệ thống. Vui lòng thử lại sau."
-                    });
+                    // Let the execution strategy handle transient failures. Disposing
+                    // an uncommitted transaction rolls back all WIP and log changes.
+                    throw;
                 }
+                });
             }
             catch (Exception ex)
             {

@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="httt.csproj" />
   <Project Path="MrpQuanLyThuoc.Api/MrpQuanLyThuoc.Api.csproj" />
 </Solution>

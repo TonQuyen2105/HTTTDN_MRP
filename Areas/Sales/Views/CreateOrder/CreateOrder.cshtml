@@ -41,6 +41,9 @@
         existingReceipt.Status == "Tán thành" ||
         existingReceipt.Status == "Đã xuất kho"
     );
+
+    // Kiểm tra đơn hàng có sản phẩm nào đang thiếu tồn kho không (chỉ dùng để hiển thị thông báo nhắc nhở, không chặn tạo phiếu)
+    bool hasInsufficientStock = selectedOrder?.SaleOrderDetails?.Any(d => d.Quantity > (d.Product?.Quantity ?? 0)) ?? false;
 }
 
 @section Styles {
@@ -318,6 +321,10 @@
                             {
                                 <span style="color: #DC2626; font-weight: 600;">Đơn hàng đã bị hủy bỏ, các chức năng xuất kho đã đóng.</span>
                             }
+                            else if (hasInsufficientStock && !isSent && !isOrderCompleted)
+                            {
+                                <span style="color: #B45309; font-weight: 600;">Lưu ý: Đơn có sản phẩm thiếu tồn kho. Hệ thống vẫn cho phép gửi phiếu để bộ phận Kho xử lý bổ sung.</span>
+                            }
                             else
                             {
                                 <span>Lệnh xuất gửi trực tiếp đến thủ kho để chuẩn bị hàng và bàn giao.</span>
@@ -344,7 +351,7 @@
                             }
                             else if (!isSent)
                             {
-                                <button type="button" class="btn-dispatch-now" onclick="submitExportSlip(@selectedOrder.Orderid, this)">
+                                <button type="button" class="btn-dispatch-now" onclick="submitExportSlip(@selectedOrder.Orderid, this, @(hasInsufficientStock ? "true" : "false"))">
                                     @(isLatestRejected ? "Tạo lại phiếu xuất kho" : "Yêu cầu xuất kho")
                                 </button>
                                 <span class="badge-waiting">@(isLatestRejected ? "Đã bị từ chối" : "Chờ lập phiếu")</span>
@@ -542,9 +549,14 @@
             });
         }
 
-        async function submitExportSlip(orderId, btn) {
-            if (!confirm('Xác nhận gửi yêu cầu xuất kho sang bộ phận Kho?')) return;
+        async function submitExportSlip(orderId, btn, isLackStock) {
+            const confirmMsg = isLackStock
+                ? 'Đơn hàng đang có sản phẩm thiếu tồn kho. Bạn vẫn muốn tạo và gửi phiếu yêu cầu xuất kho sang bộ phận Kho?'
+                : 'Xác nhận gửi yêu cầu xuất kho sang bộ phận Kho?';
 
+            if (!confirm(confirmMsg)) return;
+
+            const originalText = btn ? btn.innerHTML : 'Yêu cầu xuất kho';
             if (btn) {
                 btn.style.pointerEvents = 'none';
                 btn.innerHTML = 'Đang gửi...';
@@ -564,14 +576,14 @@
                     alert('✕ ' + data.message);
                     if (btn) {
                         btn.style.pointerEvents = 'auto';
-                        btn.innerHTML = 'Yêu cầu xuất kho';
+                        btn.innerHTML = originalText;
                     }
                 }
             } catch (err) {
                 alert('✕ Lỗi: ' + err.message);
                 if (btn) {
                     btn.style.pointerEvents = 'auto';
-                    btn.innerHTML = 'Yêu cầu xuất kho';
+                    btn.innerHTML = originalText;
                 }
             }
         }

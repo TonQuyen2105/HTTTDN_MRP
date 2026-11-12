@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="/css/productions/production-order.css">
   <link rel="stylesheet" href="/css/productions/production-statistics.css">
-  <link rel="stylesheet" href="/css/productions/material-requisition.css">
+  <link rel="stylesheet" href="~/css/productions/material-requisition.css" asp-append-version="true">
 </head>
 <body>
   <div class="app-wrapper">
@@ -201,6 +201,7 @@
                 <option selected value="All">Tất cả trạng thái</option>
                 <option value="Pending">Chờ cấp</option>
                 <option value="Approved">Được cấp</option>
+                <option value="Rejected">Bị từ chối</option>
               </select>
             </div>
           </div>
@@ -233,8 +234,9 @@
                         var prodName = item.ProductionRequest?.Product?.ProductName ?? firstDetail?.Note ?? "Xuất hoạt chất & tá dược";
                         var reqCode = item.ProductionRequest?.ProductionDisplayCode ?? "Chưa có mã";
                         var receiptLabel = item.DisplayCode;
+                        var isRejected = string.Equals(item.Status?.Trim(), "Rejected", StringComparison.OrdinalIgnoreCase);
                         var isDone = item.Status == "Completed" || item.Status == "Approved" || item.Status == "Được cấp";
-                        <tr data-mr-list-row data-status="@(isDone ? "Approved" : "Pending")">
+                        <tr data-mr-list-row data-status="@(isRejected ? "Rejected" : isDone ? "Approved" : "Pending")">
                           <td class="text-center">@stt</td>
                           <td><a href="/Productions/Home/MaterialRequisitionCreate?id=@item.ExpReceiptId" style="color:var(--color-primary); font-weight:700;">@receiptLabel</a></td>
                           <td>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "—")</td>
@@ -252,7 +254,11 @@
                           <td>Phân xưởng Bào chế GMP</td>
                           <td>@(item.Requester?.FullName ?? "—")</td>
                           <td class="text-center">
-                            @if (isDone)
+                            @if (isRejected)
+                            {
+                                <span class="mr-status-rejected">Bị từ chối</span>
+                            }
+                            else if (isDone)
                             {
                                 <span class="badge-status-done" style="background:#ecfdf5; color:#047857; border: 1px solid #a7f3d0; font-weight: 600;">Được cấp</span>
                             }

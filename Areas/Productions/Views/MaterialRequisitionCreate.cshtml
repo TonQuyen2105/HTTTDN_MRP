@@ -15,14 +15,15 @@
     var wipDict = ViewBag.WipDict as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
 
     // Phiếu được coi là đã cấp (Completed / Approved / Được cấp) hoặc khi toàn bộ dòng đã nạp đủ trong wip_inventory
+    var isRejected = string.Equals(Model?.Status?.Trim(), "Rejected", StringComparison.OrdinalIgnoreCase);
     var isFulfilled = Model?.Status == "Completed" || Model?.Status == "Approved" || Model?.Status == "Được cấp";
-    if (!isFulfilled && Model?.Details != null && Model.Details.Any())
+    if (!isRejected && !isFulfilled && Model?.Details != null && Model.Details.Any())
     {
         isFulfilled = Model.Details.All(d => wipDict.TryGetValue(d.IngrId, out var wQty) && wQty >= d.Quantity);
     }
 
-    var statusText = isFulfilled ? "Được cấp" : (Model?.Status == "Processing" ? "Đang xử lý" : "Chờ cấp");
-    var statusBadgeClass = isFulfilled ? "badge-status-done" : "badge-status-waiting";
+    var statusText = isRejected ? "Bị từ chối" : isFulfilled ? "Được cấp" : (Model?.Status == "Processing" ? "Đang xử lý" : "Chờ cấp");
+    var statusBadgeClass = isRejected ? "mr-status-rejected" : isFulfilled ? "badge-status-done" : "badge-status-waiting";
     var noteText = Model?.Note ?? "";
     var bomName = Model?.BomName ?? "—";
 }
@@ -36,7 +37,7 @@
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/layout.css">
   <link rel="stylesheet" href="/css/productions/production-order.css">
-  <link rel="stylesheet" href="/css/productions/material-requisition.css">
+  <link rel="stylesheet" href="~/css/productions/material-requisition.css" asp-append-version="true">
 </head>
 <body>
   @Html.AntiForgeryToken()
@@ -438,7 +439,11 @@
 
                       <!-- TRẠNG THÁI -->
                       <td class="text-center">
-                        @if (isLineFulfilled)
+                        @if (isRejected || string.Equals(detail.Status?.Trim(), "Rejected", StringComparison.OrdinalIgnoreCase))
+                        {
+                          <span class="mr-status-rejected">Bị từ chối</span>
+                        }
+                        else if (isLineFulfilled)
                         {
                           <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 600;">
                             Được cấp

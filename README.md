@@ -7,10 +7,10 @@
 
 DANH SÁCH & THÔNG TIN LIÊN HỆ THÀNH VIÊN TRONG NHÓM:
 
-3123411251 Tôn Quyền
-3123411115 Lý Minh Huy
-3123411213 Trần Ngọc Phương Nhi
-3123411263 Nguyễn Minh Tài
+3123411251, Tôn Quyền, sđt: 0787554657, email: tonquyen2105@gmail.com
+3123411115, Lý Minh Huy, sđt: 0931792138, email: lyminhhuy01234@gmail.com
+3123411213, Trần Ngọc Phương Nhi, sđt: 0968798030, email: tnpn.2610@gmail.com
+3123411263, Nguyễn Minh Tài, sđt: 0941157064, email: diemchau0166@gmail.com
 
 TÀI KHOẢN DEMO 4 PHÂN HỆ:
 
